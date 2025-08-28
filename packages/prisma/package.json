@@ -1,0 +1,32 @@
+{
+  "name": "prisma",
+  "version": "1.0.0",
+  "exports": {
+    ".": {
+      "import": "./generated/client/client.js",
+      "require": "./generated/client/client.js",
+      "types": "./generated/client/client.js"
+    }
+  },
+  "types": "./generated/client/index.d.ts",
+  "main": "./generated/client/client.js",
+  "type": "module",
+  "scripts": {
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "prisma": "^6.15.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@prisma/client": "6.15.0"
+  }
+}

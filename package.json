@@ -1,0 +1,22 @@
+{
+  "private": true,
+  "name": "trancendence",
+  "scripts": {
+    "db:push": "turbo run db:push",
+    "db:studio": "turbo run db:studio",
+    "db:generate": "turbo run db:generate",
+    "build": "turbo run build",
+    "dev": "turbo run dev"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^9.0.0",
+    "turbo": "^2.5.5"
+  },
+  "packageManager": "pnpm@10.13.1",
+  "pnpm": {
+    "overrides": {}
+  },
+  "dependencies": {
+    "fastify": "^5.5.0"
+  }
+}
