@@ -23,7 +23,7 @@
 		"dev": {
 			"dependsOn": ["^db:generate", "^db:push"],
 			"inputs": ["$TURBO_DEFAULT$", ".env"],
-			"env": ["DATABASE_URL", "API_URL", "API_PORT", "SOCKET_URL", "SOCKET_PORT"],
+			"env": ["DATABASE_URL", "API_URL", "API_PORT", "SOCKET_URL", "SOCKET_PORT"]
 		},
 		"lint": {}
 	}
