@@ -31,6 +31,8 @@ I use the plugin 'autoenv' in OhMyZSH for loading the .env
 ## OhMyZSH
 `sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"`
 
+Add autoenv to the plugin line i the ~/.zshrc
+
 ## AutoEnv
 `git clone https://github.com/inishchith/autoenv ~/.autoenv`
 
