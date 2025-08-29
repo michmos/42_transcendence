@@ -12,11 +12,11 @@ echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.zshrc
 
 # Install NVM (Virtual Node Enviroment) to use Node 24
 
-# Get the Node Virtual Manager
+## Get the Node Virtual Manager
 `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash`
 `source ~/.nvm/nvm.sh`
 
-# Install Node24
+## Install Node24
 `nvm install 24`
 `nvm use 24`
 
@@ -24,7 +24,6 @@ echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.zshrc
 `nvm alias default 24`
 
 # Enviroment
-
 Use a .env loader
 I use the plugin 'autoenv' in OhMyZSH for loading the .env
 
