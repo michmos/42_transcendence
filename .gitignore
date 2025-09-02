@@ -1,3 +1,4 @@
+
 node_modules
 .turbo
 dist
@@ -10,3 +11,6 @@ packages/prisma/dev.db
 packages/prisma/generated
 package-lock.json
 apps/web/out
+*secrets*
+*subject*
+AGENTS.md
