@@ -37,6 +37,13 @@
 			"cache": false,
 			"persistent": true
 		},
-		"lint": {}
+		"lint": {
+			"inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
+			"cache": true
+		},
+		"lint:fix": {
+			"inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
+			"cache": false
+		}
 	}
 }

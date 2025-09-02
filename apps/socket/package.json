@@ -9,7 +9,9 @@
     "build": "tsc",
     "dev": "tsx watch src/app.ts",
     "run": "tsx watch src/app.ts",
-    "preview": "node dist/app.js"
+    "preview": "node dist/app.js",
+	"lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix"
   },
   "keywords": [],
   "author": "",

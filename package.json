@@ -7,11 +7,20 @@
     "db:generate": "turbo run db:generate",
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "preview": "turbo run preview"
+    "preview": "turbo run preview",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix"
   },
   "devDependencies": {
+    "@eslint/js": "^9.34.0",
     "dotenv-cli": "^9.0.0",
-    "turbo": "^2.5.5"
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0"
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {

@@ -8,7 +8,9 @@
     "build": "vite build",
     "dev": "vite",
     "preview": "vite preview",
-    "run": "tsx watch src/app.ts"
+    "run": "tsx watch src/app.ts",
+	"lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix"
   },
   "keywords": [],
   "author": "",
