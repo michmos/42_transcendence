@@ -1,0 +1,104 @@
+/* Info page specific styles */
+/* These styles override the default styles from src/index.css when the info route is loaded */
+.info-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 15px;
+  margin: 20px 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.info-container h1 {
+  color: #fff;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.info-content {
+  background: rgba(255,255,255,0.1);
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  backdrop-filter: blur(10px);
+}
+
+.info-details {
+  background: rgba(255,255,255,0.15);
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border-left: 4px solid #fff;
+}
+
+.info-details h3 {
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.info-details p {
+  margin: 8px 0;
+  font-size: 1.1rem;
+}
+
+.info-details span {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.info-actions {
+  margin: 25px 0;
+}
+
+.info-actions h3 {
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.info-btn {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 2px solid rgba(255,255,255,0.3);
+  padding: 12px 24px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 5px 10px 5px 0;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.info-btn:hover {
+  background: rgba(255,255,255,0.3);
+  border-color: rgba(255,255,255,0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.info-nav {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.info-nav a {
+  color: #fff;
+  text-decoration: none;
+  margin: 0 15px;
+  padding: 10px 20px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.info-nav a:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
+  text-decoration: none;
+}

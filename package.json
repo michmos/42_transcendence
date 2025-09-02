@@ -6,7 +6,8 @@
     "db:studio": "turbo run db:studio",
     "db:generate": "turbo run db:generate",
     "build": "turbo run build",
-    "dev": "turbo run dev"
+    "dev": "turbo run dev",
+    "preview": "turbo run preview"
   },
   "devDependencies": {
     "dotenv-cli": "^9.0.0",
@@ -17,7 +18,6 @@
     "overrides": {}
   },
   "dependencies": {
-    "fastify": "^5.5.0",
-    "pnpm": "^10.15.0"
+    "fastify": "^5.5.0"
   }
 }

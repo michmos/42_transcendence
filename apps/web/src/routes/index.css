@@ -1,0 +1,29 @@
+/* Root page specific styles */
+.root-page {
+  background-color: #f0f8ff;
+}
+
+.root-page h1 {
+  color: #2a7ae2;
+  text-align: center;
+}
+
+.root-page nav {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.root-page button {
+  margin: 5px;
+  padding: 10px 20px;
+  background: linear-gradient(45deg, #2a7ae2, #174ea6);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.root-page button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
