@@ -30,7 +30,7 @@ export default async function (
             } catch (err) {
                 console.error(err);
                 reply.status(500);
-                return 
+                return;
             }
         }
     );
