@@ -10,8 +10,8 @@
     "dev": "tsx watch src/app.ts",
     "run": "tsx watch src/app.ts",
     "preview": "node dist/app.js",
-	"lint": "eslint . --ext .ts,.js",
-    "lint:fix": "eslint . --ext .ts,.js --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "",
