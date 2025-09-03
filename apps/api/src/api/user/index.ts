@@ -1,56 +1,49 @@
-import type { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify';
-import db, { type User } from '../../plugins/Database.js';
+import type { FastifyInstance } from 'fastify';
 
-export default async function (
-    app: FastifyInstance,
-    opts: FastifyPluginOptions
-): Promise<void> {
-    app.get(
-        '/',
-        async function (
-            request: FastifyRequest,
-            reply: FastifyReply
-        ): Promise<{ message: typeof db.getAllUsers extends () => Promise<infer T> ? T : unknown }> {
-            const users = await db.getAllUsers();
-            return { message: users };
-        }
-    );
+import db, { type User } from '../../plugins/database/index.js';
 
-    app.post(
-        '/',
-        async function (
-            request: FastifyRequest,
-            reply: FastifyReply
-        ): Promise<User | Error | void> {
-            try {
-                await db.addUser("test@example.com", "testuser").then((user) => {
-                    reply.status(201);
-                    return user;
-                });
-            } catch (err) {
-                console.error(err);
-                reply.status(500);
-                return;
-            }
-        }
-    );
+export default function (app: FastifyInstance): void {
+  app.get('/', async function (): Promise<User[] | Error> {
+    console.log('Fetching all users from database...');
+    const users = await db.getAllUsers();
+    if (users instanceof Error) {
+      return new Error('Failed to fetch users');
+    }
+    return users;
+  });
 
-    app.delete(
-        '/',
-        async function (
-            request: FastifyRequest,
-            reply: FastifyReply
-        ): Promise<Error | void> {
-            try {
-                await db.removeUser("test@example.com").then((user) => {
-                    reply.status(201);
-                    return user;
-                });
-            } catch (err) {
-                console.error(err);
-                reply.status(500);
-                return;
-            }
-        }
+  app.get('/:uuid', async function (request): Promise<User | Error> {
+    const { uuid } = request.params as { uuid: string };
+    const user = await db.getUser(uuid);
+    if (!user) {
+      return new Error('User not found');
+    }
+    return user;
+  });
+
+  app.post('/', async function (request): Promise<User | Error> {
+    const { email } = request.body as {
+      email: string;
+    };
+    if (!email) {
+      return new Error('Email and username are required');
+    }
+    const user = await db.addUser(
+      email,
+      email.split('@')[0] || 'user' + Math.floor(Math.random() * 1000)
     );
+    return user;
+  });
+
+  app.delete('/', async function (request): Promise<User | Error> {
+    const { uuid } = request.body as { uuid: string };
+    if (!uuid) {
+      return new Error('UUID is required');
+    }
+    const user = await db.removeUser(uuid);
+    if (!user) {
+      return new Error('User not found');
+    }
+    return user;
+  });
 }

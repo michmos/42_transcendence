@@ -1,5 +1,3 @@
 packages:
-  - "packages/prisma"
   - "apps/*"
-
-  
+  - "packages/*"

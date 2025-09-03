@@ -25,5 +25,14 @@ export default defineConfig(
     rules: {
       'prettier/prettier': 'error',
     },
+  },
+  {
+    ignores: [
+      '**/dist/',
+      '**/node_modules/',
+      '**/build/',
+      '**/out',
+      '**/generated/**',
+    ],
   }
 );
