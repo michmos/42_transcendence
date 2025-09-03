@@ -1,0 +1,12 @@
+# security.txt for the 42_transcendence project
+# Reporting security vulnerabilities via GitHub Issues
+
+Contact: https://github.com/michmos/42_transcendence/issues
+Expires: 2025-12-01T00:00:00Z
+Policy: https://github.com/michmos/42_transcendence/blob/main/SECURITY.md
+Preferred-Languages: en
+
+# Optional: point to an encryption key (if you maintain one)
+# Encryption: https://github.com/michmos/42_transcendence/raw/main/pgp-key.txt
+# Optional: acknowledgments page (if you plan to thank researchers)
+# Acknowledgments: https://github.com/michmos/42_transcendence/blob/main/SECURITY_ACKNOWLEDGMENTS.md
