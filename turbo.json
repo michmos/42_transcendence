@@ -3,12 +3,12 @@
 	"globalDependencies": [".env"],
 	"tasks": {
 		"db:generate": {
-			"inputs" : ["$TURBO_DEFAULT$", ".env"],
+			"inputs" : ["$TURBO_DEFAULT$"],
 			"env": ["DATABASE_URL"],
 			"cache": true
 		},
 		"db:push": {
-			"inputs" : ["$TURBO_DEFAULT$", ".env"],
+			"inputs" : ["$TURBO_DEFAULT$"],
 			"env": ["DATABASE_URL"],
 			"cache": true
 		},
@@ -17,12 +17,12 @@
 		},
 		"build": {
 			"dependsOn": ["^db:generate"],
-			"inputs": ["$TURBO_DEFAULT$", ".env"],
+			"inputs": ["$TURBO_DEFAULT$"],
 			"outputs": ["dist/**", "out/**"]
 		},
 		"dev": {
 			"dependsOn": ["^db:generate", "^db:push"],
-			"inputs": ["$TURBO_DEFAULT$", ".env"],
+			"inputs": ["$TURBO_DEFAULT$"],
 			"env": ["DATABASE_URL", "API_URL", "API_PORT", "SOCKET_URL", "SOCKET_PORT", "VITE_PORT"],
 			"cache": false,
 			"persistent": true
