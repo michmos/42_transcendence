@@ -1,0 +1,25 @@
+/* About page specific styles */
+/* These styles override the default styles from src/index.css when the about route is loaded */
+/* The CSS is dynamically injected after the main CSS to ensure proper precedence */
+.about-container {
+  background-color: #0088ff;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.about-nav {
+  background-color: #4a90e2;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.about-nav a {
+  color: white;
+  text-decoration: none;
+}
+
+.about-nav a:hover {
+  text-decoration: underline;
+}

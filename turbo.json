@@ -1,0 +1,42 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"globalDependencies": [".env"],
+	"tasks": {
+		"db:generate": {
+			"inputs" : ["$TURBO_DEFAULT$", ".env"],
+			"env": ["DATABASE_URL"],
+			"cache": true
+		},
+		"db:push": {
+			"inputs" : ["$TURBO_DEFAULT$", ".env"],
+			"env": ["DATABASE_URL"],
+			"cache": true
+		},
+		"db:studio": {
+			"env": ["DATABASE_URL"]
+		},
+		"build": {
+			"dependsOn": ["^db:generate"],
+			"inputs": ["$TURBO_DEFAULT$", ".env"],
+			"outputs": ["dist/**", "out/**"]
+		},
+		"dev": {
+			"dependsOn": ["^db:generate", "^db:push"],
+			"inputs": ["$TURBO_DEFAULT$", ".env"],
+			"env": ["DATABASE_URL", "API_URL", "API_PORT", "SOCKET_URL", "SOCKET_PORT", "VITE_PORT"],
+			"cache": false,
+			"persistent": true
+		},
+		"docker": {
+			"dependsOn": ["^build"]
+		},
+		"preview": {
+			"dependsOn": ["build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env"],
+			"env": ["DATABASE_URL", "API_URL", "API_PORT", "SOCKET_URL", "SOCKET_PORT", "VITE_PORT"],
+			"cache": false,
+			"persistent": true
+		},
+		"lint": {}
+	}
+}

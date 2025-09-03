@@ -1,0 +1,24 @@
+<div class="info-container">
+  <h1>Info Page</h1>
+  <div class="info-content">
+    <h2>Dynamic Route Demo</h2>
+    <p>This is a dynamic info page!</p>
+    <div class="info-details">
+      <h3>Route Information:</h3>
+      <p><strong>Current URL:</strong> <span id="current-url"></span></p>
+      <p><strong>Route ID:</strong> <span id="route-id"></span></p>
+      <p><strong>Loaded at:</strong> <span id="load-time"></span></p>
+    </div>
+    <div class="info-actions">
+      <h3>Demo Actions:</h3>
+      <button id="showIdBtn" class="info-btn">Show ID Alert</button>
+      <button id="changeIdBtn" class="info-btn">Navigate to ID 456</button>
+    </div>
+  </div>
+  <nav class="info-nav">
+    <a href="/" data-link>← Back to Home</a>
+    <a href="/about" data-link>About Page</a>
+    <a href="/info/123" data-link>Info Demo (ID: 123)</a>
+    <a href="/info/789" data-link>Info Demo (ID: 789)</a>
+  </nav>
+</div>
