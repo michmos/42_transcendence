@@ -1,4 +1,3 @@
-
 node_modules
 .turbo
 dist
@@ -7,8 +6,6 @@ dist
 .env.local
 .env.*.local
 pnpm-lock.yaml
-packages/prisma/dev.db
-packages/prisma/generated
 package-lock.json
 apps/web/out
 *secrets*
