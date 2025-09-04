@@ -24,11 +24,6 @@
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {
-    "overrides": {},
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "prisma"
-    ]
+    "overrides": {}
   }
 }

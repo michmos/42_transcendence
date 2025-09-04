@@ -19,13 +19,12 @@ const start = async () => {
       indexPattern: /^no$/i,
     });
 
-    // API root route
+    // Load all API routes defined in routes
     app.register(AutoLoad, {
-      dir: path.join(__dirname, 'api'),
+      dir: path.join(__dirname, 'routes'),
       dirNameRoutePrefix: true,
     });
 
-    console.info('🔧 API server binding to host: 0.0.0.0 port:', env.API_PORT);
     await app.listen({ port: env.API_PORT, host: '0.0.0.0' });
 
     console.info(

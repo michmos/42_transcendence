@@ -22,7 +22,7 @@
     "@fastify/cors": "^11.1.0",
     "@fastify/websocket": "^11.2.0",
     "@t3-oss/env-core": "^0.13.8",
-    "db": "../../packages/prisma",
+    "db": "../../packages/database",
     "fastify": "^5.5.0",
     "fastify-plugin": "^5.0.1",
     "zod": "^4.1.5"

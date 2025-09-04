@@ -1,15 +1,6 @@
 {
   "name": "prisma",
   "version": "1.0.0",
-  "exports": {
-    ".": {
-      "import": "./generated/client/client.js",
-      "require": "./generated/client/client.js",
-      "types": "./generated/client/client.js"
-    }
-  },
-  "types": "./generated/client/index.d.ts",
-  "main": "./generated/client/client.js",
   "type": "module",
   "scripts": {
     "db:push": "prisma db push",
