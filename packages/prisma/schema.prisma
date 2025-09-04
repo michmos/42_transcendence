@@ -14,6 +14,12 @@ enum userRole {
   MEMBER
 }
 
+
+enum groupType {
+  FRIENDS
+  GAME
+}
+
 model oAuthProvider {
   // Meta
   uuid              String   @id @default(uuid())
@@ -61,7 +67,8 @@ model Group {
   // Data
   name      String    @unique
   ownerId   String
-
+  type      groupType @default(FRIENDS)
+  
   // Relations
   users     User[]    @relation("UserGroups")
   owner     User      @relation("UserOwnedGroups", fields: [ownerId], references: [uuid])
