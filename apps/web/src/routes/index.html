@@ -1,25 +1,40 @@
-<h1>User Management Dashboard</h1>
-<nav class="main-menu">
-  <div class="menu-section">
-    <h3>Pages</h3>
-    <a href="/about" data-link>About</a>
+<div class="root-page">
+  <h1>Demo Page</h1>
+  <nav class="main-menu">
+    <div class="menu-section">
+      <h3>Pages</h3>
+      <a href="/socket" data-link>Socket Demo</a>
+    </div>
+    <div class="menu-section">
+      <h3>Info Demos</h3>
+      <a href="/info/123" data-link>Demo (ID: 123)</a>
+      <a href="/info/456" data-link>Demo (ID: 456)</a>
+      <a href="/info/test-page" data-link>Demo (test-page)</a>
+    </div>
+  </nav>
+
+  <button id="makeUserBtn">Generate User</button>
+  <br />
+  <div id="userContainer">
+    <h2>Users:</h2>
+    <div class="user-list-component">
+      <div class="users-table-container">
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- User rows will be dynamically inserted here -->
+          </tbody>
+        </table>
+        <div id="errorMessage" style="display: none; color: red;"></div>
+        <!-- Table will be dynamically generated here -->
+      </div>
+    </div>
   </div>
-  <div class="menu-section">
-    <h3>Info Demos</h3>
-    <a href="/info/123" data-link>Demo (ID: 123)</a>
-    <a href="/info/456" data-link>Demo (ID: 456)</a>
-    <a href="/info/test-page" data-link>Demo (test-page)</a>
-  </div>
-  <div class="menu-section">
-    <h3>User Profiles</h3>
-    <a href="/user/john" data-link>John</a>
-    <a href="/user/jane" data-link>Jane</a>
-    <a href="/user/admin" data-link>Admin</a>
-  </div>
-</nav>
-<button id="makeUserBtn">Generate User</button>
-<br />
-<div id="userContainer">
-  <h2>Users:</h2>
-  <UserList id="main-userlist"></UserList>
 </div>

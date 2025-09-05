@@ -1,12 +1,17 @@
-/* Info page specific styles */
+/* Info page specific styles - Full Screen Vibrant Teal Theme */
 /* These styles override the default styles from src/index.css when the info route is loaded */
+body {
+  background: linear-gradient(135deg, #00d4aa 0%, #00b4db 100%) !important;
+  min-height: 100vh;
+}
+
 .info-container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: transparent;
   color: white;
   padding: 30px;
   border-radius: 15px;
   margin: 20px 0;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  min-height: 80vh;
 }
 
 .info-container h1 {
