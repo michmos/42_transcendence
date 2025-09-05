@@ -11,9 +11,6 @@
     "moduleResolution": "bundler",
     "types": ["vite/client", "node"],
     "baseUrl": ".",
-    "paths": {
-      "types": ["../../packages/database/generated/client/client.d.ts"]
-    },
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -45,6 +42,10 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "include": ["src/**/*", "vite.config.ts"],
+  "include": [
+    "src/**/*",
+    "src/app.ts",
+    "vite.config.ts"
+  ],
   "exclude": ["dist", "out"]
 }

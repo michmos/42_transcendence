@@ -1,11 +1,16 @@
-/* User profile page specific styles */
+/* User profile page specific styles - Full Screen Warm Coral Theme */
+body {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%) !important;
+  min-height: 100vh;
+}
+
 .user-container {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  background: transparent;
   color: white;
   padding: 30px;
   border-radius: 15px;
   margin: 20px 0;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  min-height: 80vh;
 }
 
 .user-container h1 {

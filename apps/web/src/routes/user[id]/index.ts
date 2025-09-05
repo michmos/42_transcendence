@@ -1,111 +1,85 @@
-import {
-  getUsers,
-  generateUser,
-  deleteUser,
-} from '../../plugins/fetch/index.js';
+import API from '../../plugins/api/index.js';
 
-interface RouteParameters {
-  params: string[];
-  path: string;
+// Declare the global routeParams variable that will be injected by the router
+declare global {
+  interface Window {
+    routeParams?: { id: string };
+    navigateToRoute?: (path: string) => void;
+  }
 }
 
-// User profile page specific TypeScript functionality
-console.log('User profile page TypeScript loaded!');
+export function initRoute() {
+  // Get the ID from the route parameters that were injected by the router
+  const routeParams = window.routeParams;
+  const userId = routeParams?.id || 'unknown';
 
-// Route initialization function - called by the dynamic route loader with parameters
-export default function UserRoute(params: RouteParameters) {
-  console.log('User route parameters:', params);
-
-  // Extract user ID from params
-  const userId = params.params[0] || 'unknown';
-
-  document.getElementById('get-users')?.addEventListener('click', async () => {
-    try {
-      await getUsers();
-      alert('Users loaded in the list below!');
-    } catch (error) {
-      console.error('Error getting users:', error);
-      alert('Failed to get users');
+  // If no valid userId, show error
+  if (!routeParams?.id || userId === 'unknown') {
+    console.error('❌ No valid user ID found in route parameters');
+    const userDetailsContainer = document.getElementById('userDetails');
+    if (userDetailsContainer) {
+      userDetailsContainer.innerHTML = `
+        <h2>Error</h2>
+        <p>No valid user ID provided.</p>
+        <a href="/" data-link>← Back to Home</a>
+      `;
     }
-  });
+    return;
+  }
 
-  document
-    .getElementById('create-user')
-    ?.addEventListener('click', async () => {
-      try {
-        await generateUser();
-        alert('New user created and list updated!');
-      } catch (error) {
-        console.error('Error creating user:', error);
-        alert('Failed to create user');
-      }
-    });
+  // Small delay to ensure DOM is fully ready
+  setTimeout(async () => {
+    console.log(`🌐 Fetching user data for ID: ${userId}`);
 
-  document
-    .getElementById('delete-user')
-    ?.addEventListener('click', async () => {
-      try {
-        await deleteUser(userId);
-        alert(`User ${userId} deleted!`);
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Failed to delete user');
-      }
-    });
+    // Fetch and display user details
+    const user = await API.getUserById(userId);
+    if (!user) {
+      console.error(`❌ User with ID ${userId} not found`);
+      return alert(`User with ID ${userId} not found.`);
+    }
 
-  // Display user information
-  displayUserInfo({ id: userId });
+    console.log('✅ User data loaded:', user);
 
-  // Attach event listeners
-  attachUserEventListeners({ id: userId });
-}
-
-// Function to display user information
-function displayUserInfo(params?: { id: string }) {
-  const currentUrl = window.location.pathname;
-  const userId = params?.id || 'No user ID provided';
-  const loadTime = new Date().toLocaleTimeString();
-
-  // Update the user display elements
-  const currentUrlElement = document.getElementById('current-url');
-  const userIdElement = document.getElementById('user-id');
-  const loadTimeElement = document.getElementById('load-time');
-
-  if (currentUrlElement) currentUrlElement.textContent = currentUrl;
-  if (userIdElement) userIdElement.textContent = userId;
-  if (loadTimeElement) loadTimeElement.textContent = loadTime;
-
-  console.log('User Info Display Updated:', { currentUrl, userId, loadTime });
+    const userDetailsContainer = document.getElementById('userDetails');
+    if (userDetailsContainer) {
+      userDetailsContainer.innerHTML = `
+        <h2>User Details</h2>
+        <p><strong>UUID:</strong> ${user.uuid}</p>
+        <p><strong>Username:</strong> ${user.username}</p>
+        <p><strong>Email:</strong> ${user.email}</p>
+        <button id="deleteUserBtn">Delete User</button>
+      `;
+      // Re-attach event listeners after injecting HTML
+      attachUserEventListeners(userId);
+      console.log('✅ User interface setup complete');
+    }
+  }, 100); // Increased delay to ensure everything is ready
 }
 
 // Helper function to attach event listeners for user page
-function attachUserEventListeners(params?: { id: string }) {
+function attachUserEventListeners(userId: string) {
   // Use event delegation for dynamically loaded content
   const appContainer = document.getElementById('app') || document.body;
 
   // Show user details button
-  const showUserBtn = appContainer.querySelector('#showUserBtn') as HTMLElement;
-  if (showUserBtn) {
-    showUserBtn.onclick = (e) => {
+  const deleteUserBtn = appContainer.querySelector(
+    '#deleteUserBtn'
+  ) as HTMLElement;
+  if (deleteUserBtn) {
+    deleteUserBtn.onclick = (e) => {
       e.preventDefault();
-      const userId = params?.id || 'Unknown';
-      alert(
-        `User Profile Details:\n\nUser ID: ${userId}\nURL: ${window.location.pathname}\nLoaded: ${new Date().toLocaleString()}`
-      );
+      API.deleteUser(userId)
+        .then(() => {
+          if (window.navigateToRoute) {
+            window.navigateToRoute('/');
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Error deleting user:', error);
+          alert('Failed to delete user. Please try again.');
+        });
     };
   }
 
-  // Edit user button
-  const editUserBtn = appContainer.querySelector('#editUserBtn') as HTMLElement;
-  if (editUserBtn) {
-    editUserBtn.onclick = (e) => {
-      e.preventDefault();
-      const userId = params?.id || 'Unknown';
-      alert(
-        `Edit User Demo:\n\nThis would open an edit form for user: ${userId}\n\n(This is just a demo - no actual editing functionality)`
-      );
-    };
-  }
-
-  console.log('User page event listeners attached for user:', params?.id);
+  console.log('User page event listeners attached for user:', userId);
 }
