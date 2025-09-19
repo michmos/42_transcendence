@@ -1,0 +1,43 @@
+name: Build and Health Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.x'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Setup environment
+      run: cp .env.example .env
+
+    # populates environment with variables defined in .env
+    - name: Load environment variables
+      uses: falti/dotenv-action@v1.1.4
+      with:
+        path: .env
+
+    - name: Prisma - Generate client
+      run: pnpm db:generate
+
+    - name: Prisma - update database
+      run: pnpm db:push
+
+    - name: Build all packages
+      run: pnpm build
