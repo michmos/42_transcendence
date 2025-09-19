@@ -24,6 +24,7 @@ try {
   // Add static routes
   router.add('/', '/routes');
   router.add('/socket', '/routes/socket');
+  router.add('/game', '/routes/game');
 
   // Add dynamic routes using regex with named groups
   router.add(/^\/info\/(?<id>[^/]+)$/, '/routes/info[id]');
