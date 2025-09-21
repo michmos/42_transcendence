@@ -27,8 +27,12 @@
     "fastify-oauth": "../../packages/fastify-oauth"
   },
   "devDependencies": {
-    "db": "../../packages/database",
+    "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^24.3.0",
+    "autoprefixer": "^10.4.21",
+    "db": "../../packages/database",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.13",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vite": "^7.1.4",
