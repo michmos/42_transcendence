@@ -10,7 +10,7 @@
     "preview": "turbo run preview",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
-	"test": "turbo test"
+	"test": "turbo run test"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
