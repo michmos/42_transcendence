@@ -24,14 +24,14 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Setup environment
-      run: cp .env.example .env
-
-    # populates environment with variables defined in .env
-    - name: Load environment variables
-      uses: falti/dotenv-action@v1.1.4
+    # populates environment with variables defined in .env.example
+        # mode: add on to .env
+        # load-mode: strict -> fail if file not found
+    - name: Load .env file
+      uses: xom9ikk/dotenv@v2.3.0
       with:
-        path: .env
+        mode: example
+        load-mode: strict
 
     - name: Prisma - Generate client
       run: pnpm db:generate
