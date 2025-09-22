@@ -1,4 +1,4 @@
-name: Build and Health Check
+name: build check
 
 on:
   push:
