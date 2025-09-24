@@ -20,6 +20,7 @@
   "packageManager": "pnpm@10.13.1",
   "dependencies": {
     "@fastify/autoload": "^6.3.1",
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.1.0",
     "@fastify/swagger": "^9.5.2",
     "@fastify/swagger-ui": "^5.2.3",
@@ -28,9 +29,12 @@
     "db": "../../packages/database",
     "fastify": "^5.5.0",
     "fastify-plugin": "^5.0.1",
+    "googleapis": "^160.0.0",
+    "jsonwebtoken": "^9.0.2",
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.3.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"

@@ -6,6 +6,14 @@ export const env = createEnv({
     API_URL: z.string().default('http://localhost'),
     API_PORT: z.coerce.number().default(3002),
     DATABASE_URL: z.string().optional(),
+
+    FRONTEND_URL: z.string().nonempty('FRONTEND_URL is required'),
+    GOOGLE_CLIENT_ID: z.string().nonempty('GOOGLE_CLIENT_ID is required'),
+    GOOGLE_CLIENT_SECRET: z
+      .string()
+      .nonempty('GOOGLE_CLIENT_SECRET is required'),
+    GOOGLE_REDIRECT_URL: z.string().nonempty('GOOGLE_REDIRECT_URL is required'),
+    JWT_SECRET: z.string().nonempty('JWT_SECRET is required'),
   },
 
   runtimeEnv: process.env,
