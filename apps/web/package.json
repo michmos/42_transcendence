@@ -1,4 +1,4 @@
- {
+{
   "name": "web-demo",
   "version": "1.0.0",
   "description": "",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "db": "../../packages/database",
+    "auth": "../../packages/auth",
     "@types/node": "^24.3.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",

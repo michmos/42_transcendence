@@ -1,10 +1,10 @@
-interface oAuthProvider {
+interface OAuthProvider {
   name: string;
   buttonUri: string;
 }
 
 // Get the Google login URL from the backend
-async function fetchGoogleAuthUrl(url: string): Promise<string | null> {
+async function fetchAuthUrl(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -61,7 +61,7 @@ async function initializeLoginButtons() {
 
   // Check if user is already logged in
   const user = await fetchUserSession();
-  const providers = (await getAuthProviders()) as oAuthProvider[] | null;
+  const providers = (await getAuthProviders()) as OAuthProvider[] | null;
 
   if (!providers || providers.length === 0) {
     console.error('❌ No authentication providers configured');
@@ -102,7 +102,7 @@ async function initializeLoginButtons() {
     } else {
       button.textContent = `Login with ${provider.name}`;
       button.addEventListener('click', async () => {
-        const loginUrl = await fetchGoogleAuthUrl(provider.buttonUri);
+        const loginUrl = await fetchAuthUrl(provider.buttonUri);
         if (loginUrl) {
           // Redirect to Google login
           window.location.href = loginUrl;
@@ -123,40 +123,6 @@ async function initializeLoginButtons() {
   for (const provider of providers) {
     addButtonForProvider(provider, buttonContainer, user);
   }
-
-  // // Update button text based on login state
-  // if (user) {
-  //   authContainer.textContent = 'Logout ' + user;
-  // } else {
-  //   authContainer.textContent = 'Login with Google';
-  // }
-
-  // // Add click event listener to the button
-  // authContainer.addEventListener('click', async () => {
-  //   if (user) {
-  //     await fetch('/api/googleAuth/logout', {
-  //       method: 'GET',
-  //       credentials: 'include',
-  //     })
-  //       .then(() => {
-  //         window.location.reload();
-  //       })
-  //       .catch((error) => {
-  //         console.error('❌ Logout failed:', error);
-  //         alert('Logout failed. Please try again.');
-  //       });
-  //     return;
-  //   }
-
-  //   const loginUrl = await fetchGoogleAuthUrl();
-  //   if (loginUrl) {
-  //     // Redirect to Google login
-  //     window.location.href = loginUrl;
-  //   } else {
-  //     console.error('❌ Failed to get Google login URL');
-  //     alert('Failed to get Google login URL. Please try again later.');
-  //   }
-  // });
 }
 
-export { initializeLoginButtons };
+export default initializeLoginButtons;

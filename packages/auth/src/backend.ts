@@ -26,21 +26,21 @@ import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
 import jwt from 'jsonwebtoken';
 import fastifyCookie from '@fastify/cookie';
 
-interface userType {
+interface UserType {
   email: string;
   name: string;
   picture: string;
 }
 
-interface sessionCookie {
+interface SessionCookie {
   refreshToken: string;
   provider: string;
-  user: userType;
+  user: UserType;
   expires_at: Date;
   access_token: string;
 }
 
-interface oAuthProviderOptions {
+interface OAuthProviderOptions {
   client: {
     id: string;
     secret: string;
@@ -52,7 +52,7 @@ interface oAuthProviderOptions {
   };
 }
 
-interface oAuthProvider {
+interface OAuthProvider {
   name: string;
   scopes: string[];
   redirectUri: string;
@@ -60,7 +60,7 @@ interface oAuthProvider {
   oauth2Client: AuthorizationCode;
 }
 
-interface authorizeUrlPayload {
+interface AuthorizeUrlPayload {
   redirect_uri: string;
   scope: string;
   access_type: 'offline';
@@ -70,7 +70,7 @@ interface authorizeUrlPayload {
 class OAuth {
   private app: FastifyInstance;
   private callbacks: Record<string, (args: unknown) => unknown>;
-  private oAuthProviders: oAuthProvider[] = [];
+  private oAuthProviders: OAuthProvider[] = [];
   private redirectUri: string;
   private jwtSecret: string;
 
@@ -84,7 +84,7 @@ class OAuth {
   }
 
   private async getUserInformation(
-    provider: oAuthProvider,
+    provider: OAuthProvider,
     accessToken: AccessToken
   ) {
     if (accessToken.token.id_token) {
@@ -99,7 +99,7 @@ class OAuth {
   }
 
   private async generateJWTToken(
-    user: userType,
+    user: UserType,
     refreshToken: string,
     name: string
   ) {
@@ -120,7 +120,7 @@ class OAuth {
       if (!decoded || typeof decoded !== 'object') {
         throw new Error('Invalid ID token structure');
       }
-      return decoded as unknown as userType;
+      return decoded as unknown as UserType;
     } catch (error) {
       throw new Error('Failed to decode ID token: ' + (error as Error).message);
     }
@@ -167,7 +167,7 @@ class OAuth {
       email: userData.email,
       name: userData.name || userData.login,
       picture: userData.avatar_url,
-    } as userType;
+    } as UserType;
   }
 
   // Fetch user info from 42 API
@@ -189,11 +189,11 @@ class OAuth {
       email: userData.email,
       name: userData.usual_full_name,
       picture: userData.image.link,
-    } as userType;
+    } as UserType;
   }
 
   private async generateAuthUrl(
-    provider: oAuthProvider,
+    provider: OAuthProvider,
     scopes: string[]
   ): Promise<string> {
     // if (provider.name === '42') {
@@ -208,10 +208,10 @@ class OAuth {
       scope: scopes.join(' '),
       access_type: 'offline',
       prompt: 'consent',
-    } as authorizeUrlPayload);
+    } as AuthorizeUrlPayload);
   }
 
-  addProvider(name: string, scopes: string[], options: oAuthProviderOptions) {
+  addProvider(name: string, scopes: string[], options: OAuthProviderOptions) {
     console.info(`Adding OAuth provider: ${name}`);
 
     const provider = {
@@ -289,13 +289,13 @@ class OAuth {
 
   removeProvider(name: string) {
     this.oAuthProviders = this.oAuthProviders.filter(
-      (provider: oAuthProvider) => provider.name !== name
+      (provider: OAuthProvider) => provider.name !== name
     );
   }
 
   getProvider(name: string) {
     return this.oAuthProviders.find(
-      (provider: oAuthProvider) => provider.name === name
+      (provider: OAuthProvider) => provider.name === name
     );
   }
 
@@ -320,7 +320,7 @@ class OAuth {
       const decodedSession = jwt.verify(
         session,
         this.jwtSecret
-      ) as sessionCookie;
+      ) as SessionCookie;
 
       // Get provider from decoded.provider
       const provider = this.getProvider(decodedSession.provider);
@@ -391,7 +391,7 @@ class OAuth {
 }
 
 // Export a factory function that takes a FastifyInstance and returns a new OAuth instance
-export default function googleAuthPlugin(
+export default function Auth(
   app: FastifyInstance,
   redirectUri: string,
   jtwSecret: string
