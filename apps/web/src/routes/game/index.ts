@@ -1,5 +1,16 @@
+import { json } from 'zod';
+import { drawScore } from './score';
+
 const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
+
+localStorage
+
+let clientId = localStorage.getItem('transcendenceClientId');
+if (!clientId) {
+  clientId = (Math.random().toString(36).slice(2,10));
+  localStorage.setItem('transcendenceClientId', clientId);
+}
 
 const ballSize = 10;
 
@@ -9,33 +20,69 @@ let serverState = {
 	ballX: 0,
 	ballY: 0,
 	ballSpeedX: 0,
+	ballPaused: false,
 	leftY: 0,
 	rightY: 0,
+	gamePaused: false,
+	leftScore: 0,
+	rightScore: 0,
  };
 
-const ws = new WebSocket("ws://localhost:3001/");
+// const ws = new WebSocket("ws://10.11.4.4:3001/"); //Hardcoded network IP
+const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`);
+
+ws.onopen = () => {
+	ws.send(JSON.stringify({ type: "hello", clientId }))
+}
 
 ws.onmessage = (event) => {
-  serverState = JSON.parse(event.data);
-//   console.log(serverState);
-  draw();
+  const message = JSON.parse(event.data);
+  
+  // Only update serverState and draw if it's a state message
+  if (message.type === 'state') {
+    serverState = message;
+    draw();
+  }
+  
+  // Handle other message types if needed
+  if (message.type === 'id') {
+    console.log('Received client ID:', message.clientId);
+  }
 };
 
 function draw()
 {
+	// Safety check: ensure we have valid server state
+	if (typeof serverState.leftScore === 'undefined' || typeof serverState.rightScore === 'undefined') {
+		return;
+	}
+	
 	ctx.fillStyle = "black";
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+	
 	ctx.fillStyle = "white";
-	ctx.fillRect(serverState.ballX, serverState.ballY, ballSize, ballSize);
 
-	const dotHeight = 10;
-	const dotSpacing = 12;
-	for (let y = 0; y < canvas.height; y += dotHeight + dotSpacing) 
-		ctx.fillRect((canvas.width / 2) - 2, y, 2, dotHeight);
+	const dashHeight = 10;
+	const dashWidth = 2;
+	const dashSpacing = dashHeight + (dashHeight / 5);
+	for (let y = 0; y < canvas.height; y += dashHeight + dashSpacing) 
+		ctx.fillRect((canvas.width / 2) - (dashWidth / 2), y, dashWidth, dashHeight);
+
+	drawScore(serverState.leftScore.toString(), (canvas.width / 4), 60);
+	drawScore(serverState.rightScore.toString(), ((canvas.width * 3) / 4), 60);
 
 	ctx.fillRect(0, serverState.leftY, serverState.paddleWidth, serverState.paddleHeight);
 	ctx.fillRect(canvas.width - serverState.paddleWidth, serverState.rightY, serverState.paddleWidth, serverState.paddleHeight);
+
+	if (!serverState.ballPaused)
+		ctx.fillRect(serverState.ballX, serverState.ballY, ballSize, ballSize);
+
+	if (serverState.gamePaused){
+		ctx.fillStyle = "rgba(255, 255, 255)";
+		ctx.font = "48px Arial";
+		ctx.textAlign = "center";
+		ctx.fillText("PAUSED", (canvas.width / 2) + 2, (canvas.height / 2));
+	}
 }
 
 const keys: { [key: string]: boolean } = {};
@@ -53,13 +100,13 @@ document.addEventListener("keyup", (e) => {
 
 setInterval(() => {
 	if (keys.w)
-		ws.send(JSON.stringify({ left: "up"}));
+		ws.send(JSON.stringify({ type: "move", left: "up"}));
 	if (keys.s)
-		ws.send(JSON.stringify({ left: "down"}));
+		ws.send(JSON.stringify({ type: "move", left: "down"}));
 	if (keys.o)
-		ws.send(JSON.stringify({ right: "up"}));
+		ws.send(JSON.stringify({ type: "move", right: "up"}));
 	if (keys.l)
-		ws.send(JSON.stringify({ right: "down"}));
+		ws.send(JSON.stringify({ type: "move", right: "down"}));
 }, 1000 / 60);
 
 // const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
