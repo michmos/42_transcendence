@@ -12,7 +12,15 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: z
       .string()
       .nonempty('GOOGLE_CLIENT_SECRET is required'),
-    GOOGLE_REDIRECT_URL: z.string().nonempty('GOOGLE_REDIRECT_URL is required'),
+    FORTYTWO_CLIENT_ID: z.string().nonempty('FORTYTWO_CLIENT_ID is required'),
+    FORTYTWO_CLIENT_SECRET: z
+      .string()
+      .nonempty('FORTYTWO_CLIENT_SECRET is required'),
+    GITHUB_CLIENT_ID: z.string().nonempty('GITHUB_CLIENT_ID is required'),
+    GITHUB_CLIENT_SECRET: z
+      .string()
+      .nonempty('GITHUB_CLIENT_SECRET is required'),
+    REDIRECT_URL: z.string().nonempty('GOOGLE_REDIRECT_URL is required'),
     JWT_SECRET: z.string().nonempty('JWT_SECRET is required'),
   },
 

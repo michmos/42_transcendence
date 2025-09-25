@@ -1,6 +1,6 @@
 // Route initialization function - called by the dynamic route loader
 import { generateUserLogic, userTableLogic } from './userTable.js';
-import { setupGoogleAuthButton } from '../plugins/googleAuth/index.js';
+import { initializeLoginButtons } from '../plugins/auth/index.js';
 
 // Export initialization function that will be called when route loads
 export function initRoute() {
@@ -8,7 +8,7 @@ export function initRoute() {
 
   // Small delay to ensure DOM is fully ready
   setTimeout(() => {
-    setupGoogleAuthButton();
+    initializeLoginButtons();
     userTableLogic();
     generateUserLogic();
   }, 1);
