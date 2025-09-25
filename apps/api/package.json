@@ -27,6 +27,7 @@
     "@fastify/websocket": "^11.2.0",
     "@t3-oss/env-core": "^0.13.8",
     "db": "../../packages/database",
+    "auth": "../../packages/auth",
     "fastify": "^5.5.0",
     "fastify-plugin": "^5.0.1",
     "googleapis": "^160.0.0",

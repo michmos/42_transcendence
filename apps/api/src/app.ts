@@ -4,7 +4,7 @@ import path from 'path';
 import AutoLoad from '@fastify/autoload';
 import Fastify from 'fastify';
 
-import googleAuthPlugin from './plugins/auth/index.js';
+import Auth from 'auth/backend';
 
 const app = Fastify({ logger: { level: 'info' } });
 
@@ -26,8 +26,8 @@ const start = async () => {
     //   indexPattern: /^no$/i,
     // });
 
-    // Register the googleAuthPlugin and handle user updates via event or callback if supported
-    googleAuthPlugin(app, env.REDIRECT_URL, env.JWT_SECRET)
+    // Register the AuthPlugin and handle user updates via event or callback if supported
+    Auth(app, env.REDIRECT_URL, env.JWT_SECRET)
       .addProvider('google', ['openid', 'profile', 'email'], {
         client: {
           id: env.GOOGLE_CLIENT_ID,
