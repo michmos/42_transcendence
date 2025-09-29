@@ -7,8 +7,8 @@ export function initRoute() {
   console.log('🏠 Home route initializing...');
 
   // Small delay to ensure DOM is fully ready
-  setTimeout(() => {
-    auth();
+  setTimeout(async () => {
+    await auth();
     userTableLogic();
     generateUserLogic();
   }, 1);

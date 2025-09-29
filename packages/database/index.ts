@@ -21,6 +21,16 @@ class Database {
     return this.db.user.create({ data: { email, username } });
   }
 
+  public async upsertUser(
+    user: Partial<User> & { uuid: string }
+  ): Promise<User> {
+    return this.db.user.upsert({
+      where: { uuid: user.uuid },
+      update: user,
+      create: user as User,
+    });
+  }
+
   public async removeUser(uuid: string): Promise<User> {
     const user = await this.db.user.findUnique({ where: { uuid } });
     if (!user) throw new Error('User not found');

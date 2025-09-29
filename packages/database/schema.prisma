@@ -43,14 +43,12 @@ model User {
   updatedAt         DateTime  @updatedAt
 
   // Authentication
-  username          String    @unique
+  username          String
   email             String    @unique
   oAuthProviders    oAuthProvider[]
 
   // Profile
   avatar            String?
-  twoFactorEnabled  Boolean   @default(false)
-  twoFactorSecret   String?
   role              userRole  @default(MEMBER)
   
   // Relations

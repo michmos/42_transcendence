@@ -3,30 +3,20 @@ interface OAuthProvider {
   buttonUri: string;
 }
 
-// Get the Google login URL from the backend
-async function fetchAuthUrl(url: string): Promise<string | null> {
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-    });
-    const data: { url: string } = await response.json();
-    return data.url;
-  } catch (error: unknown) {
-    console.error('Error fetching login URL:', error);
-    return null;
-  }
-}
-
-// Fetch the current user session from the backend by sending the session cookie to the server
-async function fetchUserSession(): Promise<string | null> {
+// Fetch sessionData from the backend by sending the session cookie to the server
+async function fetchSessionData(): Promise<string | null> {
   try {
     const response = await fetch('/api/auth/session', {
       method: 'GET',
       credentials: 'include',
     });
 
-    const data: { user: string } = await response.json();
-    return data.user;
+    if (response.status === 200) {
+      const data = await response.json();
+      return data.user;
+    } else {
+      return null;
+    }
   } catch (error: unknown) {
     console.error('Error fetching session data:', error);
     return null;
@@ -60,7 +50,8 @@ async function initializeLoginButtons() {
   }
 
   // Check if user is already logged in
-  const user = await fetchUserSession();
+  const session = await fetchSessionData();
+  console.log('Session data:', session);
   const providers = (await getAuthProviders()) as OAuthProvider[] | null;
 
   if (!providers || providers.length === 0) {
@@ -77,14 +68,14 @@ async function initializeLoginButtons() {
   function addButtonForProvider(
     provider: { name: string; buttonUri: string },
     container: HTMLDivElement,
-    user: string | null
+    session: string | null
   ) {
     const button = document.createElement('button');
     button.style.padding = '10px 20px';
     button.style.fontSize = '16px';
     button.style.cursor = 'pointer';
 
-    if (user) {
+    if (session) {
       button.textContent = `Logout ${provider.name}`;
       button.addEventListener('click', async () => {
         await fetch(`/api/auth/logout`, {
@@ -102,14 +93,22 @@ async function initializeLoginButtons() {
     } else {
       button.textContent = `Login with ${provider.name}`;
       button.addEventListener('click', async () => {
-        const loginUrl = await fetchAuthUrl(provider.buttonUri);
-        if (loginUrl) {
-          // Redirect to Google login
-          window.location.href = loginUrl;
-        } else {
-          console.error('❌ Failed to get Google login URL');
-          alert('Failed to get Google login URL. Please try again later.');
-        }
+        console.log('provider:', provider);
+        console.log(`Redirecting to ${provider.name} login...`);
+        console.log(`Redirect URL: ${provider.buttonUri}`);
+        console.log(
+          `Full URL: ${window.location.origin}/${provider.buttonUri}`
+        );
+        // Redirect to the provider's login URL
+        window.location.href = provider.buttonUri;
+        // const loginUrl = await fetchAuthUrl(provider.buttonUri);
+        // if (loginUrl) {
+        //   // Redirect to Google login
+        //   window.location.href = loginUrl;
+        // } else {
+        //   console.error('❌ Failed to get Google login URL');
+        //   alert('Failed to get Google login URL. Please try again later.');
+        // }
       });
     }
 
@@ -121,7 +120,7 @@ async function initializeLoginButtons() {
 
   // Add buttons for each provider
   for (const provider of providers) {
-    addButtonForProvider(provider, buttonContainer, user);
+    addButtonForProvider(provider, buttonContainer, session);
   }
 }
 
