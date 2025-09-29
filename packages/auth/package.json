@@ -12,6 +12,10 @@
     "./frontend": {
       "types": "./dist/frontend.d.ts",
       "import": "./dist/frontend.js"
+    },
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js"
     }
   },
   "scripts": {

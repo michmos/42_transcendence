@@ -20,24 +20,17 @@
  *
  */
 
-import { type FastifyInstance } from 'fastify';
+import { type FastifyInstance, type FastifyReply } from 'fastify';
 import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
 
 import jwt from 'jsonwebtoken';
 import fastifyCookie from '@fastify/cookie';
 
-interface UserType {
-  email: string;
-  name: string;
-  picture: string;
-}
-
 interface SessionCookie {
+  providerName: string;
+  userUUID: string;
   refreshToken: string;
-  provider: string;
-  user: UserType;
   expires_at: Date;
-  access_token: string;
 }
 
 interface OAuthProviderOptions {
@@ -55,9 +48,11 @@ interface OAuthProviderOptions {
 interface OAuthProvider {
   name: string;
   scopes: string[];
-  redirectUri: string;
   buttonUri: string;
   oauth2Client: AuthorizationCode;
+  fetchUserData:
+    | ((token: string) => Promise<Record<string, unknown>>)
+    | undefined;
 }
 
 interface AuthorizeUrlPayload {
@@ -67,208 +62,227 @@ interface AuthorizeUrlPayload {
   prompt: 'consent';
 }
 
+interface State {
+  state: string;
+  ipNumber: string;
+  provider: OAuthProvider;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
 class OAuth {
   private app: FastifyInstance;
   private callbacks: Record<string, (args: unknown) => unknown>;
   private oAuthProviders: OAuthProvider[] = [];
   private redirectUri: string;
+  private loginSuccessRedirectUrl: string;
   private jwtSecret: string;
+  private state: State[] = [];
 
-  constructor(app: FastifyInstance, redirectUri: string, jtwSecret: string) {
-    this.callbacks = {};
-    this.redirectUri = redirectUri;
+  constructor(
+    app: FastifyInstance,
+    redirectUri: string,
+    loginSuccessRedirectUrl: string,
+    jtwSecret: string
+  ) {
     this.app = app;
-    this.app.register(fastifyCookie);
+    this.redirectUri = redirectUri;
+    this.loginSuccessRedirectUrl = loginSuccessRedirectUrl;
     this.jwtSecret = jtwSecret;
+    this.callbacks = {};
     this.initialize();
   }
 
-  private async getUserInformation(
-    provider: OAuthProvider,
-    accessToken: AccessToken
-  ) {
-    if (accessToken.token.id_token) {
-      return this.decodeOpenId(accessToken.token.id_token as string);
-    } else if (provider.name === '42') {
-      return await this.getUserFrom42(accessToken.token.access_token as string);
-    } else if (provider.name === 'github') {
-      return await this.getUserFromGitHub(
-        accessToken.token.access_token as string
-      );
-    }
-  }
-
-  private async generateJWTToken(
-    user: UserType,
-    refreshToken: string,
-    name: string
-  ) {
-    // Create JWT token with the UUID and refresh token
-    return jwt.sign(
-      {
-        ...user,
-        provider: name,
-        refreshToken,
-      },
-      this.jwtSecret
-    );
-  }
-  // Decode user info from the ID token
-  private decodeOpenId(idToken: string) {
+  private decodeIdToken(idToken: string) {
     try {
-      const decoded = jwt.decode(idToken);
+      const decoded = jwt.decode(idToken) as Record<string, unknown> | null;
       if (!decoded || typeof decoded !== 'object') {
         throw new Error('Invalid ID token structure');
       }
-      return decoded as unknown as UserType;
+      return decoded;
     } catch (error) {
       throw new Error('Failed to decode ID token: ' + (error as Error).message);
     }
   }
 
-  // Fetch user info from GitHub API
-  private async getUserFromGitHub(token: string) {
-    const userResponse = await fetch('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
-
-    if (!userResponse.ok) {
-      throw new Error(
-        `Failed to fetch user info from GitHub API: ${userResponse.statusText}`
-      );
-    }
-
-    const userData = await userResponse.json();
-
-    // Get email from the user data or fetch primary email if not public
-    if (!userData.email) {
-      const emailResponse = await fetch('https://api.github.com/user/emails', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      });
-
-      if (emailResponse.ok) {
-        const emails = await emailResponse.json();
-        const primaryEmail = emails.find(
-          (email: { primary: string; verified: string }) =>
-            email.primary && email.verified
-        );
-        if (primaryEmail) {
-          userData.email = primaryEmail.email;
-        }
-      }
-    }
-    return {
-      email: userData.email,
-      name: userData.name || userData.login,
-      picture: userData.avatar_url,
-    } as UserType;
+  private removeExpiredStates() {
+    const now = new Date();
+    this.state = this.state.filter((s) => s.expiresAt > now);
   }
 
-  // Fetch user info from 42 API
-  private async getUserFrom42(token: string) {
-    const userResponse = await fetch('https://api.intra.42.fr/v2/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!userResponse.ok) {
-      throw new Error(
-        `Failed to fetch user info from 42 API: ${userResponse.statusText}`
+  private async getUser(provider: OAuthProvider, accessToken: AccessToken) {
+    if (accessToken.token.id_token) {
+      return this.decodeIdToken(accessToken.token.id_token as string);
+    }
+    if (!provider.fetchUserData) {
+      throw this.error(
+        new Error('No fetchUserData function defined for provider')
       );
     }
+    return provider.fetchUserData(accessToken.token.access_token as string);
+  }
 
-    const userData = await userResponse.json();
-    return {
-      email: userData.email,
-      name: userData.usual_full_name,
-      picture: userData.image.link,
-    } as UserType;
+  private async generateJWTToken(session: SessionCookie): Promise<string> {
+    // Create JWT token with the UUID and refresh token
+    return jwt.sign(session, this.jwtSecret);
+  }
+
+  private countStatesWithIP(ipNumber: string): number {
+    return this.state.filter((s) => s.ipNumber === ipNumber).length;
   }
 
   private async generateAuthUrl(
     provider: OAuthProvider,
-    scopes: string[]
+    scopes: string[],
+    ipNumber: string
   ): Promise<string> {
-    // if (provider.name === '42') {
-    //   return provider.oauth2Client.authorizeURL({
-    //     redirect_uri: provider.redirectUri,
-    //     scope: scopes.join(' '),
-    //   } as authorizeUrlPayload);
-    // }
+    // Limit the number of concurrent states per IP to prevent abuse
+    const maxStatesPerIP = 5;
+    if (this.countStatesWithIP(ipNumber) >= maxStatesPerIP) {
+      throw this.error(
+        new Error('Too many concurrent authentication attempts from this IP')
+      );
+    }
+
+    // Generate a unique state parameter for CSRF protection
+    const state = {
+      state: Math.random().toString(36).substring(2, 15),
+      ipNumber: ipNumber,
+      provider: provider,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
+    };
+
+    this.state.push(state);
 
     return provider.oauth2Client.authorizeURL({
-      redirect_uri: provider.redirectUri,
+      redirect_uri: this.redirectUri,
       scope: scopes.join(' '),
+      state: state.state,
       access_type: 'offline',
       prompt: 'consent',
     } as AuthorizeUrlPayload);
   }
 
-  addProvider(name: string, scopes: string[], options: OAuthProviderOptions) {
-    console.info(`Adding OAuth provider: ${name}`);
+  private error(err: Error, reply?: FastifyReply) {
+    console.error('OAuth Error:', err);
 
-    const provider = {
-      name: name,
-      scopes: scopes,
-      oauth2Client: new AuthorizationCode(options),
-      buttonUri: `api/auth/${name}/login`,
-      redirectUri: this.redirectUri + name + '/callback',
-    };
+    const jsonError = { message: err.message, stack: err.stack };
+    if (reply) reply.redirect('/404').send({ error: jsonError });
 
-    this.oAuthProviders.push(provider);
+    if (this.callbacks['error']) {
+      return this.callbacks['error'](err);
+    }
+  }
 
-    this.app.get(`/auth/${name}/login`, async (request, reply) => {
-      request.log.info(`Generating ${name} OAuth URL`);
+  // Initialize the authentication routes
+  private initialize() {
+    console.info('🔑 Registering Authentication Endpoint');
 
-      // Send the authorization URL to the client as a JSON response
-      reply.send({ url: await this.generateAuthUrl(provider, scopes) });
+    this.app.register(fastifyCookie);
+
+    // Clean up expired states periodically
+    setInterval(() => this.removeExpiredStates(), 1 * 60 * 1000); // Every 1 minutes
+
+    this.app.get(`/auth/login`, async (request, reply) => {
+      const { provider: providerName } = request.query as { provider: string };
+      const provider = this.getProvider(providerName);
+      const ipNumber = request.ip;
+
+      if (!provider) {
+        return this.error(new Error('Unknown provider:' + providerName), reply);
+      }
+
+      request.log.info(`Generating ${provider.name} OAuth URL`);
+
+      const url = await this.generateAuthUrl(
+        provider,
+        provider.scopes,
+        ipNumber
+      );
+      return reply.redirect(url);
     });
 
-    this.app.get(`/auth/${name}/callback`, async (request, reply) => {
-      const { code } = request.query as { code: string };
+    this.app.get(`/auth/callback`, async (request, reply) => {
+      // Get the provider based on the query parameter
+      const state = (request.query as { state?: string }).state;
+
+      // If state is present, it must match the provider name
+      if (!state) {
+        return this.error(new Error('Invalid state parameter'), reply);
+      }
+
+      // Find and remove the state from the list to prevent reuse
+      const stateIndex = this.state.findIndex((s) => s.state === state);
+      if (stateIndex === -1) {
+        return this.error(
+          new Error('Invalid or expired state parameter'),
+          reply
+        );
+      }
+      const [removedState] = this.state.splice(stateIndex, 1);
+
+      if (!removedState || removedState.expiresAt < new Date()) {
+        return this.error(
+          new Error('State parameter has expired, please try again.'),
+          reply
+        );
+      }
+
+      const provider = removedState.provider;
+      if (!provider) {
+        return this.error(new Error('Unknown provider:' + state), reply);
+      }
 
       // Ensure the authorization code is present
+      const { code } = request.query as { code: string };
       if (!code) {
-        return reply
-          .status(400)
-          .send({ error: 'Authorization code not provided' });
+        return this.error(new Error('Authorization code not provided'));
       }
 
       // Exchange the authorization code for an access token
       const accessToken = await provider.oauth2Client.getToken({
         code,
-        redirect_uri: provider.redirectUri,
-        scope: scopes.join(' '),
+        redirect_uri: this.redirectUri,
+        scope: provider.scopes.join(' '),
       });
 
-      console.log('Access Token:', accessToken.token);
       // Check if access token is present
       if (!accessToken) {
-        return reply
-          .status(400)
-          .send({ error: 'Failed to obtain access token' });
+        return this.error(new Error('Failed to obtain access token'));
       }
 
-      const user = await this.getUserInformation(provider, accessToken);
+      const user = await this.getUser(provider, accessToken);
 
       if (!user) {
-        return reply.status(400).send({ error: 'Failed to fetch user info' });
+        return this.error(new Error('Failed to fetch user info'));
       }
-      // // TODO: Look up the user in your database and create a new user record if they don't exist.
-      // // Lets do this with a callback in the server so the plugin is not dependent on the database structure
 
-      const sessionJWT = await this.generateJWTToken(
-        user,
-        accessToken.token.refresh_token as string,
-        provider.name
-      );
+      // Extract a unique user identifier
+      const uuid = this.getUserUUID(user);
+
+      if (!uuid) {
+        return this.error(new Error('Failed to get user UUID'));
+      }
+
+      // Trigger userUpdate callback if registered
+      if (this.callbacks['userUpdate']) {
+        this.callbacks['userUpdate']({
+          uuid,
+          providerName: provider.name,
+          user,
+        });
+      }
+
+      // Create session object to be stored in JWT
+      const session = {
+        providerName: provider.name,
+        userUUID: uuid,
+        refreshToken: accessToken.token.refresh_token as string,
+        expires_at: accessToken.token.expires_at as Date,
+      };
+
+      const sessionJWT = await this.generateJWTToken(session);
 
       // Set JWT in HTTP-only cookie
       reply.setCookie('session', sessionJWT, {
@@ -277,61 +291,31 @@ class OAuth {
         path: '/',
       });
 
-      if (this.callbacks['userUpdated']) {
-        this.callbacks['userUpdated']({ ...user, ...accessToken });
-      }
-
-      console.info(`OAuth successful for ${user.email}`);
-      reply.redirect(`/`);
-    });
-    return this;
-  }
-
-  removeProvider(name: string) {
-    this.oAuthProviders = this.oAuthProviders.filter(
-      (provider: OAuthProvider) => provider.name !== name
-    );
-  }
-
-  getProvider(name: string) {
-    return this.oAuthProviders.find(
-      (provider: OAuthProvider) => provider.name === name
-    );
-  }
-
-  private initialize() {
-    console.info('🔑 Registering Authentication Endpoint');
-
-    this.app.get('/auth/providers', async (request, reply) => {
-      reply.send({
-        providers: this.oAuthProviders.map((provider) => ({
-          name: provider.name,
-          buttonUri: provider.buttonUri,
-        })),
-      });
+      reply.redirect(this.loginSuccessRedirectUrl || '/');
     });
 
+    // Endpoint to get the current session data
     this.app.get('/auth/session', async (request, reply) => {
       const { session } = request.cookies as { session?: string };
+
+      // If no session cookie, return null
       if (!session) {
-        return reply.status(200).send({ user: null });
+        return reply.status(200).send({ session: null });
       }
 
+      // Verify and decode the JWT token
       const decodedSession = jwt.verify(
         session,
         this.jwtSecret
       ) as SessionCookie;
 
       // Get provider from decoded.provider
-      const provider = this.getProvider(decodedSession.provider);
-      if (!provider) {
-        return reply.status(400).send({ error: 'Unknown provider' });
-      }
-      console.log('Decoded session:', decodedSession);
-      if (!decodedSession.refreshToken) {
-        return reply
-          .status(400)
-          .send({ error: 'Refresh token not found in JWT' });
+      const provider = this.getProvider(decodedSession.providerName);
+
+      // If provider not found or no refresh token, clear cookie and return null
+      if (!provider || !decodedSession.refreshToken) {
+        reply.clearCookie('session', { path: '/' });
+        return reply.status(200).send({ session: null });
       }
 
       // Refresh the access token using the refresh token
@@ -339,32 +323,78 @@ class OAuth {
         refresh_token: decodedSession.refreshToken,
       });
 
+      // If token creation failed, clear cookie and return null
+      if (!accessToken) {
+        return this.error(
+          new Error('Failed to authenticate with' + provider.name),
+          reply
+        );
+      }
+
+      // Refresh the access token
       const refreshed = await accessToken.refresh({
         scope: provider.scopes.join(' '),
       });
 
-      // Special to make sure we keep the old refresh token if none is returned by for example Google
+      // Merge the refreshed token data into the existing token object
       accessToken.token = { ...accessToken.token, ...refreshed.token };
 
+      // If the provider did not provide a refresh token, reuse the one from the session
       if (!accessToken.token.refresh_token) {
         accessToken.token.refresh_token = decodedSession.refreshToken;
       }
 
+      // If no access token, clear cookie and return null
       if (!accessToken || !accessToken.token.access_token) {
         reply.clearCookie('session', { path: '/' });
-        return reply.status(200).send({ user: null });
+        return reply.status(200).send({ session: null });
       }
 
-      const user = await this.getUserInformation(provider, accessToken);
+      // Fetch the user info from the provider via the fetchUserData callback
+      const user = await this.getUser(provider, accessToken);
       if (!user) {
         return reply.status(400).send({ error: 'Failed to fetch user info' });
       }
 
-      const sessionJWT = await this.generateJWTToken(
-        user,
-        accessToken.token.refresh_token as string,
-        provider.name
-      );
+      // Generate a new JWT token with updated info
+      const sessionJWT = await this.generateJWTToken({
+        providerName: provider.name,
+        userUUID:
+          typeof user === 'object' && user !== null
+            ? (user['sub'] as string) ||
+              (user['id'] as string) ||
+              (user['email'] as string) ||
+              ''
+            : '',
+        refreshToken: accessToken.token.refresh_token as string,
+        expires_at: accessToken.token.expires_at as Date,
+      });
+
+      // Extract a unique user identifier
+      const uuid = this.getUserUUID(user);
+
+      if (!uuid) {
+        return this.error(new Error('Failed to get user UUID'));
+      }
+
+      // Trigger userUpdate callback if registered
+      if (this.callbacks['userUpdate']) {
+        this.callbacks['userUpdate']({
+          uuid,
+          providerName: provider.name,
+          user,
+        });
+      }
+
+      const newSession = {
+        provider: provider.name,
+        user: user,
+        accessToken: accessToken.token.access_token as string,
+        expiresAt:
+          accessToken.token.expires_at instanceof Date
+            ? accessToken.token.expires_at.toISOString()
+            : accessToken.token.expires_at,
+      };
 
       // Set JWT in HTTP-only cookie
       reply.setCookie('session', sessionJWT, {
@@ -373,7 +403,8 @@ class OAuth {
         path: '/',
       });
 
-      return reply.status(200).send({ user });
+      // Return the session data
+      return reply.status(200).send(newSession);
     });
 
     // Logout endpoint to clear the session cookie
@@ -382,11 +413,75 @@ class OAuth {
       // Make sure to refresh the frontend state as well
       return reply.status(200).send({ message: 'Logged out' });
     });
+
+    // Endpoint to list available OAuth providers
+    this.app.get('/auth/providers', async (request, reply) => {
+      reply.send({
+        providers: this.oAuthProviders.map((provider) => ({
+          name: provider.name,
+          buttonUri: provider.buttonUri,
+        })),
+      });
+    });
   }
 
-  on(name: string, callback: (args: unknown) => unknown) {
+  // Register event callbacks
+  public on(name: string, callback: (args: unknown) => unknown) {
     this.callbacks[name] = callback;
     return this;
+  }
+
+  private getUserUUID(user: Record<string, unknown>): string | null {
+    if ('sub' in user) {
+      return user['sub'] as string;
+    } else if ('id' in user) {
+      return user['id'] as string;
+    } else if ('email' in user) {
+      return user['email'] as string;
+    }
+    return null;
+  }
+
+  // Add a new OAuth provider
+  public addProvider(
+    name: string,
+    scopes: string[],
+    options: OAuthProviderOptions,
+    fetchUserData?: (token: string) => Promise<Record<string, unknown>>
+  ) {
+    console.info(`Adding OAuth provider: ${name}`);
+
+    if (this.getProvider(name)) {
+      this.error(new Error('Provider already exists: ' + name));
+      return this;
+    }
+
+    // Create the OAuth2 client
+    const provider = {
+      name: name,
+      scopes: scopes,
+      oauth2Client: new AuthorizationCode(options),
+      buttonUri: `api/auth/login?provider=${name}`,
+      fetchUserData: fetchUserData,
+    };
+
+    this.oAuthProviders.push(provider);
+    return this;
+  }
+
+  // Remove a provider by name
+  public removeProvider(name: string) {
+    this.oAuthProviders = this.oAuthProviders.filter(
+      (provider: OAuthProvider) => provider.name !== name
+    );
+    return this;
+  }
+
+  // Get provider by name
+  private getProvider(name: string) {
+    return this.oAuthProviders.find(
+      (provider: OAuthProvider) => provider.name === name
+    );
   }
 }
 
@@ -394,7 +489,8 @@ class OAuth {
 export default function Auth(
   app: FastifyInstance,
   redirectUri: string,
+  loginSuccessRedirectUrl: string,
   jtwSecret: string
 ): OAuth {
-  return new OAuth(app, redirectUri, jtwSecret);
+  return new OAuth(app, redirectUri, loginSuccessRedirectUrl, jtwSecret);
 }
