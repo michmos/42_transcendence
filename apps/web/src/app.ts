@@ -21,9 +21,13 @@ try {
   const router = new SimpleRouter(appElement);
 
   console.log('🚀 Adding routes...');
+
   // Add static routes
   router.add('/', '/routes');
   router.add('/socket', '/routes/socket');
+  router.add('/login', '/routes/login');
+
+  router.add('/error', '/routes/error');
 
   // Add dynamic routes using regex with named groups
   router.add(/^\/info\/(?<id>[^/]+)$/, '/routes/info[id]');
