@@ -86,7 +86,7 @@ class OAuth {
 
   // Initialize the authentication routes
   private initialize() {
-    console.info('🔑 Registering Authentication Endpoint');
+    console.info('📦 Initializing Authentication Package');
 
     this.ctx.app.register(fastifyCookie);
 

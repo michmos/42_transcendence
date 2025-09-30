@@ -6,7 +6,6 @@ class ProviderUtility {
   private ctx: OAuthContext;
 
   constructor() {
-    console.info('Initializing Provider Utility');
     this.oAuthProviders = [];
     this.ctx = {} as OAuthContext;
   }
@@ -28,7 +27,7 @@ class ProviderUtility {
     if (this.get(provider.name)) {
       throw new Error('Provider already exists: ' + provider.name);
     }
-    console.info(`Adding OAuth provider: ${provider.name}`);
+    console.info('🔑 Adding OAuth provider:', provider.name);
     this.oAuthProviders.push(provider);
   }
 

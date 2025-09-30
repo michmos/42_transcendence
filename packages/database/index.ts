@@ -5,7 +5,7 @@ class Database {
   private db: PrismaClient;
 
   constructor() {
-    console.log('📦 Initializing database connection...');
+    console.log('📦 Initializing Database package');
     this.db = new PrismaClient();
   }
 

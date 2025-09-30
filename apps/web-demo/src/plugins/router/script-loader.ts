@@ -47,7 +47,6 @@ async function loadScriptWithDynamicImport(
 
       // Set up cleanup and execution
       script.onload = () => {
-        console.debug('Route script loaded successfully:', filePath);
         setTimeout(() => {
           if (script.parentNode) {
             document.head.removeChild(script);
@@ -63,7 +62,6 @@ async function loadScriptWithDynamicImport(
       };
 
       // Make params available globally before adding script
-      console.debug('Setting routeParams:', params);
       (window as unknown as Record<string, unknown>).routeParams = params;
 
       document.head.appendChild(script);

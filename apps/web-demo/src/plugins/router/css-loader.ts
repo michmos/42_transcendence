@@ -12,8 +12,6 @@ const cssElementMap = new Map<string, HTMLStyleElement>();
  */
 export async function loadRouteCSS(filePath: string): Promise<void> {
   try {
-    console.log('🎨 CSS Loader: Attempting to load CSS for route:', filePath);
-
     // Check if CSS is already loaded for this route
     if (loadedRouteCss.has(filePath)) {
       console.log('🎨 CSS Loader: CSS already loaded for route:', filePath);
@@ -22,38 +20,19 @@ export async function loadRouteCSS(filePath: string): Promise<void> {
 
     // Construct the CSS URL
     const cssUrl = filePath + '/index.css';
-    console.log('🎨 CSS Loader: Fetching CSS from URL:', cssUrl);
 
     // Fetch the CSS content for the route
     const response = await fetch(cssUrl);
-    console.log(
-      '🎨 CSS Loader: Fetch response status:',
-      response.status,
-      response.statusText
-    );
 
     if (!response.ok) {
-      console.log(
-        '🎨 CSS Loader: No CSS file found for route (this is okay):',
-        filePath
-      );
       return;
     }
 
     const responseText = await response.text();
-    console.log('🎨 CSS Loader: Response text length:', responseText.length);
 
     // Extract CSS content from Vite's JavaScript wrapper
     const cssContent = extractCSSFromViteModule(responseText);
-    if (!cssContent) {
-      console.log('🎨 CSS Loader: Could not extract CSS content from response');
-      return;
-    }
-
-    console.log(
-      '🎨 CSS Loader: Extracted CSS content length:',
-      cssContent.length
-    );
+    if (!cssContent) return;
 
     // Create a style element and inject the CSS
     const styleElement = document.createElement('style');
@@ -66,8 +45,6 @@ export async function loadRouteCSS(filePath: string): Promise<void> {
     // Track the loaded CSS
     loadedRouteCss.add(filePath);
     cssElementMap.set(filePath, styleElement);
-
-    console.log('✅ CSS Loader: CSS loaded successfully for route:', filePath);
   } catch (error) {
     console.error(
       '🎨 CSS Loader: Failed to load CSS for route:',
@@ -134,28 +111,14 @@ export function removeRouteCSS(filePath: string): void {
  * Clear all route-specific CSS
  */
 export function clearAllRouteCSS(): void {
-  console.log('🧹 CSS Loader: Clearing all route CSS...');
-  console.log(
-    '🧹 CSS Loader: Currently loaded routes:',
-    Array.from(loadedRouteCss)
-  );
-
   // Remove all tracked CSS elements
   cssElementMap.forEach((styleElement) => {
-    if (styleElement.parentNode) {
-      console.log(
-        '🧹 CSS Loader: Removing style element with data-route:',
-        styleElement.getAttribute('data-route')
-      );
-      document.head.removeChild(styleElement);
-    }
+    if (styleElement.parentNode) document.head.removeChild(styleElement);
   });
 
   // Clear tracking maps
   cssElementMap.clear();
   loadedRouteCss.clear();
-
-  console.log('🧹 CSS Loader: All route CSS cleared');
 }
 
 /**
@@ -177,8 +140,6 @@ export function isCSSLoadedForRoute(filePath: string): boolean {
  * This allows for route-specific styling isolation
  */
 export function setRouteClasses(filePath: string): void {
-  console.log('🎯 CSS Loader: Setting route classes for:', filePath);
-
   // Remove any existing route classes
   document.body.classList.forEach((className) => {
     if (className.startsWith('route-')) {
@@ -191,8 +152,6 @@ export function setRouteClasses(filePath: string): void {
   const routeClassName = generateRouteClassName(filePath);
   const fullClassName = `route-${routeClassName}`;
   document.body.classList.add(fullClassName);
-
-  console.log('🎯 CSS Loader: Added route class:', fullClassName);
 }
 
 /**

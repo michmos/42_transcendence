@@ -7,14 +7,9 @@ import type { Route, RouteMatch } from './types.js';
  */
 
 export function matchRoute(path: string, routes: Route[]): RouteMatch | null {
-  console.debug('Matching path:', path);
-
   for (const route of routes) {
     if (typeof route.path === 'string') {
-      if (route.path === path) {
-        console.debug('Matched string route:', route.path);
-        return { route, params: {} };
-      }
+      if (route.path === path) return { route, params: {} };
     } else {
       // RegExp route
       const match = path.match(route.path);
@@ -25,17 +20,12 @@ export function matchRoute(path: string, routes: Route[]): RouteMatch | null {
         if (match.groups) {
           Object.assign(params, match.groups);
         }
-        console.debug(
-          'Matched regex route:',
-          route.path,
-          'with params:',
-          params
-        );
+
+        // Return the matched route and extracted params
         return { route, params };
       }
     }
   }
-  console.debug('No route matched for path:', path);
   return null;
 }
 

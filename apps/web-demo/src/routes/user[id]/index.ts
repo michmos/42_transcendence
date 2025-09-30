@@ -1,12 +1,5 @@
+// import type { SimpleRouter } from 'src/plugins/router/index.js';
 import API from '../../plugins/api/index.js';
-
-// Declare the global routeParams variable that will be injected by the router
-declare global {
-  interface Window {
-    routeParams?: { id: string };
-    navigateToRoute?: (path: string) => void;
-  }
-}
 
 export function initRoute() {
   // Get the ID from the route parameters that were injected by the router
@@ -70,8 +63,12 @@ function attachUserEventListeners(userId: string) {
       e.preventDefault();
       API.deleteUser(userId)
         .then(() => {
-          if (window.navigateToRoute) {
-            window.navigateToRoute('/');
+          if (window.router) {
+            window.router.navigate('/');
+          } else {
+            console.warn(
+              '⚠️ Router instance not found. Cannot navigate after deletion.'
+            );
           }
         })
         .catch((error: unknown) => {

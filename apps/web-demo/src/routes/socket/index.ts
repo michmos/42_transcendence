@@ -1,5 +1,3 @@
-import Socket from '../../plugins/websocket/index.js';
-
 function updateServerTime(event: MessageEvent) {
   try {
     const data = JSON.parse(event.data);
@@ -61,9 +59,9 @@ function SendMessageToServer() {
       return;
     }
 
-    if (Socket.isConnected()) {
+    if (window.socket.isConnected()) {
       console.log('Sending message:', message);
-      Socket.sendMessage(message);
+      window.socket.sendMessage(message);
 
       // Display sent message in the messages list
       const listItem = document.createElement('li');
@@ -91,7 +89,7 @@ export function initRoute() {
     console.log('🔌 Socket route DOM setup starting...');
 
     // Register a WebSocket hook to update server time on the page
-    Socket.registerWebSocketHook(updateServerTime);
+    window.socket.registerWebSocketHook(updateServerTime);
 
     // Set up message sending functionality
     SendMessageToServer();
