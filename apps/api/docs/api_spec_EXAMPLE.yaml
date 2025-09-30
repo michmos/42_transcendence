@@ -1,0 +1,232 @@
+# OpenAPI Specification - Team Introduction
+#
+# What is OpenAPI?
+# OpenAPI (formerly Swagger) is a standard way to document REST APIs. It describes:
+# - What endpoints exist (/users, /status, etc.)
+# - What HTTP methods they support (GET, POST, PUT, DELETE)
+# - What data they expect and return
+# - Examples and validation rules
+#
+# Main building blocks:
+# 1. info: Basic API information (title, version, description)
+# 2. servers: Where the API runs (localhost, production, etc.)
+# 3. paths: Your API endpoints and their operations
+# 4. components/schemas: Reusable data structures (User, Game, etc.)
+# 5. parameters: Query params (?page=1) and path params (/users/{id})
+# 6. requestBody: JSON data sent to POST/PUT endpoints
+# 7. responses: What the API returns (success/error responses)
+#
+# Benefits:
+# - Interactive documentation (try endpoints in the browser)
+# - Code generation (client SDKs, server stubs)
+# - API testing and validation
+# - Team communication and onboarding
+#
+# View this spec at: http://localhost:3002/documentation
+
+openapi: 3.0.0
+info:
+  description: '42 Transcendence API - Simple example for team demonstration'
+  version: '1.0.0'
+  title: '42 Transcendence API'
+servers:
+  - url: http://localhost:3002/
+    description: Development server
+
+components:
+  schemas:
+    User:
+      type: object
+      required: #mandatory properties
+        - id
+        - username
+      properties:
+        id:
+          type: integer
+          example: 42
+        username:
+          type: string
+          example: 'player42'
+        email:
+          type: string
+          example: 'player@example.com'
+        status:
+          type: string
+          enum: [online, offline, playing]
+          example: 'online'
+
+paths:
+  # Simple GET endpoint - no parameters
+  /status:
+    get:
+      summary: Health check
+      description: Check if the server is running
+      tags:
+        - Health
+      responses:
+        200:
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  health:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Server is running'
+
+  # GET with query parameters
+  /users:
+    get:
+      summary: Get all users
+      description: Retrieve users with optional pagination
+      tags:
+        - Users
+      parameters:
+        - name: page
+          in: query
+          description: Page number (optional)
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: limit
+          in: query
+          description: Users per page (optional)
+          required: false
+          schema:
+            type: integer
+            example: 10
+      responses:
+        200:
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+    # POST with request body
+    post:
+      summary: Create user
+      description: Create a new user account
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+              properties:
+                username:
+                  type: string
+                  example: 'newplayer'
+                email:
+                  type: string
+                  example: 'newplayer@example.com'
+      responses:
+        201:
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          description: Invalid input data
+
+  # Dynamic endpoint with path parameter
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      description: Retrieve a specific user using their ID
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            example: 42
+      responses:
+        200:
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: User not found
+
+    # PUT for updates
+    put:
+      summary: Update user
+      description: Update an existing user's information
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: 'updatedplayer'
+                status:
+                  type: string
+                  enum: [online, offline, playing]
+                  example: 'offline'
+      responses:
+        200:
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: User not found
+
+    # DELETE endpoint
+    delete:
+      summary: Delete user
+      description: Remove a user account
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            example: 42
+      responses:
+        204:
+          description: User deleted successfully
+        404:
+          description: User not found
+
+tags:
+  - name: Health
+    description: Server status endpoints
+  - name: Users
+    description: User management
