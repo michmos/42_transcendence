@@ -16,19 +16,20 @@ class SessionManager {
     this.initializeSessionRoute();
   }
 
-  public userIsLoggedIn(session: string | undefined): boolean {
-    if (!session) return false;
+  public userIsLoggedIn(session: string | undefined): SessionCookie | null {
+    if (!session) return null;
 
     // Verify and decode the JWT token from the session cookie
     const decodedSession: SessionCookie | null =
       TokenUtility.verifySessionToken(session);
 
     // If no valid session, return false
-    if (!decodedSession) return false;
+    if (!decodedSession) return null;
 
     // Check if the session is expired
     const currentTime = new Date().getTime();
-    return decodedSession.expiresAt > currentTime;
+    if (decodedSession.expiresAt > currentTime) return decodedSession;
+    return null;
   }
 
   private logoutUser(reply: FastifyReply, error?: Error) {
