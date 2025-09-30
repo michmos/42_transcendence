@@ -81,5 +81,4 @@ function setupAuth(app: Fastify.FastifyInstance) {
 export default async function (app: Fastify.FastifyInstance) {
   // Initialize the auth plugin
   app.register(setupAuth);
-  console.log('✅ Auth plugin registered');
 }

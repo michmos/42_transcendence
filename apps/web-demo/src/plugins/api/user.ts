@@ -18,7 +18,6 @@ const UserAPI = {
       }
 
       const res = await response.json();
-      console.log('Fetched users:', res);
       return res;
     } catch (error) {
       console.error('Error fetching users:', error);

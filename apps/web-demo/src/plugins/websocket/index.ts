@@ -7,6 +7,7 @@ class Socket {
     if (url) {
       this.connect(url);
     }
+    return this;
   }
 
   public registerWebSocketHook(hook: (event: MessageEvent) => void) {
@@ -49,6 +50,10 @@ class Socket {
   public isConnected(): boolean {
     return this.socket !== null && this.socket.readyState === WebSocket.OPEN;
   }
+
+  public getSocket(): WebSocket {
+    return this.socket as WebSocket;
+  }
 }
 
-export default new Socket();
+export { Socket };

@@ -57,38 +57,21 @@ class SimpleRouter {
    */
   async render(): Promise<void> {
     const path = getCurrentPath();
-    console.log('🔍 Router.render() called for path:', path);
-    console.log(
-      '🔍 Available routes:',
-      this.routes.map((r) => ({ path: r.path, filePath: r.filePath }))
-    );
-
     const match = matchRoute(path, this.routes);
-    console.log('🔍 Route match result:', match);
 
     // If a route matches, load and display it
     if (match) {
       try {
-        console.log(
-          '🚀 Loading route:',
-          match.route.filePath,
-          'with params:',
-          match.params
-        );
-
         // STEP 1: Clear any existing route CSS FIRST to prevent conflicts
-        console.log('🧹 Clearing all existing CSS...');
         clearAllRouteCSS();
 
         // STEP 2: Small delay to ensure CSS clearing completes
         await new Promise((resolve) => setTimeout(resolve, 10));
 
         // STEP 3: Load CSS with proper classes
-        console.log('🎨 Loading CSS for route:', match.route.filePath);
         await loadRouteCSS(match.route.filePath);
 
         // STEP 4: Load HTML content (this may come from cache)
-        console.log('📄 Loading HTML for route:', match.route.filePath);
         const element = await loadRouteHTML(
           match.route.filePath,
           match.params,
@@ -96,19 +79,14 @@ class SimpleRouter {
         );
 
         // STEP 5: Clear the root element and insert new content
-        console.log('🔄 Inserting content into DOM...');
         this.root.innerHTML = '';
         this.root.appendChild(element);
 
         // STEP 6: Set proper CSS classes for the route
-        console.log('🎯 Setting route classes...');
         setRouteClasses(match.route.filePath);
 
         // STEP 7: Load scripts AFTER HTML is in the DOM
-        console.log('📜 Loading scripts for route:', match.route.filePath);
         await this.loadRouteScripts(match.route.filePath, match.params);
-
-        console.log('✅ Route fully loaded:', match.route.filePath);
       } catch (error) {
         console.error('Error rendering route:', error);
         this.root.textContent = 'Error loading page';
