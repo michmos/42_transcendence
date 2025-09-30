@@ -1,41 +1,39 @@
-export interface OpenID {
-  iss: string;
-  azp: string;
-  aud: string;
-  sub: string;
-  email: string;
-  email_verified: boolean;
-  at_hash: string;
-  name: string;
-  picture: string;
-  given_name: string;
-  family_name: string;
-  locale: string;
-  iat: number;
-  exp: number;
-  jti: string;
-}
-
-export interface GithubUser {
+interface GithubUser {
   login: string;
   id: number;
-  email: string;
   node_id: string;
   avatar_url: string;
-}
-
-export interface FourtyTwoUser {
-  id: number;
+  gravatar_id: string;
+  url: string;
+  html_url: string;
+  followers_url: string;
+  following_url: string;
+  gists_url: string;
+  starred_url: string;
+  subscriptions_url: string;
+  organizations_url: string;
+  repos_url: string;
+  events_url: string;
+  received_events_url: string;
+  type: string;
+  user_view_type: string;
+  site_admin: boolean;
+  name: string;
+  company: string | null;
+  blog: string;
   email: string;
-  login: string;
-  first_name: string;
-  last_name: string;
-  image: {
-    link: string;
-  };
+  location: string | null;
+  hireable: boolean | null;
+  bio: string | null;
+  twitter_username: string | null;
+  public_repos: number;
+  public_gists: number;
+  followers: number;
+  following: number;
+  created_at: string;
+  updated_at: string;
 }
 
-// Fetch user info from GitHub API
 async function fetchGithubUser(token: string) {
   const userResponse = await fetch('https://api.github.com/user', {
     headers: {
@@ -50,7 +48,7 @@ async function fetchGithubUser(token: string) {
     );
   }
 
-  const userData = await userResponse.json();
+  const userData = (await userResponse.json()) as GithubUser;
 
   // Get email from the user data or fetch primary email if not public
   if (!userData.email) {
@@ -72,24 +70,15 @@ async function fetchGithubUser(token: string) {
       }
     }
   }
-  return userData as GithubUser;
+
+  const user = {
+    uuid: userData.id,
+    username: userData.name,
+    email: userData.email,
+    avatar_url: userData.avatar_url,
+  };
+
+  return user;
 }
 
-// Fetch user info from 42 API
-async function fetch42User(token: string) {
-  const userResponse = await fetch('https://api.intra.42.fr/v2/me', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!userResponse.ok) {
-    throw new Error(
-      `Failed to fetch user info from 42 API: ${userResponse.statusText}`
-    );
-  }
-  const userData = await userResponse.json();
-  return userData as FourtyTwoUser;
-}
-
-export { fetchGithubUser, fetch42User };
+export { fetchGithubUser };

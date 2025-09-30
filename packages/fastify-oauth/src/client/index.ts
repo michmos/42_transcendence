@@ -1,9 +1,5 @@
-interface OAuthProvider {
-  name: string;
-  buttonUri: string;
-}
+import type { OAuthProvider } from '../server/index.js';
 
-// Fetch sessionData from the backend by sending the session cookie to the server
 async function fetchSessionData(): Promise<string | null> {
   try {
     const response = await fetch('/api/auth/session', {
@@ -11,14 +7,31 @@ async function fetchSessionData(): Promise<string | null> {
       credentials: 'include',
     });
 
-    if (response.status === 200) {
-      const data = await response.json();
-      return data.user;
-    } else {
-      return null;
+    if (response.status === 400) {
+      const json = await response.json();
+      console.log(json);
+      if (json && json.error) {
+        const error = json.error.message;
+        const code = json.error.status;
+        // const details = json.error.stack;
+        window.location.href = `/error?error=${error}&code=${code}`;
+        return null;
+      }
     }
-  } catch (error: unknown) {
-    console.error('Error fetching session data:', error);
+
+    if (response.status === 200) {
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      if (!data || !data.uuid) {
+        return null;
+      }
+      return data.uuid;
+    }
+    return null;
+  } catch {
+    console.error('Error fetching session data');
     return null;
   }
 }
@@ -50,8 +63,7 @@ async function initializeLoginButtons() {
   }
 
   // Check if user is already logged in
-  const session = await fetchSessionData();
-  console.log('Session data:', session);
+  const uuid = await fetchSessionData();
   const providers = (await getAuthProviders()) as OAuthProvider[] | null;
 
   if (!providers || providers.length === 0) {
@@ -61,6 +73,7 @@ async function initializeLoginButtons() {
   }
   const buttonContainer = document.createElement('div');
   buttonContainer.style.display = 'flex';
+  buttonContainer.style.flexDirection = 'column';
   buttonContainer.style.gap = '10px';
 
   authContainer.appendChild(buttonContainer);
@@ -93,22 +106,7 @@ async function initializeLoginButtons() {
     } else {
       button.textContent = `Login with ${provider.name}`;
       button.addEventListener('click', async () => {
-        console.log('provider:', provider);
-        console.log(`Redirecting to ${provider.name} login...`);
-        console.log(`Redirect URL: ${provider.buttonUri}`);
-        console.log(
-          `Full URL: ${window.location.origin}/${provider.buttonUri}`
-        );
-        // Redirect to the provider's login URL
         window.location.href = provider.buttonUri;
-        // const loginUrl = await fetchAuthUrl(provider.buttonUri);
-        // if (loginUrl) {
-        //   // Redirect to Google login
-        //   window.location.href = loginUrl;
-        // } else {
-        //   console.error('❌ Failed to get Google login URL');
-        //   alert('Failed to get Google login URL. Please try again later.');
-        // }
       });
     }
 
@@ -118,10 +116,39 @@ async function initializeLoginButtons() {
   // Clear existing buttons
   buttonContainer.innerHTML = '';
 
+  if (uuid) {
+    return addLogoutButton(buttonContainer, uuid);
+  }
+
+  function addLogoutButton(container: HTMLDivElement, uuid: string) {
+    const logoutButton = document.createElement('button');
+    logoutButton.textContent = 'Logout ' + uuid;
+    logoutButton.style.padding = '10px 20px';
+    logoutButton.style.fontSize = '16px';
+    logoutButton.style.cursor = 'pointer';
+
+    logoutButton.addEventListener('click', async () => {
+      await fetch(`/api/auth/logout`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+        .then(() => {
+          window.location.reload();
+        })
+        .catch((error) => {
+          console.error('❌ Logout failed:', error);
+          alert('Logout failed. Please try again.');
+        });
+    });
+
+    container.appendChild(logoutButton);
+  }
+
   // Add buttons for each provider
   for (const provider of providers) {
-    addButtonForProvider(provider, buttonContainer, session);
+    addButtonForProvider(provider, buttonContainer, uuid);
   }
 }
 
 export default initializeLoginButtons;
+export { fetchSessionData };

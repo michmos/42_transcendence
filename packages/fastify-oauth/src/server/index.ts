@@ -1,0 +1,175 @@
+/**
+ * To use OAuth2 authentication, we need access to a CLIENT_ID, CLIENT_SECRET, AND REDIRECT_URI.
+ * To get these credentials for your application, visit https://console.cloud.google.com/apis/credentials.
+ *
+ * Make sure the people API is enabled for your project to get the user profile information.
+ * You can enable it from https://console.cloud.google.com/apis/library/people.googleapis.com
+ *
+ * The REDIRECT_URI is the URL to which users will be redirected after they have authenticated with Google.
+ * This URL must be registered in the Google Cloud Console.
+ * For development purposes, you can use http://localhost:3000/api/auth/google/callback
+ * For production, use your actual domain, e.g., https://yourdomain.com/api/auth/google/callback
+ *
+ * Make sure the Application is set to production or add test users if it's in testing mode.
+ *
+ * The JWT_SECRET is used to sign the JWT tokens. Make sure to use a strong, random string in a production environment.
+ *
+ * The FRONTEND_URL is the URL of your frontend application where users will be redirected after successful authentication.
+ *
+ * The GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL, JWT_SECRET, and FRONTEND_URL should be set in your environment variables.
+ *
+ */
+
+import { type FastifyInstance, type FastifyReply } from 'fastify';
+import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
+
+import fastifyCookie from '@fastify/cookie';
+
+import setupCallbackRoute from './routes/callback/index.js';
+import setupLoginRoute from './routes/login/index.js';
+import setupLogoutRoute from './routes/logout/index.js';
+
+import SessionManager from './routes/session/index.js';
+import ProviderUtility from './routes/providers/index.js';
+
+import TokenUtility from './utils/token/index.js';
+
+interface OAuthContext {
+  app: FastifyInstance;
+  redirectUri: string;
+  loginSuccessRedirectUrl: string;
+  jwtSecret: string;
+  state: State[];
+  error: (err: Error, reply?: FastifyReply) => void;
+  callbacks: Record<string, (args: unknown) => unknown>;
+}
+
+function error(this: OAuth, err: Error, reply?: FastifyReply) {
+  console.error('OAuth Error:', err);
+
+  const jsonError = { status: 404, message: err.message, stack: err.stack };
+  if (reply) reply.status(400).send({ error: jsonError });
+
+  // if (this.ctx.callbacks['error']) {
+  //   return this.ctx.callbacks['error'](err);
+  // }
+}
+
+class OAuth {
+  private ctx: OAuthContext;
+
+  constructor(
+    app: FastifyInstance,
+    redirectUri: string,
+    loginSuccessRedirectUrl: string,
+    jwtSecret: string
+  ) {
+    this.ctx = {
+      app,
+      redirectUri,
+      loginSuccessRedirectUrl,
+      jwtSecret,
+      state: [],
+      error: error.bind(this),
+      callbacks: {},
+    };
+    ProviderUtility.initialize(this.ctx);
+    SessionManager.initialize(this.ctx);
+    TokenUtility.initialize(jwtSecret);
+    this.initialize();
+  }
+
+  private removeExpiredStates() {
+    const now = new Date();
+    this.ctx.state = this.ctx.state.filter((s) => s.expiresAt > now);
+  }
+
+  // Initialize the authentication routes
+  private initialize() {
+    console.info('🔑 Registering Authentication Endpoint');
+
+    this.ctx.app.register(fastifyCookie);
+
+    // Clean up expired states periodically
+    setInterval(() => this.removeExpiredStates(), 1 * 60 * 1000); // Every 1 minutes
+
+    setupCallbackRoute(this.ctx);
+    setupLoginRoute(this.ctx);
+    setupLogoutRoute(this.ctx);
+  }
+
+  // Register event callbacks
+  public on(name: string, callback: (args: unknown) => unknown) {
+    this.ctx.callbacks[name] = callback;
+    return this;
+  }
+
+  // Add a new OAuth provider
+  public add(
+    name: string,
+    scopes: string[],
+    options: OAuthProviderOptions,
+    fetchUserData?: (token: string) => Promise<Record<string, unknown>>
+  ) {
+    ProviderUtility.add({
+      name: name,
+      scopes: scopes,
+      oauth2Client: new AuthorizationCode(options),
+      buttonUri: `api/auth/login?provider=${name}`,
+      fetchUserData: fetchUserData,
+    });
+    return this;
+  }
+
+  // Remove a provider by name
+  public removeProvider(name: string) {
+    ProviderUtility.remove(name);
+    return this;
+  }
+}
+
+// Export a factory function that takes a FastifyInstance and returns a new OAuth instance
+export default function Auth(
+  app: FastifyInstance,
+  redirectUri: string,
+  loginSuccessRedirectUrl: string,
+  jtwSecret: string
+): OAuth {
+  return new OAuth(app, redirectUri, loginSuccessRedirectUrl, jtwSecret);
+}
+
+export { type OAuthContext, type AccessToken, OAuth };
+
+export interface OAuthProvider {
+  name: string;
+  scopes: string[];
+  buttonUri: string;
+  oauth2Client?: AuthorizationCode;
+  fetchUserData?:
+    | ((token: string) => Promise<Record<string, unknown>>)
+    | undefined;
+}
+
+export interface OAuthProviderOptions {
+  client: {
+    id: string;
+    secret: string;
+  };
+  auth: {
+    tokenHost: string;
+    tokenPath: string;
+    authorizePath: string;
+  };
+}
+
+export interface State {
+  state: string;
+  ipNumber: string;
+  provider: OAuthProvider;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+export { fetchGithubUser } from './utils/github/index.js';
+export { fetch42User } from './utils/fourtytwo/index.js';
+export { SessionManager };
