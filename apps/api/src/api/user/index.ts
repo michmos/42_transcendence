@@ -8,21 +8,53 @@ import Database from 'db';
 
 // Import and register fastify-cookie plugin
 import fastifyCookie from '@fastify/cookie';
+import { userRole } from 'db/generated/client';
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: {
+      id: string;
+      email: string;
+      role?: userRole;
+      // Add more fields depending on what your SessionManager returns
+    };
+  }
+}
 
 export default async function (app: FastifyInstance): Promise<void> {
   await app.register(fastifyCookie);
 
-  app.get('/', async function (request, reply) {
-    // if (request.cookies) console.log('Joe', request.cookies.session);
+  // Add authentication hook to protect all /api/user routes
+  app.addHook('preHandler', async (request, reply) => {
+    console.log('➡️ Incoming request:', request.method, request.url);
+    const user = SessionManager.userIsLoggedIn(
+      request.cookies.session as string
+    );
 
-    if (SessionManager.userIsLoggedIn(request.cookies.session as string)) {
-      console.log('✅ Valid session cookie found');
-      return await Database.getAllUsers();
-    }
-    return reply.status(401).send({ error: 'Unauthorized' });
+    if (!user) return reply.status(401).send({ error: 'Unauthorized' });
+    console.log('✅ Valid session cookie found');
+
+    const dbUser = await Database.getUser(user.uuid);
+    if (!dbUser)
+      return reply.status(401).send({ error: 'User not found in database' });
+    console.log('✅ User found in database:', dbUser.email);
+
+    // Attach user info to request object for further use in route handlers
+    request.user = {
+      id: dbUser.uuid,
+      email: dbUser.email,
+      role: dbUser.role || userRole.MEMBER,
+    };
   });
 
-  app.get('/:uuid', async function (request) {
+  app.get('/', async function () {
+    return await Database.getAllUsers();
+  });
+
+  app.get('/:uuid', async function (request, reply) {
+    if (request.user?.role !== userRole.ADMIN) {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
     const { uuid } = request.params as { uuid: string };
     return Database.getUser(uuid);
   });
