@@ -58,7 +58,7 @@ class SessionManager {
       if (!provider || !provider.oauth2Client || !provider.scopes)
         return this.logoutUser(reply, new Error('Unknown provider'));
 
-      // If the session is not expired and is isssued less than 60 seconds ago, return it as is
+      // If the session is not expired and is issued less than 60 seconds ago, return it as is
       const timeNow = new Date().getTime();
       if (
         (timeNow - sessionCookie.issuedAt) / 1000 < 60 &&
