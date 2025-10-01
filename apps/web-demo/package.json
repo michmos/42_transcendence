@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "app.js",
+  "main": "dist/app.js",
+  "types": "dist/app.js",
   "scripts": {
     "build": "vite build",
     "dev": "vite",

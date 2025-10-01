@@ -1,133 +1,106 @@
-import type { Route } from './types.js';
-import { matchRoute } from './route-matcher.js';
-import { loadRouteHTML } from './content-loader.js';
-import { loadRouteScript } from './script-loader.js';
-import {
-  loadRouteCSS,
-  clearAllRouteCSS,
-  setRouteClasses,
-} from './css-loader.js';
-import { setupNavigation, navigateTo, getCurrentPath } from './navigation.js';
+import { routes, dynamicRoutes } from '../../routes.js';
 
-/**
- * Simple Router
- * A lightweight SPA router with support for dynamic routes, caching, and asset loading
- */
+interface RouteMatch {
+  route: any;
+  params: Record<string, string>;
+}
+
 class SimpleRouter {
-  private routes: Route[] = [];
   private root: HTMLElement;
-  private cache = new Map<string, HTMLElement>();
+  private currentStyleElement: HTMLStyleElement | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
-
-    // Set up navigation handling
-    setupNavigation(
-      () => this.render(),
-      (path: string) => this.navigate(path)
-    );
+    this.setupNavigation();
   }
 
-  /**
-   * Register a new route
-   */
-  add(path: string | RegExp, filePath: string): void {
-    this.routes.push({ path, filePath });
-  }
+  private setupNavigation() {
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => this.render());
 
-  /**
-   * Load route scripts after HTML is in the DOM
-   */
-  private async loadRouteScripts(
-    filePath: string,
-    params: Record<string, string> = {}
-  ): Promise<void> {
-    await loadRouteScript(filePath, params);
-  }
+    // Handle link clicks
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href]') as HTMLAnchorElement;
 
-  /**
-   * Navigate to a new path
-   */
-  navigate(path: string): void {
-    navigateTo(path, () => this.render());
-  }
-
-  /**
-   * Render the current route
-   */
-  async render(): Promise<void> {
-    const path = getCurrentPath();
-    const match = matchRoute(path, this.routes);
-
-    // If a route matches, load and display it
-    if (match) {
-      try {
-        // STEP 1: Clear any existing route CSS FIRST to prevent conflicts
-        clearAllRouteCSS();
-
-        // STEP 2: Small delay to ensure CSS clearing completes
-        await new Promise((resolve) => setTimeout(resolve, 10));
-
-        // STEP 3: Load CSS with proper classes
-        await loadRouteCSS(match.route.filePath);
-
-        // STEP 4: Load HTML content (this may come from cache)
-        const element = await loadRouteHTML(
-          match.route.filePath,
-          match.params,
-          this.cache
-        );
-
-        // STEP 5: Clear the root element and insert new content
-        this.root.innerHTML = '';
-        this.root.appendChild(element);
-
-        // STEP 6: Set proper CSS classes for the route
-        setRouteClasses(match.route.filePath);
-
-        // STEP 7: Load scripts AFTER HTML is in the DOM
-        await this.loadRouteScripts(match.route.filePath, match.params);
-      } catch (error) {
-        console.error('Error rendering route:', error);
-        this.root.textContent = 'Error loading page';
+      if (link && link.href.startsWith(window.location.origin)) {
+        e.preventDefault();
+        this.navigate(new URL(link.href).pathname);
       }
-    } else {
-      // Clear CSS for 404 case too
-      clearAllRouteCSS();
-      this.root.textContent = '404 Not Found';
+    });
+  }
+
+  navigate(path: string) {
+    window.history.pushState({}, '', path);
+    this.render();
+  }
+
+  private matchRoute(path: string): RouteMatch | null {
+    // Check static routes
+    if (routes[path]) {
+      return { route: routes[path], params: {} };
     }
+
+    // Check dynamic routes
+    for (const route of dynamicRoutes) {
+      const match = path.match(route.pattern);
+      if (match) {
+        return { route, params: match.groups || {} };
+      }
+    }
+
+    return null;
   }
 
-  /**
-   * Get all registered routes
-   */
-  getRoutes(): Route[] {
-    return [...this.routes];
-  }
+  async render() {
+    const path = window.location.pathname;
+    const match = this.matchRoute(path);
 
-  /**
-   * Clear the route cache
-   */
-  clearCache(): void {
-    this.cache.clear();
-  }
+    if (!match) {
+      this.root.innerHTML = '<h1>404 Not Found</h1>';
+      return;
+    }
 
-  /**
-   * Get cache size
-   */
-  getCacheSize(): number {
-    return this.cache.size;
+    try {
+      // Load HTML
+      const htmlModule = await match.route.html();
+      const html = htmlModule.default || htmlModule;
+
+      // Load CSS
+      const cssModule = await match.route.css();
+      const css = cssModule.default || cssModule;
+
+      // Replace CSS
+      if (this.currentStyleElement) {
+        this.currentStyleElement.remove();
+      }
+      this.currentStyleElement = document.createElement('style');
+      this.currentStyleElement.textContent = css;
+      document.head.appendChild(this.currentStyleElement);
+
+      // Replace HTML with parameter substitution
+      let processedHtml = html;
+      Object.entries(match.params).forEach(([key, value]) => {
+        processedHtml = processedHtml.replace(
+          new RegExp(`{{${key}}}`, 'g'),
+          value
+        );
+      });
+
+      this.root.innerHTML = processedHtml;
+
+      // Load and execute script
+      const scriptModule = await match.route.script();
+      if (scriptModule.default) {
+        // Make params available globally
+        (window as any).routeParams = match.params;
+        scriptModule.default();
+      }
+    } catch (error) {
+      console.error('Error loading route:', error);
+      this.root.innerHTML = '<h1>Error loading page</h1>';
+    }
   }
 }
 
 export { SimpleRouter };
-export type { Route } from './types.js';
-export {
-  loadRouteCSS,
-  clearAllRouteCSS,
-  setRouteClasses,
-  removeRouteCSS,
-  getLoadedCSSRoutes,
-  isCSSLoadedForRoute,
-  preloadRouteCSS,
-} from './css-loader.js';

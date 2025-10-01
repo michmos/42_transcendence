@@ -2,6 +2,7 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
+    "rootDir": "./src",
     "outDir": "./dist",
 
     // Environment Settings
@@ -40,12 +41,12 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*",
-    "src/app.ts",
+    "src/plugins/**/*",
+    "src/routes/**/*",
     "vite.config.ts"
-  ],
-  "exclude": ["dist", "out"]
+  ]
 }
