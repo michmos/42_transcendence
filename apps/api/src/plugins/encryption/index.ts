@@ -110,7 +110,7 @@ class CryptoManager {
         interface UserItem {
           uuid: string;
           email: string;
-          [key: string]: any;
+          [key: string]: unknown;
         }
 
         const encryptedDataArray = encryptedData as UserItem[];

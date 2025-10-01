@@ -19,7 +19,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "dep:build": "tsc",
     "dev": "tsc --watch"
   },
   "devDependencies": {
