@@ -1,4 +1,3 @@
-[No content]
 
 # Auth Plugin
 
