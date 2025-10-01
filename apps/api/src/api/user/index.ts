@@ -104,7 +104,6 @@ export default async function (app: FastifyInstance): Promise<void> {
         typeof encryptedData === 'object' &&
         typeof encryptedData.uuid === 'string'
       ) {
-        console.log('Single object before encryption:', encryptedData);
         encryptedData.uuid = encrypt(
           encryptedData.uuid,
           env.UUID_ENCRYPTION_KEY as string
