@@ -79,9 +79,16 @@ class SessionManager {
         state: state.state,
       });
 
+      if (!accessToken) {
+        return this.logoutUser(
+          reply,
+          new Error('Failed to create access token')
+        );
+      }
+
       // Refresh the access token
       try {
-        if (!accessToken || !accessToken.token) {
+        if (!accessToken.token) {
           console.error(
             'No access token available for provider:',
             provider.name
