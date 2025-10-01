@@ -105,7 +105,8 @@ class CryptoManager {
       // Handle both single user object and array of users
       if (
         Array.isArray(encryptedData) ||
-        (typeof encryptedData === 'object' && typeof encryptedData.uuid === 'string')
+        (typeof encryptedData === 'object' &&
+          typeof encryptedData.uuid === 'string')
       ) {
         interface UserItem {
           uuid: string;

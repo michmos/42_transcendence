@@ -19,13 +19,13 @@ interface GithubUser {
   user_view_type: string;
   site_admin: boolean;
   name: string;
-  company: string | null;
+  company: string;
   blog: string;
   email: string;
-  location: string | null;
-  hireable: boolean | null;
-  bio: string | null;
-  twitter_username: string | null;
+  location: string;
+  hireable: boolean;
+  bio: string;
+  twitter_username: string;
   public_repos: number;
   public_gists: number;
   followers: number;
@@ -86,8 +86,8 @@ import type { OAuthProviderOptions } from '../../index.js';
 const GitHub: OAuthProviderOptions = {
   name: 'GitHub',
   client: {
-    id: process.env.GITHUB_CLIENT_ID!,
-    secret: process.env.GITHUB_CLIENT_SECRET!,
+    id: process.env.GITHUB_CLIENT_ID || '',
+    secret: process.env.GITHUB_CLIENT_SECRET || '',
   },
   auth: {
     tokenHost: 'https://github.com',

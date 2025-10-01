@@ -20,7 +20,9 @@
   },
   "scripts": {
     "dep:build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

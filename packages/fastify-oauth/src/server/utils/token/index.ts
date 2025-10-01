@@ -32,7 +32,7 @@ class TokenUtility {
         return payload as Record<string, unknown>;
       }
       return null;
-    } catch (error) {
+    } catch {
       console.error('JWT verification error');
       return null;
     }
