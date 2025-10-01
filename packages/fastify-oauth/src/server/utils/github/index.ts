@@ -62,7 +62,7 @@ async function fetchGithubUser(token: string) {
     if (emailResponse.ok) {
       const emails = await emailResponse.json();
       const primaryEmail = emails.find(
-        (email: { primary: string; verified: string }) =>
+        (email: { primary: boolean; verified: boolean; email: string }) =>
           email.primary && email.verified
       );
       if (primaryEmail) {
