@@ -15,10 +15,16 @@
     "db:studio": {
       "env": ["DATABASE_URL"]
     },
-    "build": {
-      "dependsOn": ["^db:generate"],
+    "dep:build": {
       "inputs": ["$TURBO_DEFAULT$"],
-      "outputs": ["dist/**", "out/**"]
+      "outputs": ["dist/**", "out/**"],
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["dist/**", "out/**"],
+      "cache": false
     },
     "dev": {
       "dependsOn": ["^db:generate", "^db:push"],

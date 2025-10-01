@@ -1,7 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 
-import { env } from '../../env.js';
 import Database from 'db';
 import { userRole } from 'db/generated/client/index.js';
 import CryptoManager from '../../plugins/encryption/index.js';
