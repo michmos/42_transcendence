@@ -207,7 +207,7 @@ async function fetch42User(token: string) {
   const project = userData.projects_users.find(
     (pu) => pu.project.slug === 'ft_transcendence'
   );
-  if (project && project?.status !== 'finished') {
+  if (project && project.status !== 'finished') {
     console.info(
       userData.first_name +
         ' ' +
