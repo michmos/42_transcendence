@@ -33,7 +33,7 @@ class TokenUtility {
       }
       return null;
     } catch (error) {
-      console.error('JWT verification error:', error);
+      console.error('JWT verification error');
       return null;
     }
   }
