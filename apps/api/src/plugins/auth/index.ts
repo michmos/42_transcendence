@@ -1,7 +1,7 @@
 import { env } from '../../env.js';
 import Fastify from 'fastify';
 
-import Auth, { FourtyTwo, GitHub, Google } from 'fastify-oauth/server';
+import Auth, { FortyTwo, GitHub, Google } from 'fastify-oauth/server';
 
 import database, { type User } from 'db';
 
@@ -19,7 +19,7 @@ export default async function (app: Fastify.FastifyInstance) {
   Auth(app, env.REDIRECT_URL, '/', env.JWT_SECRET)
     .add(Google)
     .add(GitHub)
-    .add(FourtyTwo)
+    .add(FortyTwo)
     .on('login', (args: unknown) => {
       const { uuid, providerName, user } = args as {
         uuid: string;
