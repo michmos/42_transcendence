@@ -5,13 +5,12 @@
   "main": "dist/index.js",
   "types": "dist/index.js",
   "scripts": {
-    "build": "tsc",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:format": "prisma format",
-    "postinstall": "if [ -z \"$DATABASE_URL\" ]; then export DATABASE_URL=\"file:./dev.db\"; fi && prisma generate && prisma db push --force-reset"
+    "postinstall": "if [ -z \"$DATABASE_URL\" ]; then export DATABASE_URL=\"file:./dev.db\"; fi && prisma generate && prisma db push --force-reset && tsc"
   },
   "keywords": [],
   "author": "",

@@ -1,7 +1,14 @@
 import { routes, dynamicRoutes } from '../../routes.js';
 
+interface RouteConfig {
+  html: () => Promise<{ default: string } | string>;
+  css: () => Promise<{ default: string } | string>;
+  script: () => Promise<{ default?: () => void }>;
+  pattern?: RegExp;
+}
+
 interface RouteMatch {
-  route: any;
+  route: RouteConfig;
   params: Record<string, string>;
 }
 
@@ -37,8 +44,12 @@ class SimpleRouter {
 
   private matchRoute(path: string): RouteMatch | null {
     // Check static routes
-    if (routes[path]) {
-      return { route: routes[path], params: {} };
+    const staticRoute = (routes as Record<string, RouteConfig>)[path];
+    if (staticRoute) {
+      return {
+        route: staticRoute,
+        params: {},
+      };
     }
 
     // Check dynamic routes
@@ -64,11 +75,12 @@ class SimpleRouter {
     try {
       // Load HTML
       const htmlModule = await match.route.html();
-      const html = htmlModule.default || htmlModule;
+      const html =
+        typeof htmlModule === 'string' ? htmlModule : htmlModule.default;
 
       // Load CSS
       const cssModule = await match.route.css();
-      const css = cssModule.default || cssModule;
+      const css = typeof cssModule === 'string' ? cssModule : cssModule.default;
 
       // Replace CSS
       if (this.currentStyleElement) {
@@ -93,7 +105,9 @@ class SimpleRouter {
       const scriptModule = await match.route.script();
       if (scriptModule.default) {
         // Make params available globally
-        (window as any).routeParams = match.params;
+        (
+          window as Window & { routeParams: Record<string, string> }
+        ).routeParams = match.params;
         scriptModule.default();
       }
     } catch (error) {
