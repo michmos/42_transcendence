@@ -14,9 +14,7 @@
  *
  * The JWT_SECRET is used to sign the JWT tokens. Make sure to use a strong, random string in a production environment.
  *
- * The FRONTEND_URL is the URL of your frontend application where users will be redirected after successful authentication.
- *
- * The GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL, JWT_SECRET, and FRONTEND_URL should be set in your environment variables.
+ * The GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL, JWT_SECRET, should be set in your environment variables.
  *
  */
 
