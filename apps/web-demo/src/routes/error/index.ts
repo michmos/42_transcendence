@@ -4,7 +4,7 @@ const code = params.get('code');
 const type = params.get('type');
 const details = params.get('error');
 
-function displayErrors() {
+export default function initRoute() {
   if (error) {
     const errorDiv = document.getElementById('error-message');
     if (errorDiv) {
@@ -33,10 +33,4 @@ function displayErrors() {
       detailsDiv.style.display = 'block';
     }
   }
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', displayErrors);
-} else {
-  displayErrors();
 }

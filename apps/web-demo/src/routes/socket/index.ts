@@ -33,13 +33,8 @@ function SendMessageToServer() {
     'messageInput'
   ) as HTMLInputElement | null;
 
-  if (!sendButton) {
-    console.error('❌ sendMessageButton not found');
-    return;
-  }
-
-  if (!messageInput) {
-    console.error('❌ messageInput not found');
+  if (!sendButton || !messageInput) {
+    console.error('❌ Required elements not found');
     return;
   }
 
@@ -80,8 +75,7 @@ function SendMessageToServer() {
   console.log('✅ Message sending functionality setup complete');
 }
 
-// Route initialization function - called by the dynamic route loader
-export function initRoute() {
+export default function initRoute() {
   console.log('🔌 Socket route initializing...');
 
   // Small delay to ensure DOM is fully ready

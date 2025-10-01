@@ -1,5 +1,5 @@
-import { PrismaClient } from './generated/client/index.js';
-import type { User } from './generated/client/index.js';
+import { PrismaClient } from '../generated/client/index.js';
+import type { User } from '../generated/client/index.js';
 
 class Database {
   private db: PrismaClient;

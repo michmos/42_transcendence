@@ -9,7 +9,7 @@ import Database from 'db';
 
 // Import and register fastify-cookie plugin
 import fastifyCookie from '@fastify/cookie';
-import { userRole } from 'db/generated/client';
+import { userRole } from 'db/generated/client/index.js';
 
 import crypto from 'crypto';
 

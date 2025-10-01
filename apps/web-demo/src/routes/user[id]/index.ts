@@ -1,7 +1,6 @@
-// import type { SimpleRouter } from 'src/plugins/router/index.js';
 import API from '../../plugins/api/index.js';
 
-export function initRoute() {
+export default function initRoute() {
   // Get the ID from the route parameters that were injected by the router
   const routeParams = window.routeParams;
   const userId = routeParams?.id || 'unknown';

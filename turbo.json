@@ -5,12 +5,12 @@
     "db:generate": {
       "inputs": ["$TURBO_DEFAULT$"],
       "env": ["DATABASE_URL"],
-      "cache": true
+      "cache": false
     },
     "db:push": {
       "inputs": ["$TURBO_DEFAULT$"],
       "env": ["DATABASE_URL"],
-      "cache": true
+      "cache": false
     },
     "db:studio": {
       "env": ["DATABASE_URL"]
@@ -48,7 +48,7 @@
       "dependsOn": ["^build"]
     },
     "preview": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^db:generate", "^db:push", "build"],
       "inputs": ["$TURBO_DEFAULT$", ".env"],
       "env": [
         "DATABASE_URL",
@@ -65,14 +65,15 @@
         "FORTYTWO_CLIENT_SECRET",
         "FORTYTWO_CLIENT_ID",
         "GITHUB_CLIENT_ID",
-        "GITHUB_CLIENT_SECRET"
+        "GITHUB_CLIENT_SECRET",
+        "UUID_ENCRYPTION_KEY"
       ],
       "cache": false,
       "persistent": true
     },
     "lint": {
       "inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
-      "cache": true
+      "cache": false
     },
     "lint:fix": {
       "inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
