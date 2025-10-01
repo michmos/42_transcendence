@@ -118,9 +118,9 @@ export default function Auth(
   app: FastifyInstance,
   redirectUri: string,
   loginSuccessRedirectUrl: string,
-  jtwSecret: string
+  jwtSecret: string
 ): OAuth {
-  return new OAuth(app, redirectUri, loginSuccessRedirectUrl, jtwSecret);
+  return new OAuth(app, redirectUri, loginSuccessRedirectUrl, jwtSecret);
 }
 
 export { type OAuthContext, type AccessToken, OAuth };
