@@ -58,7 +58,7 @@ function setupLoginRoute(ctx: OAuthContext) {
     const ipNumber = request.ip;
 
     if (!provider) {
-      return ctx.error(new Error('Unknown provider:' + providerName), reply);
+      return reply.status(400).send({ error: 'Unknown provider' });
     }
 
     request.log.info(`Generating ${provider.name} OAuth URL`);
@@ -72,7 +72,7 @@ function setupLoginRoute(ctx: OAuthContext) {
 
     // Generate the authorization URL
     const url = await generateAuthUrl(ctx, provider, ipNumber);
-    return reply.redirect(url);
+    return reply.status(302).redirect(url);
   });
 }
 

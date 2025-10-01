@@ -44,17 +44,6 @@ interface OAuthContext {
   callbacks: Record<string, (args: unknown) => unknown>;
 }
 
-function error(this: OAuth, err: Error, reply?: FastifyReply) {
-  console.error('OAuth Error:', err);
-
-  const jsonError = { status: 404, message: err.message, stack: err.stack };
-  if (reply) reply.status(400).send({ error: jsonError });
-
-  // if (this.ctx.callbacks['error']) {
-  //   return this.ctx.callbacks['error'](err);
-  // }
-}
-
 class OAuth {
   private ctx: OAuthContext;
 
@@ -70,13 +59,22 @@ class OAuth {
       loginSuccessRedirectUrl,
       jwtSecret,
       state: [],
-      error: error.bind(this),
+      error: this.error.bind(this),
       callbacks: {},
     };
     ProviderUtility.initialize(this.ctx);
     SessionManager.initialize(this.ctx);
     TokenUtility.initialize(jwtSecret);
     this.initialize();
+  }
+
+  private error(this: OAuth, err: Error, reply?: FastifyReply) {
+    const jsonError = { status: 404, message: err.message, stack: err.stack };
+    if (reply) reply.status(400).send({ error: jsonError });
+
+    if (this.ctx.callbacks['error']) {
+      return this.ctx.callbacks['error'](err);
+    }
   }
 
   private removeExpiredStates() {
@@ -105,19 +103,8 @@ class OAuth {
   }
 
   // Add a new OAuth provider
-  public add(
-    name: string,
-    scopes: string[],
-    options: OAuthProviderOptions,
-    fetchUserData?: (token: string) => Promise<Record<string, unknown>>
-  ) {
-    ProviderUtility.add({
-      name: name,
-      scopes: scopes,
-      oauth2Client: new AuthorizationCode(options),
-      buttonUri: `api/auth/login?provider=${name}`,
-      fetchUserData: fetchUserData,
-    });
+  public add(config: OAuthProviderOptions) {
+    ProviderUtility.add(config);
     return this;
   }
 
@@ -151,6 +138,7 @@ export interface OAuthProvider {
 }
 
 export interface OAuthProviderOptions {
+  name: string;
   client: {
     id: string;
     secret: string;
@@ -160,6 +148,8 @@ export interface OAuthProviderOptions {
     tokenPath: string;
     authorizePath: string;
   };
+  scopes: string[];
+  fetchUserData?: (token: string) => Promise<Record<string, unknown>>;
 }
 
 export interface State {
@@ -170,6 +160,7 @@ export interface State {
   expiresAt: Date;
 }
 
-export { fetchGithubUser } from './utils/github/index.js';
-export { fetch42User } from './utils/fourtytwo/index.js';
+export { GitHub } from './utils/github/index.js';
+export { FourtyTwo } from './utils/fourtytwo/index.js';
+export { Google } from './utils/google/index.js';
 export { SessionManager };

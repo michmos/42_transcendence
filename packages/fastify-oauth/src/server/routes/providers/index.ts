@@ -1,5 +1,6 @@
-import type { OAuthContext } from '../../index.js';
+import type { OAuthContext, OAuthProviderOptions } from '../../index.js';
 import type { OAuthProvider } from '../../index.js';
+import { AuthorizationCode } from 'simple-oauth2';
 
 class ProviderUtility {
   private oAuthProviders: OAuthProvider[];
@@ -23,11 +24,38 @@ class ProviderUtility {
     });
   }
 
-  add(provider: OAuthProvider) {
-    if (this.get(provider.name)) {
-      throw new Error('Provider already exists: ' + provider.name);
+  add(config: OAuthProviderOptions) {
+    if (this.get(config.name)) {
+      throw new Error('Provider already exists: ' + config.name);
     }
-    console.info('🔑 Adding OAuth provider:', provider.name);
+
+    if (!config.client || !config.client.id || !config.client.secret) {
+      throw new Error(
+        'Invalid client configuration for provider: ' + config.name
+      );
+    }
+    if (
+      !config.auth ||
+      !config.auth.tokenHost ||
+      !config.auth.tokenPath ||
+      !config.auth.authorizePath
+    ) {
+      throw new Error(
+        'Invalid auth configuration for provider: ' + config.name
+      );
+    }
+    console.info('🔑 Adding OAuth provider:', config.name);
+    const provider: OAuthProvider = {
+      name: config.name,
+      scopes: config.scopes || [],
+      oauth2Client: new AuthorizationCode({
+        client: config.client,
+        auth: config.auth,
+      }),
+
+      buttonUri: `api/auth/login?provider=${config.name}`,
+      fetchUserData: config.fetchUserData,
+    };
     this.oAuthProviders.push(provider);
   }
 

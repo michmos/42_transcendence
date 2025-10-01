@@ -81,4 +81,21 @@ async function fetchGithubUser(token: string) {
   return user;
 }
 
-export { fetchGithubUser };
+import type { OAuthProviderOptions } from '../../index.js';
+
+const GitHub: OAuthProviderOptions = {
+  name: 'GitHub',
+  client: {
+    id: process.env.GITHUB_CLIENT_ID!,
+    secret: process.env.GITHUB_CLIENT_SECRET!,
+  },
+  auth: {
+    tokenHost: 'https://github.com',
+    tokenPath: '/login/oauth/access_token',
+    authorizePath: '/login/oauth/authorize',
+  },
+  scopes: ['read:user', 'user:email', 'offline_access'],
+  fetchUserData: fetchGithubUser,
+};
+
+export { GitHub };

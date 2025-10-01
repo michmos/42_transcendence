@@ -10,7 +10,10 @@ class Database {
   }
 
   public async getAllUsers(): Promise<User[]> {
-    return this.db.user.findMany();
+    return this.db.user.findMany({
+      orderBy: { username: 'asc' },
+      include: { groups: true },
+    });
   }
 
   public async getUser(uuid: string): Promise<User | null> {
