@@ -58,6 +58,12 @@ class TokenUtility {
       return null;
     }
 
+    // Check if the session has expired
+    if (sessionCookie.expiresAt && sessionCookie.expiresAt < Date.now()) {
+      console.error('Session cookie has expired', sessionCookie);
+      return null;
+    }
+
     return sessionCookie;
   }
 
