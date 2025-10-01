@@ -69,8 +69,8 @@ function setupCallbackRoute(ctx: OAuthContext) {
     const name = getUserName(user);
 
     // Trigger userUpdate callback if registered
-    if (ctx.callbacks['userUpdate']) {
-      ctx.callbacks['userUpdate']({
+    if (ctx.callbacks['login']) {
+      ctx.callbacks['login']({
         uuid,
         name,
         providerName: provider.name,

@@ -30,13 +30,8 @@ info:
   version: '1.0.0'
   title: '42 Transcendence API'
 servers:
-  - url: http://localhost:3002/
-    description: Development server
-
-components:
-  schemas:
-
-paths:
+  - url: http://localhost:5173/api/
+    description: Application Endpoint
 
 tags:
   - name: Health
@@ -47,3 +42,247 @@ tags:
     description: Tournament management
   - name: Match
     description: Match management
+  - name: Authentication
+    description: OAuth authentication endpoints
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Group:
+      type: object
+      required: #mandatory properties
+        - uuid
+        - name
+      properties:
+        uuid:
+          type: string
+          example: 'group1-uuid'
+        name:
+          type: string
+          example: 'group1'
+        owner:
+          type: string
+          example: 'owner-uuid'
+        type:
+          type: string
+          enum: [FRIENDS, GAME]
+          example: 'FRIENDS'
+    User:
+      type: object
+      required: #mandatory properties
+        - id
+        - username
+      properties:
+        uuid:
+          describe: Unique encrypted user ID
+          type: integer
+          example: 42
+        username:
+          type: string
+          example: 'player42'
+        avatar:
+          type: string
+          example: 'https://avatar.example.com/player42.png'
+        role:
+          type: string
+          enum: [MEMBER, ADMIN]
+          example: 'MEMBER'
+        groups:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Group'
+          example: ['group1', 'group2']
+        email:
+          type: string
+          example: 'example@example.com'
+    Provider:
+      type: object
+      properties:
+        name:
+          type: string
+          example: '42'
+        buttonUri:
+          type: string
+          example: 'api/auth/login?provider=42'
+    Session:
+      type: object
+      properties:
+        provider:
+          type: string
+          example: '42'
+        user:
+          type: object
+        uuid:
+          type: string
+          example: 'user-uuid-123'
+        accessToken:
+          type: string
+          example: 'access-token-123'
+        expiresAt:
+          type: integer
+          example: 1696176635492
+
+paths:
+  /auth/providers:
+    get:
+      tags:
+        - Authentication
+      summary: Get available OAuth providers
+      description: Retrieve a list of all configured OAuth providers
+      responses:
+        '200':
+          description: List of available providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Provider'
+
+  /auth/login:
+    get:
+      tags:
+        - Authentication
+      summary: Initiate OAuth login
+      description: |
+        Redirect to OAuth provider for authentication.
+        
+        **⚠️ This endpoint must be accessed directly in the browser, not via AJAX/fetch.**
+        
+        **Do not use the "Try it out" button - it will fail due to CORS restrictions.**
+        
+        Instead, navigate to: `http://localhost:5173/api/auth/login?provider=42`
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+          example: '42'
+      responses:
+        '302':
+          description: Redirect to OAuth provider
+        '400':
+          description: Unknown provider or invalid request
+
+  /auth/callback:
+    get:
+      tags:
+        - Authentication
+      summary: OAuth callback endpoint
+      description: Handle OAuth provider callback and create session
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to success URL with session cookie set
+        '400':
+          description: Invalid or expired state/code
+
+  /auth/logout:
+    get:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Clear session cookie and logout user
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Logged out successfully'
+
+  /auth/session:
+    get:
+      tags:
+        - Authentication
+      summary: Get current session
+      description: Get current user session information, refreshing tokens if needed
+      responses:
+        '200':
+          description: Current session data or null if not logged in
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Session'
+                  - type: object
+                    properties:
+                      session:
+                        type: null
+
+  /user:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      description: |
+        Retrieve a list of all users.
+
+        **Requires authentication via JWT token in the Authorization header.**
+
+        **Only users with the ADMIN role can access this endpoint.**
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized.
+        '403':
+          description: Forbidden. User does not have ADMIN role.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Forbidden. ADMIN role required.
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error.

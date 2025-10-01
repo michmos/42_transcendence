@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => {
           ws: true,
           rewrite: (path) => path.replace(/^\/websocket/, ''),
         },
+        '/documentation': {
+          target: `http://localhost:${apiPort}`,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     preview: {

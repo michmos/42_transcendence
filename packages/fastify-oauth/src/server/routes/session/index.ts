@@ -155,8 +155,8 @@ class SessionManager {
         }
 
         // Trigger userUpdate callback if registered
-        if (this.ctx.callbacks['userUpdate']) {
-          this.ctx.callbacks['userUpdate']({
+        if (this.ctx.callbacks['login']) {
+          this.ctx.callbacks['login']({
             uuid,
             providerName: provider.name,
             user,

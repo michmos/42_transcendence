@@ -1,14 +1,3 @@
-// interface FourtyTwoUser {
-//   id: number;
-//   email: string;
-//   login: string;
-//   first_name: string;
-//   last_name: string;
-//   image: {
-//     link: string;
-//   };
-// }
-
 export interface ImageVersions {
   large: string;
   medium: string;
@@ -237,4 +226,21 @@ async function fetch42User(token: string) {
   return user;
 }
 
-export { fetch42User };
+import type { OAuthProviderOptions } from '../../index.js';
+
+const FourtyTwo: OAuthProviderOptions = {
+  name: '42',
+  client: {
+    id: process.env.FORTYTWO_CLIENT_ID!,
+    secret: process.env.FORTYTWO_CLIENT_SECRET!,
+  },
+  auth: {
+    tokenHost: 'https://api.intra.42.fr',
+    tokenPath: '/oauth/token',
+    authorizePath: '/oauth/authorize',
+  },
+  scopes: ['public'],
+  fetchUserData: fetch42User,
+};
+
+export { FourtyTwo };
