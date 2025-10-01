@@ -21,7 +21,7 @@ const start = async () => {
 
     // Load all API routes defined in routes
     app.register(AutoLoad, {
-      dir: path.join(__dirname, 'api'),
+      dir: path.join(__dirname, 'routes'),
       dirNameRoutePrefix: true,
     });
 
