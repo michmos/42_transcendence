@@ -19,26 +19,28 @@ export default async function initRoute() {
     throw new Error("Logout button with id 'logout' not found.");
   }
 
-  if (user) {
-    logoutBtn.addEventListener('click', () => {
-      fetch('/api/auth/logout', {
-        method: 'GET',
-        credentials: 'include',
-      }).then(() => {
-        user = null;
-        userTableLogic(); // Refresh user table
-        logoutBtn.textContent = 'Login';
-        logoutBtn.addEventListener('click', () => {
-          window.router.navigate('/login');
-        });
-      });
+  // Define handler functions so we can remove them later
+  function handleLogoutClick() {
+    fetch('/api/auth/logout', {
+      method: 'GET',
+      credentials: 'include',
+    }).then(() => {
+      user = null;
+      userTableLogic(); // Refresh user table
+      logoutBtn.textContent = 'Login';
+      logoutBtn.removeEventListener('click', handleLogoutClick);
+      logoutBtn.addEventListener('click', handleLoginClick);
     });
   }
+  function handleLoginClick() {
+    window.router.navigate('/login');
+  }
 
-  if (!user) {
+  if (user) {
+    logoutBtn.textContent = 'Logout';
+    logoutBtn.addEventListener('click', handleLogoutClick);
+  } else {
     logoutBtn.textContent = 'Login';
-    logoutBtn.addEventListener('click', () => {
-      window.router.navigate('/login');
-    });
+    logoutBtn.addEventListener('click', handleLoginClick);
   }
 }
