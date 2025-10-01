@@ -46,7 +46,8 @@ export function extractOpenIDUser(accessToken: AccessToken, name?: string) {
     throw new Error('Missing required OpenID fields in ID token');
   }
 
-  console.log('Decoded ID Token:', decoded);
+  // Decoded ID Token successfully. User sub: %s, email: %s
+  console.log('Decoded ID Token for user:', decoded.sub);
   const user = {
     uuid: decoded.sub,
     email: decoded.email,
