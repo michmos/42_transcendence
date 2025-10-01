@@ -25,7 +25,6 @@ This plugin provides OAuth2 authentication for Fastify applications, supporting 
    - `GOOGLE_CLIENT_SECRET`
    - `GOOGLE_REDIRECT_URL`
    - `JWT_SECRET` (use a strong, random string)
-   - `FRONTEND_URL` (your frontend app URL)
 
 3. **Register the Plugin:**
 
