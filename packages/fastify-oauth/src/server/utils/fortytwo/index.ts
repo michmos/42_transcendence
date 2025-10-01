@@ -26,13 +26,13 @@ export interface Cursus {
 export interface CursusUser {
   id: number;
   begin_at: string;
-  end_at: string | null;
-  grade: string | null;
+  end_at: string;
+  grade: string;
   level: number;
   skills: Skill[];
   cursus_id: number;
   has_coalition: boolean;
-  blackholed_at: string | null;
+  blackholed_at: string;
   created_at: string;
   updated_at: string;
   user: FortyTwoUser;
@@ -50,15 +50,15 @@ export interface Project {
 export interface ProjectsUser {
   id: number;
   occurrence: number;
-  final_mark: number | null;
+  final_mark: number;
   status: string;
   validated?: boolean;
-  current_team_id: number | null;
+  current_team_id: number;
   project: Project;
   cursus_ids: number[];
-  marked_at: string | null;
+  marked_at: string;
   marked: boolean;
-  retriable_at: string | null;
+  retriable_at: string;
   created_at: string;
   updated_at: string;
 }
@@ -79,7 +79,7 @@ export interface Achievement {
   kind: string;
   visible: boolean;
   image: string;
-  nbr_of_success: number | null;
+  nbr_of_success: number;
   users_url: string;
 }
 
@@ -150,7 +150,7 @@ export interface FortyTwoUser {
   first_name: string;
   last_name: string;
   usual_full_name: string;
-  usual_first_name: string | null;
+  usual_first_name: string;
   url: string;
   phone: string;
   displayname: string;
@@ -160,13 +160,13 @@ export interface FortyTwoUser {
   correction_point: number;
   pool_month: string;
   pool_year: string;
-  location: string | null;
+  location: string;
   wallet: number;
   anonymize_date: string;
   data_erasure_date: string;
   created_at: string;
   updated_at: string;
-  alumnized_at: string | null;
+  alumnized_at: string;
   alumni?: boolean;
   active?: boolean;
   groups: unknown[];
@@ -231,8 +231,8 @@ import type { OAuthProviderOptions } from '../../index.js';
 const FortyTwo: OAuthProviderOptions = {
   name: '42',
   client: {
-    id: process.env.FORTYTWO_CLIENT_ID!,
-    secret: process.env.FORTYTWO_CLIENT_SECRET!,
+    id: process.env.FORTYTWO_CLIENT_ID || '',
+    secret: process.env.FORTYTWO_CLIENT_SECRET || '',
   },
   auth: {
     tokenHost: 'https://api.intra.42.fr',
