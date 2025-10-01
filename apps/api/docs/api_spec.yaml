@@ -1,0 +1,49 @@
+# OpenAPI Specification - Team Introduction
+#
+# What is OpenAPI?
+# OpenAPI (formerly Swagger) is a standard way to document REST APIs. It describes:
+# - What endpoints exist (/users, /status, etc.)
+# - What HTTP methods they support (GET, POST, PUT, DELETE)
+# - What data they expect and return
+# - Examples and validation rules
+#
+# Main building blocks:
+# 1. info: Basic API information (title, version, description)
+# 2. servers: Where the API runs (localhost, production, etc.)
+# 3. paths: Your API endpoints and their operations
+# 4. components/schemas: Reusable data structures (User, Game, etc.)
+# 5. parameters: Query params (?page=1) and path params (/users/{id})
+# 6. requestBody: JSON data sent to POST/PUT endpoints
+# 7. responses: What the API returns (success/error responses)
+#
+# Benefits:
+# - Interactive documentation (try endpoints in the browser)
+# - Code generation (client SDKs, server stubs)
+# - API testing and validation
+# - Team communication and onboarding
+#
+# View this spec at: http://localhost:3002/documentation
+
+openapi: 3.0.0
+info:
+  description: '42 Transcendence API'
+  version: '1.0.0'
+  title: '42 Transcendence API'
+servers:
+  - url: http://localhost:3002/
+    description: Development server
+
+components:
+  schemas:
+
+paths:
+
+tags:
+  - name: Health
+    description: Server status endpoints
+  - name: Users
+    description: User management
+  - name: Tournament
+    description: Tournament management
+  - name: Match
+    description: Match management
