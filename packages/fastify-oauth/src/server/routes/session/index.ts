@@ -116,7 +116,7 @@ class SessionManager {
         }
 
         // If no access token, clear cookie and return null
-        if (!accessToken || !accessToken.token.access_token) {
+        if (!accessToken.token.access_token) {
           console.error(
             'No access token available after refresh for provider:',
             provider.name
