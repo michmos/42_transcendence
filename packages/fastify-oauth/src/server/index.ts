@@ -159,6 +159,6 @@ export interface State {
 }
 
 export { GitHub } from './utils/github/index.js';
-export { FourtyTwo } from './utils/fourtytwo/index.js';
+export { FortyTwo } from './utils/fortytwo/index.js';
 export { Google } from './utils/google/index.js';
 export { SessionManager };

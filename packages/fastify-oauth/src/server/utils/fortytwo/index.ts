@@ -228,7 +228,7 @@ async function fetch42User(token: string) {
 
 import type { OAuthProviderOptions } from '../../index.js';
 
-const FourtyTwo: OAuthProviderOptions = {
+const FortyTwo: OAuthProviderOptions = {
   name: '42',
   client: {
     id: process.env.FORTYTWO_CLIENT_ID!,
@@ -243,4 +243,4 @@ const FourtyTwo: OAuthProviderOptions = {
   fetchUserData: fetch42User,
 };
 
-export { FourtyTwo };
+export { FortyTwo };
