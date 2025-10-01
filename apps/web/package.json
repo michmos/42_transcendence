@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "run": "tsx watch src/app.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+	"test": "echo 'No tests specified' && exit 0"
   },
   "keywords": [],
   "author": "",

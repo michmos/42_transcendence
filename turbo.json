@@ -37,6 +37,11 @@
 			"cache": false,
 			"persistent": true
 		},
+		"test": {
+			"dependsOn": ["build"],
+			"outputs": ["coverage/**"],
+			"cache": false
+		},
 		"lint": {
 			"inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
 			"cache": true
