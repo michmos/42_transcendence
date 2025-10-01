@@ -88,14 +88,6 @@ class SessionManager {
 
       // Refresh the access token
       try {
-        if (!accessToken.token) {
-          console.error(
-            'No access token available for provider:',
-            provider.name
-          );
-          return this.logoutUser(reply, new Error('No access token available'));
-        }
-
         const refreshed = await accessToken.refresh({
           scope: provider.scopes,
         });
