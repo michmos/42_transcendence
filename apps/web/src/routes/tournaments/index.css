@@ -1,0 +1,10 @@
+body {
+  background: linear-gradient(135deg, #3b82f6 0%, #a855f7 100%) !important;
+  min-height: 100vh;
+}
+
+.tournaments-page {
+  min-height: 100vh;
+  padding: 24px;
+  color: white;
+}
