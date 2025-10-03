@@ -2,16 +2,23 @@ import { env } from './env.js';
 
 import Fastify from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
+import { boolean } from 'zod';
+import { is } from 'zod/locales';
 
 const app = Fastify({ logger: { level: 'error' } });
 
 app.register(fastifyWebsocket);
 
-const ROLE_EXPIRATION = 5000
+const ROLE_EXPIRATION = 5000;
+const PADDLE_SEGMENTS = 21;
+const GAME_TIME = 5;
 
 const canvasWidth = 800;
 const canvasHeight = 600;
 const ballSize = 10;
+let gameSpeed = 1;
+let baseGameSpeed = 1;
+let bounceCount = 0;
 
 type GameState = {
   paddleWidth: number;
@@ -26,21 +33,29 @@ type GameState = {
   gamePaused: boolean;
   leftScore: number;
   rightScore: number;
+  gameOver: boolean;
+  aiEnabled: boolean;
+  timeRemaining: number;
+  gameStartTime: number | null;
 };
 
 const gameState: GameState = {
   paddleWidth: 10,
   paddleHeight: 100,
-  ballX: 400,
-  ballY: 300,
-  ballSpeedX: 3,
-  ballSpeedY: 3,
+  ballX: 395,
+  ballY: 295,
+  ballSpeedX: 6,
+  ballSpeedY: 0,
   ballPaused: false,
   leftY: 250,
   rightY: 250,
-  gamePaused: false,
+  gamePaused: true,
   leftScore: 0,
   rightScore: 0,
+  gameOver: false,
+  aiEnabled: false,
+  timeRemaining: GAME_TIME * 60 * 1000,
+  gameStartTime: null,
 };
 
 type ClientRecord = {
@@ -158,15 +173,159 @@ function attatchClient(clientId: string, webSocket: any): ClientRecord {
 	return (record);
 }
 
+function startGameTimer() {
+	if (!gameState.gameStartTime) {
+		gameState.gameStartTime = Date.now();
+	}
+}
+
+function updateTimer() {
+	if (!gameState.gameStartTime || gameState.gamePaused || gameState.gameOver) {
+		return;
+	}
+	const elapsed = Date.now() - gameState.gameStartTime
+	gameState.timeRemaining = Math.max(0, (GAME_TIME * 60 * 1000) - elapsed)
+	if (gameState.timeRemaining === 0 && !gameState.gameOver) {
+		// console.log('Time\'s up!');
+		// gameState.gameOver = true;
+		if (gameState.leftScore === gameState.rightScore) {
+			gameState.paddleHeight = 0;
+			gameState.leftY = 0;
+			gameState.rightY = 0;
+		}
+		else
+			gameState.gameOver = true;
+  	}
+}
+
+function resetTimer() {
+	gameState.timeRemaining = GAME_TIME * 60 * 1000;
+	gameState.gameStartTime = null;
+}
+
+// const collisionVectors = [
+//     // Left paddle vector
+//     {x: -3, y: 4},
+// 	{x: -3, y: 3},	// Top
+// 	{x: -3, y: 2},
+
+// 	{x: -4, y: 1},
+// 	{x: -4, y: 0},	// Middle
+// 	{x: -4, y: -1},
+
+// 	{x: -3, y: -2},
+// 	{x: -3, y: -3},	// Bottom
+// 	{x: -3, y: -4},
+
+//     // Right paddle vector
+//     {x: 3, y: 4},
+// 	{x: 3, y: 3},	// Top
+// 	{x: 3, y: 2},
+
+// 	{x: 4, y: 1},
+// 	{x: 4, y: 0},	// Middle
+// 	{x: 4, y: -1},
+
+// 	{x: 3, y: -2},
+// 	{x: 3, y: -3},	// Bottom
+// 	{x: 3, y: -4},
+// ];
+
+const collisionVectors = [
+    // Left paddle vector
+    {x: -3, y: 7},
+	{x: -3, y: 6},
+	{x: -3, y: 5},
+	{x: -4, y: 4},	// Top
+	{x: -4, y: 3},
+	{x: -5, y: 3},
+	{x: -5, y: 2},
+
+	{x: -6, y: 2},
+	{x: -6, y: 1},
+	{x: -7, y: 1},
+	{x: -7, y: 0},	// Middle
+	{x: -7, y: -1},
+	{x: -6, y: -1},
+	{x: -6, y: -2},
+
+	{x: -5, y: -2},
+	{x: -5, y: -3},
+	{x: -4, y: -3},
+	{x: -4, y: -4},	// Bottom
+	{x: -3, y: -5},
+	{x: -3, y: -6},
+	{x: -3, y: -7},
+
+    // Right paddle vector
+    {x: 3, y: 7},
+	{x: 3, y: 6},
+	{x: 3, y: 5},
+	{x: 4, y: 4},	// Top
+	{x: 4, y: 3},
+	{x: 5, y: 3},
+	{x: 5, y: 2},
+
+	{x: 6, y: 2},
+	{x: 6, y: 1},
+	{x: 7, y: 1},
+	{x: 7, y: 0},	// Middle
+	{x: 7, y: -1},
+	{x: 6, y: -1},
+	{x: 6, y: -2},
+
+	{x: 5, y: -2},
+	{x: 5, y: -3},
+	{x: 4, y: -3},
+	{x: 4, y: -4},	// Bottom
+	{x: 3, y: -5},
+	{x: 3, y: -6},
+	{x: 3, y: -7},
+];
+
+function getVector(ballY: number, paddleY:number, isLeftPaddle: boolean): {x: number, y:number} {
+    
+	if (bounceCount === 17 || bounceCount === 20 || bounceCount === 23) {
+		if (isLeftPaddle) {
+			if (gameState.leftY < 250)
+				return (collisionVectors[0]!)
+			else {
+				return (collisionVectors[PADDLE_SEGMENTS - 1]!)
+			}
+		}
+		else {
+
+			return (collisionVectors[PADDLE_SEGMENTS]!)
+		}
+	}
+	const relativeY = ballY - paddleY;
+	const segmentHeight = gameState.paddleHeight / PADDLE_SEGMENTS;
+
+	let segment = Math.floor(relativeY / segmentHeight);
+	segment = Math.max(0, Math.min(PADDLE_SEGMENTS - 1, segment));
+	// console.log('segment:', segment);
+
+	const vectorIndex = isLeftPaddle ? segment : segment + PADDLE_SEGMENTS;
+
+    return (collisionVectors[vectorIndex]!);
+}
+
 
 function updateGame()
 {
+	
+	if (gameState.gameOver)
+		return;
+
+	updateTimer();
+
 	if (gameState.gamePaused)
-		return
+		return;
 	
 	if (!gameState.ballPaused) {
-		gameState.ballX -= gameState.ballSpeedX;
-		gameState.ballY -= gameState.ballSpeedY;
+		startGameTimer();
+		gameState.ballX -= gameState.ballSpeedX * gameSpeed;
+		gameState.ballY -= gameState.ballSpeedY * gameSpeed;
 	}
 	
 	if (gameState.ballX <= 0 || gameState.ballX >= canvasWidth - ballSize) {
@@ -176,15 +335,27 @@ function updateGame()
 		else
 			gameState.leftScore++;
 
+		let totalScore = gameState.rightScore + gameState.leftScore;
+		// console.log(totalScore);
+		if ((totalScore + 2) % 3 === 0)
+			baseGameSpeed += 0.1;
+		baseGameSpeed = Math.min(baseGameSpeed, 1.7);
+		
+		gameSpeed = baseGameSpeed;
+		bounceCount = 0;
+		console.log('Score! Base speed:', baseGameSpeed, 'Current speed:', gameSpeed);
+
 		gameState.ballX = (canvasWidth / 2) - (ballSize / 2);
 		gameState.ballY = (canvasHeight / 2) - (ballSize / 2);
-		gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -gameState.ballSpeedX : gameState.ballSpeedX; //reverse direction after scoring a point
+		gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -6 : 6;
+		gameState.ballSpeedY = Math.random() > 0.5 ? -(Math.random()) : (Math.random());
+
+		// gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -gameState.ballSpeedX : gameState.ballSpeedX; //reverse direction after scoring a point
 		gameState.ballPaused = true;
 
 		setTimeout(() => {
 			gameState.ballPaused = false;
 		}, 1000);
-
 	}
 
 	// Top and bottom collision
@@ -195,15 +366,57 @@ function updateGame()
 	// Left paddle collision
 	if (gameState.ballX <= gameState.paddleWidth 
 		&& gameState.ballY + ballSize >= gameState.leftY
-		&& gameState.ballY <= gameState.leftY + gameState.paddleHeight) {
-			gameState.ballSpeedX *= -1;
+		&& gameState.ballY <= gameState.leftY + gameState.paddleHeight
+    	&& gameState.ballY > 0 && gameState.ballY < canvasHeight - ballSize) {
+			// gameState.ballSpeedX *= -1;
+			const vector = getVector(gameState.ballY + (ballSize / 2), gameState.leftY, true);
+			gameState.ballSpeedX = vector.x;
+			gameState.ballSpeedY = vector.y;
+			bounceCount++;
+			if (bounceCount >= 10) {
+				const bounceSpeedIncrease = (bounceCount - 9) * 0.1;
+				gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.7);
+			}
+			// console.log(gameState.ballSpeedX * gameSpeed);
+			console.log('Bounce count:', bounceCount, 'Base speed:', baseGameSpeed, 'Current speed:', gameSpeed);
 	}
 
 	// Right paddle collision
 	if (gameState.ballX + ballSize >= canvasWidth - gameState.paddleWidth 
 		&& gameState.ballY + ballSize >= gameState.rightY
-		&& gameState.ballY <= gameState.rightY + gameState.paddleHeight) {
-			gameState.ballSpeedX *= -1;
+		&& gameState.ballY <= gameState.rightY + gameState.paddleHeight
+    	&& gameState.ballY > 0 && gameState.ballY < canvasHeight - ballSize) {
+			// gameState.ballSpeedX *= -1;
+			const vector = getVector(gameState.ballY + (ballSize / 2), gameState.rightY, false);
+			gameState.ballSpeedX = vector.x;
+			gameState.ballSpeedY = vector.y;
+			bounceCount++;
+			if (bounceCount >= 10) {
+				const bounceSpeedIncrease = (bounceCount - 9) * 0.1; // +0.1 for each bounce after 10
+				gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.7);
+			}
+			// console.log(gameState.ballSpeedX * gameSpeed);
+			console.log('Bounce count:', bounceCount, 'Base speed:', baseGameSpeed, 'Current speed:', gameSpeed);
+	}
+	if (gameState.aiEnabled) {
+		if (gameState.rightY + (gameState.paddleHeight / 2) < gameState.ballY && gameState.rightY < 600 - gameState.paddleHeight) {
+			gameState.rightY += 4;
+		}
+		if (gameState.rightY + (gameState.paddleHeight / 2) > gameState.ballY && gameState.rightY > 0) {
+			gameState.rightY -= 4;
+		}
+		// if (gameState.leftY + (gameState.paddleHeight / 2) < gameState.ballY && gameState.leftY < 600 - gameState.paddleHeight) {
+		// 	gameState.leftY += 4;
+		// }
+		// if (gameState.leftY + (gameState.paddleHeight / 2) > gameState.ballY && gameState.leftY > 0) {
+		// 	gameState.leftY -= 4;
+		// }
+	}
+
+
+	if (gameState.leftScore >= 10 || gameState.rightScore >= 10) {
+		console.log('GAME OVER');
+		gameState.gameOver = true;
 	}
 
 }
@@ -247,7 +460,7 @@ app.register(async function (fastify) {
 		if (!record)
 			return;
 
-		if (!gameState.gamePaused) {
+		if (!gameState.gamePaused && !gameState.gameOver) {
 			// if (input.left === 'up' && record.role === 'player1' && gameState.leftY > 0)
 			// 	gameState.leftY -= 5;
 			// if (input.left === 'down' && record.role === 'player1' && gameState.leftY < 600 - gameState.paddleHeight)
@@ -269,8 +482,34 @@ app.register(async function (fastify) {
 			if (input.right === 'down' && record.role === 'local' && gameState.rightY < 600 - gameState.paddleHeight)
 				gameState.rightY += 5;
 		}
-		if (input.game === 'pause' && (record.role === 'player1' || record.role === 'player2'))
+		if (input.game === 'pause' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
 			gameState.gamePaused = !gameState.gamePaused;
+			if (!gameState.gamePaused && gameState.gameStartTime) {
+				// Resume timer - adjust start time to account for pause duration
+				const pausedDuration = Date.now() - (gameState.gameStartTime + (5 * 60 * 1000 - gameState.timeRemaining));
+				gameState.gameStartTime += pausedDuration;
+			}
+			console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`)
+		}
+		if (input.game === 'ai' && record.role === 'local') {
+			gameState.aiEnabled = !gameState.aiEnabled;
+			console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`)
+		}
+		if (input.game === 'reset' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
+			gameState.paddleHeight = 100;
+			gameState.gamePaused = true;
+			gameState.leftScore = 0;
+			gameState.rightScore = 0;
+			gameState.gameOver = false;
+			gameState.ballX = 395;
+  			gameState.ballY= 295,
+			gameState.leftY = 250;
+  			gameState.rightY= 250,
+			gameSpeed = 1;
+			baseGameSpeed = 1;
+			bounceCount = 0;
+			resetTimer();
+		}
 
 	  } catch {}
     });

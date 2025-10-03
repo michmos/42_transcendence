@@ -28,11 +28,15 @@ let serverState = {
 	gamePaused: false,
 	leftScore: 0,
 	rightScore: 0,
+	gameOver: false,
+	aiEnabled: false,
+	timeRemaining: 0,
+	gameStartTime: 0,
  };
 
 let role = 'spectator';
 
-// const ws = new WebSocket("ws://10.11.4.4:3001/"); //Hardcoded network IP
+// const ws = new WebSocket("ws://10.11.4.4:3001/"); // Hardcoded network IP
 const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`);
 
 ws.onopen = () => {
@@ -55,6 +59,13 @@ ws.onmessage = (event) => {
   }
 };
 
+function formatTime(milliseconds: number): string {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return (`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+}
+
 function draw()
 {
 	// Safety check: ensure we have valid server state
@@ -66,15 +77,16 @@ function draw()
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	
 	ctx.fillStyle = "white";
-
+	ctx.textAlign = "center";
+	// drawScore(1000, canvas.width / 2 + 50, canvas.height - 30, 2)
 	const dashHeight = 10;
 	const dashWidth = 2;
 	const dashSpacing = dashHeight + (dashHeight / 5);
-	for (let y = 0; y < canvas.height; y += dashHeight + dashSpacing) 
+	for (let y = 0; y < canvas.height - 40; y += dashHeight + dashSpacing) 
 		ctx.fillRect((canvas.width / 2) - (dashWidth / 2), y, dashWidth, dashHeight);
 
-	drawScore(serverState.leftScore.toString(), (canvas.width / 4), 60);
-	drawScore(serverState.rightScore.toString(), ((canvas.width * 3) / 4), 60);
+	drawScore(serverState.leftScore, (canvas.width / 4) + (canvas.width / 20), (canvas.height / 10), (canvas.height / 100));
+	drawScore(serverState.rightScore, (canvas.width / 4 * 3) + (canvas.width / 20), (canvas.height / 10), (canvas.height / 100));
 
 	ctx.fillRect(0, serverState.leftY, serverState.paddleWidth, serverState.paddleHeight);
 	ctx.fillRect(canvas.width - serverState.paddleWidth, serverState.rightY, serverState.paddleWidth, serverState.paddleHeight);
@@ -95,14 +107,8 @@ function draw()
 	if (role === 'player1') {
 		ctx.fillText("↑ W", padding, padding * 3);
 		ctx.fillText("↓ S", padding, canvas.height - padding);
-		// ctx.fillText("YOU", padding, canvas.height - padding);
-		// ctx.textAlign = "right";
-		// ctx.fillText("PLAYER 2", canvas.width - padding, canvas.height - padding);
 	}
 	else if (role === 'player2') {
-		// ctx.fillText("PLAYER 1", padding, canvas.height - padding);
-		// ctx.textAlign = "right";
-		// ctx.fillText("YOU", canvas.width - padding, canvas.height - padding);
 		ctx.textAlign = "right";
 		ctx.fillText("W ↑", canvas.width - padding, padding * 3);
 		ctx.fillText("S ↓", canvas.width - padding, canvas.height - padding);
@@ -118,6 +124,70 @@ function draw()
 		ctx.textAlign = "center";
 		ctx.fillText("SPECTATING", canvas.width / 2, canvas.height - padding);
 	}
+
+	// ctx.font = "48px Arial";
+	// ctx.textAlign = "center";
+	// if (serverState.gameOver && (role === 'local' || role === 'player1') && serverState.leftScore > serverState.rightScore) {
+	// 	ctx.fillText("YOU WON", (canvas.width / 4), (canvas.height / 2));
+	// 	ctx.font = "16px Arial";
+	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4, canvas.height / 2 + 25);
+	// }
+	// else if (serverState.gameOver && (role === 'local')) {
+	// 	if (serverState.aiEnabled) {
+	// 		ctx.fillText("YOU LOST", (canvas.width / 4), (canvas.height / 2));
+	// 		ctx.font = "16px Arial";
+	// 		ctx.fillText("Press 'R' to restart", canvas.width / 4, canvas.height / 2 + 25);
+	// 	}
+	// 	else {
+	// 		ctx.fillText("YOU WON", (canvas.width / 4 * 3), (canvas.height / 2));
+	// 		ctx.font = "16px Arial";
+	// 		ctx.fillText("Press 'R' to restart", canvas.width / 4 * 3, canvas.height / 2 + 25);
+	// 	}
+	// }
+	// else if (serverState.gameOver && (role === 'player1')) {
+	// 	ctx.fillText("YOU LOST", (canvas.width / 4), (canvas.height / 2));
+	// 	ctx.font = "16px Arial";
+	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4, canvas.height / 2 + 25);
+	// }
+	// else if (serverState.gameOver && (role === 'player2') && serverState.leftScore < serverState.rightScore)  {
+	// 	ctx.fillText("YOU WON", (canvas.width / 4 * 3), (canvas.height / 2));
+	// 	ctx.font = "16px Arial";
+	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4 * 3, canvas.height / 2 + 25);
+	// }
+	// else if (serverState.gameOver && (role === 'player2')) {
+	// 	ctx.fillText("YOU LOST", (canvas.width / 4 * 3), (canvas.height / 2));
+	// 	ctx.font = "16px Arial";
+	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4 * 3, canvas.height / 2 + 25);
+	// }
+
+	if (serverState.gameOver) {
+		const leftWon = serverState.leftScore > serverState.rightScore;
+		
+		let playerWon: boolean;
+		if (role === 'local' && serverState.aiEnabled) {
+			playerWon = leftWon;
+		} else {
+			playerWon = (role === 'local') || 
+						(role === 'player1' && leftWon) || 
+						(role === 'player2' && !leftWon);
+		}
+
+		const x = (role === 'player2') ? 
+				(canvas.width / 4 * 3) :
+				(role === 'local' && !leftWon && !serverState.aiEnabled) ? 
+				(canvas.width / 4 * 3) : 
+				(canvas.width / 4);
+		
+		const fontSize = 48;
+		ctx.font = `${fontSize}px Arial`;
+		ctx.textAlign = "center";
+		ctx.fillText(playerWon ? "YOU WON" : "YOU LOST", x, canvas.height / 2);
+		ctx.font = `${fontSize / 3}px Arial`;
+		ctx.fillText("Press 'R' to restart", x, canvas.height / 2 + fontSize / 2);
+	}
+	ctx.textAlign = "center";
+	ctx.font = "32px Arial";
+	ctx.fillText(formatTime(serverState.timeRemaining), canvas.width / 2, canvas.height - padding)
 }
 
 const keys: { [key: string]: boolean } = {};
@@ -126,6 +196,10 @@ document.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === "p")
 	ws.send(JSON.stringify({ game: "pause"}));
+  if (e.key === "r")
+	ws.send(JSON.stringify({ game: "reset"}));
+  if (e.key === ".")
+	ws.send(JSON.stringify({ game: "ai"}));
 })
 
 document.addEventListener("keyup", (e) => {
