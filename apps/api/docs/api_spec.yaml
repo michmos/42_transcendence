@@ -247,7 +247,7 @@ paths:
       summary: Get tournaments with filter options
       description: |
         Retrieves all tournaments that match the query filter options. 
-        - Public tournaments don't required auth 
+        - Public tournaments don't require auth 
         - me=true requires auth through JWT simply to identify user
       security:
         - {}
