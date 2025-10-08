@@ -63,7 +63,10 @@ model User {
   // Relations
   groups            Group[]     @relation("UserGroups")
   ownedGroups       Group[]     @relation("UserOwnedGroups")
+
   tournaments       Tournament[]
+  matches1          Match[]    @relation("MatchesAsPlayer1")
+  matches2          Match[]    @relation("MatchesAsPlayer2")
 }
 
 model Tournament {
@@ -84,6 +87,42 @@ model Tournament {
 
   // Relations
   participants      User[]
+  rounds            TournamentRound[]
+}
+
+model TournamentRound {
+  // Meta
+  uuid          String    @id @default(uuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Data
+  index         Int
+  tournamentId  String
+
+  // Relations
+  matches       Match[]
+  tournament    Tournament  @relation(fields: [tournamentId], references: [uuid])
+}
+
+model Match {
+  // Meta
+  uuid              String    @id @default(uuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Data
+  status            status    @default(OUTSTANDING)
+  Score1            Int
+  Score2            Int
+  player1Id         String
+  player2Id         String
+  tournamentRoundId String?
+
+  // Relations
+  player1           User  @relation("MatchesAsPlayer1", fields: [player1Id], references: [uuid])
+  player2           User  @relation("MatchesAsPlayer2", fields: [player2Id], references: [uuid])
+  tournament        TournamentRound?  @relation(fields: [tournamentRoundId], references: [uuid])
 }
 
 model Group {
