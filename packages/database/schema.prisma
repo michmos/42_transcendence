@@ -45,22 +45,25 @@ model oAuthProvider {
 
 model User {
   // Meta
-  uuid              String    @id @default(uuid())
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  uuid              String      @id @default(uuid())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   // Authentication
-  username          String
-  email             String    @unique
+  username          String      @unique
+  email             String      @unique
   oAuthProviders    oAuthProvider[]
 
   // Profile
   avatar            String?
-  role              userRole  @default(MEMBER)
+  twoFactorEnabled  Boolean     @default(false)
+  twoFactorSecret   String?
+  role              userRole    @default(MEMBER)
   
   // Relations
-  groups            Group[]   @relation("UserGroups")
-  ownedGroups       Group[]   @relation("UserOwnedGroups")
+  groups            Group[]     @relation("UserGroups")
+  ownedGroups       Group[]     @relation("UserOwnedGroups")
+  tournaments       Tournament[]
 }
 
 model Tournament {
@@ -80,8 +83,7 @@ model Tournament {
   currentRound      Int       @default(0)
 
   // Relations
-  participants      Group     @relation(fields: [groupId], references: [uuid])
-  groupId           String    @unique
+  participants      User[]
 }
 
 model Group {
@@ -98,5 +100,4 @@ model Group {
   // Relations
   users       User[]      @relation("UserGroups")
   owner       User        @relation("UserOwnedGroups", fields: [ownerId], references: [uuid])
-  tournament  Tournament?
 }
