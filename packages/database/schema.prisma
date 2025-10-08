@@ -82,7 +82,7 @@ model Tournament {
   lockTime          Int       @default(10)
   gameTime          Int       @default(3)
   status            status    @default(OUTSTANDING)
-  numberofRounds    Int?
+  numberOfRounds    Int       @default(1)
   currentRound      Int       @default(0)
 
   // Relations
@@ -113,15 +113,16 @@ model Match {
 
   // Data
   status            status    @default(OUTSTANDING)
-  Score1            Int
-  Score2            Int
-  player1Id         String
-  player2Id         String
+  Score1            Int       @default(0)
+  Score2            Int       @default(0)
+  player1Id         String?
+  player2Id         String?
+  winnerId          String?
   tournamentRoundId String?
 
   // Relations
-  player1           User  @relation("MatchesAsPlayer1", fields: [player1Id], references: [uuid])
-  player2           User  @relation("MatchesAsPlayer2", fields: [player2Id], references: [uuid])
+  player1           User?  @relation("MatchesAsPlayer1", fields: [player1Id], references: [uuid])
+  player2           User?  @relation("MatchesAsPlayer2", fields: [player2Id], references: [uuid])
   tournament        TournamentRound?  @relation(fields: [tournamentRoundId], references: [uuid])
 }
 
