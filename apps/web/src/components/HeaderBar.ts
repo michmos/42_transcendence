@@ -55,7 +55,8 @@ export class HeaderBar {
       a.href = l.href;
       a.setAttribute('data-link', '');
       a.textContent = l.label;
-      a.className = 'px-3 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-sm hover:bg-white/30';
+      a.className =
+        'px-3 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-sm hover:bg-white/30';
       if (this.props.onNavigate) {
         a.addEventListener('click', (e) => {
           e.preventDefault();
@@ -73,6 +74,3 @@ export class HeaderBar {
 }
 
 export default HeaderBar;
-
-
-
