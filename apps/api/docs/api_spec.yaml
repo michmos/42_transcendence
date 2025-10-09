@@ -143,7 +143,7 @@ components:
       description: all times in minutes
       required:
         - uuid
-        - name
+        - tournamentName
         - maxPlayers
         - minPlayers
         - lockTime
@@ -154,7 +154,7 @@ components:
         uuid:
           type: string
           format: uuid
-        name:
+        tournamentName:
           type: string
           example: 'SomeTournamentName'
         maxPlayers:
@@ -197,6 +197,26 @@ components:
           items:
             $ref: '#/components/schemas/Match'
 
+    CreateTournamentInput:
+      type: object
+      required:
+        - tournamentName
+        - maxPlayers
+        - minPlayers
+        - lockTime
+        - gameTime
+      properties:
+        tournamentName:
+          type: string
+        maxPlayers:
+          type: integer
+        minPlayers:
+          type: integer
+        lockTime:
+          type: integer
+        gameTime:
+          type: integer
+
     Match:
       type: object
       required:
@@ -227,6 +247,15 @@ components:
         description:
           type: string
           example: 'some meaningful error message'
+
+  parameters:
+    uuid:
+      name: uuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
 paths:
   /tournaments:
@@ -286,24 +315,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - tournamentName
-                - maxPlayers
-                - minPlayers
-                - lockTime
-                - gameTime
-              properties:
-                tournamentName:
-                  type: string
-                maxPlayers:
-                  type: integer
-                minPlayers:
-                  type: integer
-                lockTime:
-                  type: integer
-                gameTime:
-                  type: integer
+              $ref: '#/components/schemas/CreateTournamentInput'
 
       responses:
         '201':
@@ -321,13 +333,7 @@ paths:
 
   /tournaments/{uuid}:
     parameters:
-      - name: uuid
-        in: path
-        required: true
-        description: tournament uuid
-        schema:
-          type: string
-          format: uuid
+      - $ref: '#/components/parameters/uuid'
     get:
       tags:
         - Tournament
@@ -349,13 +355,7 @@ paths:
 
   /tournaments/{uuid}/users:
     parameters:
-      - name: uuid
-        in: path
-        required: true
-        description: tournament uuid
-        schema:
-          type: string
-          format: uuid
+      - $ref: '#/components/parameters/uuid'
     post:
       tags:
         - Tournament
@@ -388,13 +388,7 @@ paths:
 
   /tournaments/{uuid}/rounds/{roundIdx}:
     parameters:
-      - name: uuid
-        in: path
-        required: true
-        description: tournament uuid
-        schema:
-          type: string
-          format: uuid
+      - $ref: '#/components/parameters/uuid'
       - name: roundIdx
         in: path
         required: true
