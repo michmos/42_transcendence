@@ -15,7 +15,7 @@ const GAME_TIME = 5;
 
 const canvasWidth = 800;
 const canvasHeight = 600;
-const ballSize = 10;
+const ballSize = canvasWidth / 80;
 let gameSpeed = 1;
 let baseGameSpeed = 1;
 let bounceCount = 0;
@@ -40,15 +40,15 @@ type GameState = {
 };
 
 const gameState: GameState = {
-  paddleWidth: 10,
-  paddleHeight: 100,
-  ballX: 395,
-  ballY: 295,
+  paddleWidth: canvasWidth / 80,
+  paddleHeight: canvasHeight / 6,
+  ballX: canvasWidth / 2 - ballSize / 2,
+  ballY: canvasHeight / 2 - ballSize / 2,
   ballSpeedX: 6,
   ballSpeedY: 0,
   ballPaused: false,
-  leftY: 250,
-  rightY: 250,
+  leftY: canvasHeight / 2 - (canvasHeight / 6) / 2,
+  rightY: canvasHeight / 2 - (canvasHeight / 6) / 2,
   gamePaused: true,
   leftScore: 0,
   rightScore: 0,
@@ -61,20 +61,30 @@ const gameState: GameState = {
 type ClientRecord = {
 	clientId: string;
 	role: 'local' | 'player1' | 'player2' | 'spectator';
-	webSocket: any | null;
 	connected: boolean;
 	lastSeen: number;
 }
 
 const clientRecords = new Map<string, ClientRecord>();
-const socketToClientId = new Map<any, string>();
 
 function removeExpiredRoles() {
 	const now = Date.now();
+	const PING_TIMEOUT = 15000; // 15 seconds timeout
 	for (const [clientId, record] of clientRecords.entries()) {
+
+		if (record.connected && (now - record.lastSeen) > PING_TIMEOUT) {
+			console.log(`API Client-${clientId} timed out (no ping for ${(now - record.lastSeen)}ms)`)
+			record.connected = false;
+		
+			if (record.role === 'player2') {
+				convertPlayer1();
+			}
+		}
+
 		if (!record.connected && (now - record.lastSeen) > ROLE_EXPIRATION) {
-			if (record.role === 'player1' || record.role ===  'player2')
+			if (record.role === 'player1' || record.role ===  'player2') {
 				console.log(`Client-${clientId} removed; role "${record.role}" availible`)
+			}
 			clientRecords.delete(clientId);
 		}
 	}
@@ -109,13 +119,13 @@ function convertLocal() {
             clientRecords.set(clientId, record);
             
             // Notify the client about their role change
-            if (record.webSocket) {
-                record.webSocket.send(JSON.stringify({ 
-                    type: 'role', 
-                    role: 'player1', 
-                    clientId: record.clientId 
-                }));
-            }
+            // if (record.webSocket) {
+            //     record.webSocket.send(JSON.stringify({ 
+            //         type: 'role', 
+            //         role: 'player1', 
+            //         clientId: record.clientId 
+            //     }));
+            // }
             console.log(`Client-${clientId} converted from local to player1`);
             break; // Only convert the first one
         }
@@ -130,28 +140,26 @@ function convertPlayer1() {
             clientRecords.set(clientId, record);
             
             // Notify the client about their role change
-            if (record.webSocket) {
-                record.webSocket.send(JSON.stringify({ 
-                    type: 'role', 
-                    role: 'local', 
-                    clientId: record.clientId 
-                }));
-            }
+            // if (record.webSocket) {
+            //     record.webSocket.send(JSON.stringify({ 
+            //         type: 'role', 
+            //         role: 'local', 
+            //         clientId: record.clientId 
+            //     }));
+            // }
             console.log(`Client-${clientId} converted from player1 back to local`);
             break;
         }
     }
 }
 
-function attatchClient(clientId: string, webSocket: any): ClientRecord {
+function attatchClient(clientId: string): ClientRecord {
 	const now = Date.now();
 	if (clientRecords.has(clientId)) {
 		const record = clientRecords.get(clientId)!;
-		record.webSocket = webSocket;
 		record.connected = true;
 		record.lastSeen = now;
 		clientRecords.set(clientId, record);
-		socketToClientId.set(webSocket, clientId);
 		return (record)
 	}
 
@@ -159,7 +167,6 @@ function attatchClient(clientId: string, webSocket: any): ClientRecord {
 	const record: ClientRecord = {
 		clientId,
 		role,
-		webSocket,
 		connected: true,
 		lastSeen : now,
 	}
@@ -169,7 +176,6 @@ function attatchClient(clientId: string, webSocket: any): ClientRecord {
     }
 
 	clientRecords.set(clientId, record);
-	socketToClientId.set(webSocket, clientId);
 	return (record);
 }
 
@@ -287,15 +293,19 @@ function getVector(ballY: number, paddleY:number, isLeftPaddle: boolean): {x: nu
     
 	if (bounceCount === 17 || bounceCount === 20 || bounceCount === 23) {
 		if (isLeftPaddle) {
-			if (gameState.leftY < 250)
+			if (gameState.leftY < canvasHeight / 2 - gameState.paddleHeight / 2)
 				return (collisionVectors[0]!)
 			else {
 				return (collisionVectors[PADDLE_SEGMENTS - 1]!)
 			}
 		}
 		else {
+			if (gameState.rightY < canvasHeight / 2 - gameState.paddleHeight / 2)
+				return (collisionVectors[PADDLE_SEGMENTS]!)
+			else {
 
-			return (collisionVectors[PADDLE_SEGMENTS]!)
+				return (collisionVectors[2 * PADDLE_SEGMENTS - 1]!)
+			}
 		}
 	}
 	const relativeY = ballY - paddleY;
@@ -339,7 +349,7 @@ function updateGame()
 		// console.log(totalScore);
 		if ((totalScore + 2) % 3 === 0)
 			baseGameSpeed += 0.1;
-		baseGameSpeed = Math.min(baseGameSpeed, 1.7);
+		baseGameSpeed = Math.min(baseGameSpeed, 1.6);
 		
 		gameSpeed = baseGameSpeed;
 		bounceCount = 0;
@@ -349,6 +359,7 @@ function updateGame()
 		gameState.ballY = (canvasHeight / 2) - (ballSize / 2);
 		gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -6 : 6;
 		gameState.ballSpeedY = Math.random() > 0.5 ? -(Math.random()) : (Math.random());
+		// gameState.ballSpeedY = 0
 
 		// gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -gameState.ballSpeedX : gameState.ballSpeedX; //reverse direction after scoring a point
 		gameState.ballPaused = true;
@@ -369,13 +380,14 @@ function updateGame()
 		&& gameState.ballY <= gameState.leftY + gameState.paddleHeight
     	&& gameState.ballY > 0 && gameState.ballY < canvasHeight - ballSize) {
 			// gameState.ballSpeedX *= -1;
+			let offset = Math.random() > 0.5 ? -.1 : .1;
 			const vector = getVector(gameState.ballY + (ballSize / 2), gameState.leftY, true);
 			gameState.ballSpeedX = vector.x;
-			gameState.ballSpeedY = vector.y;
+			gameState.ballSpeedY = vector.y + offset;
 			bounceCount++;
 			if (bounceCount >= 10) {
 				const bounceSpeedIncrease = (bounceCount - 9) * 0.1;
-				gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.7);
+				gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.6);
 			}
 			// console.log(gameState.ballSpeedX * gameSpeed);
 			console.log('Bounce count:', bounceCount, 'Base speed:', baseGameSpeed, 'Current speed:', gameSpeed);
@@ -387,28 +399,29 @@ function updateGame()
 		&& gameState.ballY <= gameState.rightY + gameState.paddleHeight
     	&& gameState.ballY > 0 && gameState.ballY < canvasHeight - ballSize) {
 			// gameState.ballSpeedX *= -1;
+			let offset = Math.random() > 0.5 ? -.1 : .1;
 			const vector = getVector(gameState.ballY + (ballSize / 2), gameState.rightY, false);
 			gameState.ballSpeedX = vector.x;
-			gameState.ballSpeedY = vector.y;
+			gameState.ballSpeedY = vector.y + offset;
 			bounceCount++;
 			if (bounceCount >= 10) {
 				const bounceSpeedIncrease = (bounceCount - 9) * 0.1; // +0.1 for each bounce after 10
-				gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.7);
+				gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.6);
 			}
 			// console.log(gameState.ballSpeedX * gameSpeed);
 			console.log('Bounce count:', bounceCount, 'Base speed:', baseGameSpeed, 'Current speed:', gameSpeed);
 	}
 	if (gameState.aiEnabled) {
-		if (gameState.rightY + (gameState.paddleHeight / 2) < gameState.ballY && gameState.rightY < 600 - gameState.paddleHeight) {
+		if (gameState.rightY + (gameState.paddleHeight / 2) - ballSize / 2 < gameState.ballY && gameState.rightY < canvasHeight - gameState.paddleHeight) {
 			gameState.rightY += 4;
 		}
-		if (gameState.rightY + (gameState.paddleHeight / 2) > gameState.ballY && gameState.rightY > 0) {
+		if (gameState.rightY + (gameState.paddleHeight / 2) - ballSize / 2 > gameState.ballY && gameState.rightY > 0) {
 			gameState.rightY -= 4;
 		}
-		// if (gameState.leftY + (gameState.paddleHeight / 2) < gameState.ballY && gameState.leftY < 600 - gameState.paddleHeight) {
+		// if (gameState.leftY + (gameState.paddleHeight / 2) - ballSize / 2 < gameState.ballY && gameState.leftY < canvasHeight - gameState.paddleHeight) {
 		// 	gameState.leftY += 4;
 		// }
-		// if (gameState.leftY + (gameState.paddleHeight / 2) > gameState.ballY && gameState.leftY > 0) {
+		// if (gameState.leftY + (gameState.paddleHeight / 2) - ballSize / 2 > gameState.ballY && gameState.leftY > 0) {
 		// 	gameState.leftY -= 4;
 		// }
 	}
@@ -424,122 +437,256 @@ function updateGame()
 // Global game update loop - runs once for the entire server
 setInterval(() => {
   updateGame();
-  const data = JSON.stringify({ type: 'state', timestamp: Date.now(), ...gameState});
+//   const data = JSON.stringify({ type: 'state', timestamp: Date.now(), ...gameState});
   
-  // Send to all connected clients
-  for (const record of clientRecords.values()) {
-    if (record.webSocket) {
-      try {
-        record.webSocket.send(data);
-      } catch (error) {
-        // Handle send errors - client might have disconnected
-        console.log('Error sending to client:', error instanceof Error ? error.message : 'Unknown error');
-      }
-    }
-  }
+//   // Send to all connected clients
+//   for (const record of clientRecords.values()) {
+//     if (record.webSocket) {
+//       try {
+//         record.webSocket.send(data);
+//       } catch (error) {
+//         // Handle send errors - client might have disconnected
+//         console.log('Error sending to client:', error instanceof Error ? error.message : 'Unknown error');
+//       }
+//     }
+//   }
 }, 1000 / 60);
 
+// Adding CORS Headers
+app.addHook('onRequest', async (request, reply) => {
+  reply.header('Access-Control-Allow-Origin', '*');
+  reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+});
+
+// Handle preflight OPTIONS requests
+app.options('*', async (request, reply) => {
+  reply
+    .header('Access-Control-Allow-Origin', '*')
+    .header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    .code(200)
+    .send();
+});
+
 app.register(async function (fastify) {
+
+// API endpoints:
+	// Game state endpoint
+fastify.get('/api/game/state', async (request, reply) => {
+	// Optional: track which client is requesting state
+	const clientId = (request.query as { clientId?: string }).clientId;
+	let clientRole: string | undefined;
+
+	if (clientId) {
+		const record = clientRecords.get(clientId);
+		if (record && record.connected) {
+			record.lastSeen = Date.now();
+			attatchClient(clientId);
+			clientRole = record.role;
+		}
+	}
+
+	return {
+		...gameState,
+		clientRole
+	};
+});
+
+  // Ping endpoint
+
+  fastify.post('/api/game/ping', async (request, reply) => {
+	const { clientId } = request.body as { clientId: string}
+	const record = clientRecords.get(clientId);
+	if (!record || !record.connected) {
+		return reply.code(404).send({ error: 'Client not found'})
+	}
+
+	record.lastSeen = Date.now();
+	attatchClient(clientId)
+
+	return {
+		success: true,
+		timestamp: Date.now()
+	}
+  })
+
+  // Player joins endpoint
+  fastify.post('/api/game/join', async (request, reply) => {
+	const { clientId } = request.body as { clientId: string};
+
+	const record = attatchClient(clientId);
+
+	console.log(`API client ${record.clientId} joined as ${record.role}`);
+
+	return {
+		record,
+		gameState
+	};
+  })
+
+  // Player action endpoint
+  fastify.post('/api/game/action', async (request, reply) => {
+	// console.log('update gameState using player input');
+	const input = request.body as { clientId: string, action: string };
+	console.log(input);
+	const record = clientRecords.get(input.clientId);
+	if (!record || !record.connected)
+		return (reply.code(404).send({ error: 'Client not found' }));
+	
+	record.lastSeen = Date.now();
+	attatchClient(input.clientId);
+	
+	if (!gameState.gamePaused && !gameState.gameOver) {
+		if (input.action === 'upL' && (record.role === 'player1' || record.role === 'local') && gameState.leftY > 0)
+			gameState.leftY -= 5;
+		if (input.action === 'downL' && (record.role === 'player1' || record.role === 'local') && gameState.leftY < canvasHeight - gameState.paddleHeight)
+			gameState.leftY += 5;
+		if (input.action === 'upR' && record.role === 'local' && gameState.rightY > 0 && !gameState.aiEnabled)
+			gameState.rightY -= 5;
+		if (input.action === 'downR' && record.role === 'local' && gameState.rightY < canvasHeight - gameState.paddleHeight && !gameState.aiEnabled)
+			gameState.rightY += 5;
+		if (input.action === 'upL' && record.role === 'player2' && gameState.rightY > 0 && !gameState.aiEnabled)
+			gameState.rightY -= 5;
+		if (input.action === 'downL' && record.role === 'player2' && gameState.rightY < canvasHeight - gameState.paddleHeight && !gameState.aiEnabled)
+			gameState.rightY += 5;
+	}
+	if (input.action === 'pause' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
+		gameState.gamePaused = !gameState.gamePaused;
+		if (!gameState.gamePaused && gameState.gameStartTime) {
+			// Resume timer - adjust start time to account for pause duration
+			const pausedDuration = Date.now() - (gameState.gameStartTime + (GAME_TIME * 60 * 1000 - gameState.timeRemaining));
+			gameState.gameStartTime += pausedDuration;
+		}
+		console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`)
+	}
+	if (input.action === 'ai' && record.role === 'local') {
+		gameState.aiEnabled = !gameState.aiEnabled;
+		console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`)
+	}
+	if (input.action === 'reset' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
+		gameState.paddleHeight = canvasHeight / 6;
+		gameState.gamePaused = true;
+		gameState.leftScore = 0;
+		gameState.rightScore = 0;
+		gameState.gameOver = false;
+		gameState.ballX = canvasWidth / 2 - ballSize / 2;
+		gameState.ballY= canvasHeight / 2 - ballSize / 2;
+		gameState.leftY = canvasHeight / 2 - (canvasHeight / 6) / 2;
+		gameState.rightY= canvasHeight / 2 - (canvasHeight / 6) / 2;
+		gameSpeed = 1;
+		baseGameSpeed = 1;
+		bounceCount = 0;
+		resetTimer();
+	}
+
+	return {
+		success: true,
+		gameState
+	}
+  })
+
   fastify.get('/', { websocket: true }, (socket) => {
 	// console.log('Client connected');
 
     socket.on('message', (message: Buffer) => {
       console.log('message from client:', message.toString());
-	  try {
-		const input = JSON.parse(message.toString());
-		// console.log(input);
+	//   try {
+	// 	const input = JSON.parse(message.toString());
+	// 	// console.log(input);
 
-		if (input.type === 'connect') {
-			const clientId = input.clientId || (`anon-${Math.random().toString(36).slice(2, 10)}`);
-			const record = attatchClient(clientId, socket);
-			socket.send(JSON.stringify({ type: 'role', role: record.role, clientId: record.clientId }))
-			console.log(`Client-${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`);
-		}
+	// 	if (input.type === 'connect') {
+	// 		const clientId = input.clientId || (`anon-${Math.random().toString(36).slice(2, 10)}`);
+	// 		const record = attatchClient(clientId, socket);
+	// 		socket.send(JSON.stringify({ type: 'role', role: record.role, clientId: record.clientId }))
+	// 		console.log(`Client-${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`);
+	// 	} 
+	// } catch {}
 
-		const record = clientRecords.get(socketToClientId.get(socket)!);
-		if (!record)
-			return;
+	// 	const record = clientRecords.get(socketToClientId.get(socket)!);
+	// 	if (!record)
+	// 		return;
 
-		if (!gameState.gamePaused && !gameState.gameOver) {
-			// if (input.left === 'up' && record.role === 'player1' && gameState.leftY > 0)
-			// 	gameState.leftY -= 5;
-			// if (input.left === 'down' && record.role === 'player1' && gameState.leftY < 600 - gameState.paddleHeight)
-			// 	gameState.leftY += 5;
-			// if (input.right === 'up' && record.role === 'player2' && gameState.rightY > 0)
-			// 	gameState.rightY -= 5;
-			// if (input.right === 'down' && record.role === 'player2' && gameState.rightY < 600 - gameState.paddleHeight)
-			// 	gameState.rightY += 5;
-			if (input.action === 'up' && (record.role === 'player1' || record.role === 'local') && gameState.leftY > 0)
-				gameState.leftY -= 5;
-			if (input.action === 'down' && (record.role === 'player1' || record.role === 'local') && gameState.leftY < 600 - gameState.paddleHeight)
-				gameState.leftY += 5;
-			if (input.action === 'up' && record.role === 'player2' && gameState.rightY > 0)
-				gameState.rightY -= 5;
-			if (input.action === 'down' && record.role === 'player2' && gameState.rightY < 600 - gameState.paddleHeight)
-				gameState.rightY += 5;
-			if (input.right === 'up' && record.role === 'local' && gameState.rightY > 0)
-				gameState.rightY -= 5;
-			if (input.right === 'down' && record.role === 'local' && gameState.rightY < 600 - gameState.paddleHeight)
-				gameState.rightY += 5;
-		}
-		if (input.game === 'pause' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
-			gameState.gamePaused = !gameState.gamePaused;
-			if (!gameState.gamePaused && gameState.gameStartTime) {
-				// Resume timer - adjust start time to account for pause duration
-				const pausedDuration = Date.now() - (gameState.gameStartTime + (5 * 60 * 1000 - gameState.timeRemaining));
-				gameState.gameStartTime += pausedDuration;
-			}
-			console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`)
-		}
-		if (input.game === 'ai' && record.role === 'local') {
-			gameState.aiEnabled = !gameState.aiEnabled;
-			console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`)
-		}
-		if (input.game === 'reset' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
-			gameState.paddleHeight = 100;
-			gameState.gamePaused = true;
-			gameState.leftScore = 0;
-			gameState.rightScore = 0;
-			gameState.gameOver = false;
-			gameState.ballX = 395;
-  			gameState.ballY= 295,
-			gameState.leftY = 250;
-  			gameState.rightY= 250,
-			gameSpeed = 1;
-			baseGameSpeed = 1;
-			bounceCount = 0;
-			resetTimer();
-		}
+	// 	if (!gameState.gamePaused && !gameState.gameOver) {
+	// 		if (input.left === 'up' && record.role === 'player1' && gameState.leftY > 0)
+	// 			gameState.leftY -= 5;
+	// 		if (input.left === 'down' && record.role === 'player1' && gameState.leftY < 600 - gameState.paddleHeight)
+	// 			gameState.leftY += 5;
+	// 		if (input.right === 'up' && record.role === 'player2' && gameState.rightY > 0)
+	// 			gameState.rightY -= 5;
+	// 		if (input.right === 'down' && record.role === 'player2' && gameState.rightY < 600 - gameState.paddleHeight)
+	// 			gameState.rightY += 5;
+	// 		if (input.action === 'up' && (record.role === 'player1' || record.role === 'local') && gameState.leftY > 0)
+	// 			gameState.leftY -= 5;
+	// 		if (input.action === 'down' && (record.role === 'player1' || record.role === 'local') && gameState.leftY < canvasHeight - gameState.paddleHeight)
+	// 			gameState.leftY += 5;
+	// 		if (input.action === 'up' && record.role === 'player2' && gameState.rightY > 0 && !gameState.aiEnabled)
+	// 			gameState.rightY -= 5;
+	// 		if (input.action === 'down' && record.role === 'player2' && gameState.rightY < canvasHeight - gameState.paddleHeight && !gameState.aiEnabled)
+	// 			gameState.rightY += 5;
+	// 		if (input.right === 'up' && record.role === 'local' && gameState.rightY > 0 && !gameState.aiEnabled)
+	// 			gameState.rightY -= 5;
+	// 		if (input.right === 'down' && record.role === 'local' && gameState.rightY < canvasHeight - gameState.paddleHeight && !gameState.aiEnabled)
+	// 			gameState.rightY += 5;
+	// 	}
+	// 	if (input.game === 'pause' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
+	// 		gameState.gamePaused = !gameState.gamePaused;
+	// 		if (!gameState.gamePaused && gameState.gameStartTime) {
+	// 			// Resume timer - adjust start time to account for pause duration
+	// 			const pausedDuration = Date.now() - (gameState.gameStartTime + (5 * 60 * 1000 - gameState.timeRemaining));
+	// 			gameState.gameStartTime += pausedDuration;
+	// 		}
+	// 		console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`)
+	// 	}
+	// 	if (input.game === 'ai' && record.role === 'local') {
+	// 		gameState.aiEnabled = !gameState.aiEnabled;
+	// 		console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`)
+	// 	}
+	// 	if (input.game === 'reset' && (record.role === 'local' || record.role === 'player1'|| record.role === 'player2')) {
+	// 		gameState.paddleHeight = 100;
+	// 		gameState.gamePaused = true;
+	// 		gameState.leftScore = 0;
+	// 		gameState.rightScore = 0;
+	// 		gameState.gameOver = false;
+	// 		gameState.ballX = 395;
+  	// 		gameState.ballY= 295,
+	// 		gameState.leftY = 250;
+  	// 		gameState.rightY= 250,
+	// 		gameSpeed = 1;
+	// 		baseGameSpeed = 1;
+	// 		bounceCount = 0;
+	// 		resetTimer();
+	// 	}
 
-	  } catch {}
+	//   } catch {}
     });
 
-    socket.on('close', () => {
-      // Clean up client from maps when socket closes
-      const clientId = socketToClientId.get(socket);
-      if (clientId) {
-		const record = clientRecords.get(clientId);
-		if (record) {
-			const wasPlayer2 = record.role === 'player2'; // Track if this was player2
+    // socket.on('close', () => {
+    //   // Clean up client from maps when socket closes
+    //   const clientId = socketToClientId.get(socket);
+    //   if (clientId) {
+	// 	const record = clientRecords.get(clientId);
+	// 	if (record) {
+	// 		const wasPlayer2 = record.role === 'player2'; // Track if this was player2
 			
-			record.webSocket = null;
-			record.connected = false;
-			record.lastSeen = Date.now();
-			clientRecords.set(clientId, record);
-			if (record.role === 'spectator') {
-				console.log(`Client-${clientId} disconnected`);
-				clientRecords.delete(clientId);
-			}
-			else
-				console.log(`Client-${clientId} disconnected; role "${record.role}" reserved for ${(ROLE_EXPIRATION / 1000)}s`);
-			// If player2 disconnected, convert player1 back to local
-            if (wasPlayer2) {
-                convertPlayer1();
-            }
-		}
-        socketToClientId.delete(socket);
-      }
-    });
+	// 		record.webSocket = null;
+	// 		record.connected = false;
+	// 		record.lastSeen = Date.now();
+	// 		clientRecords.set(clientId, record);
+	// 		if (record.role === 'spectator') {
+	// 			console.log(`Client-${clientId} disconnected`);
+	// 			clientRecords.delete(clientId);
+	// 		}
+	// 		else
+	// 			console.log(`Client-${clientId} disconnected; role "${record.role}" reserved for ${(ROLE_EXPIRATION / 1000)}s`);
+	// 		// If player2 disconnected, convert player1 back to local
+    //         if (wasPlayer2) {
+    //             convertPlayer1();
+    //         }
+	// 	}
+    //     socketToClientId.delete(socket);
+    //   }
+    // });
   });
 });
 
