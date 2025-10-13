@@ -207,14 +207,19 @@ components:
       properties:
         tournamentName:
           type: string
+          example: 'SomeTournamentName'
         maxPlayers:
           type: integer
+          example: 8
         minPlayers:
           type: integer
+          example: 4
         lockTime:
           type: integer
+          example: 3
         gameTime:
           type: integer
+          example: 3
 
     Match:
       type: object
