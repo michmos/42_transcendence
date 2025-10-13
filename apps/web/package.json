@@ -32,7 +32,6 @@
     "@fastify/autoload": "^6.3.1",
     "@tailwindcss/postcss": "^4.1.13",
     "tailwindcss": "^4.1.13",
-    "autoprefixer": "^10.4.21",
     "db": "../../packages/database"
   }
 }
