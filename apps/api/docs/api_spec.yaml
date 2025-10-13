@@ -260,12 +260,6 @@ paths:
   /tournaments:
     get:
       parameters:
-        - name: me
-          in: query
-          required: false
-          description: filter for my participation
-          schema:
-            type: boolean
         - name: status
           in: query
           required: false
@@ -275,14 +269,10 @@ paths:
 
       tags:
         - Tournament
-      summary: Get tournaments with filter options
+      summary: Get tournaments (by status)
       description: |
-        Retrieves all tournaments that match the query filter options. 
-        - Public tournaments don't require auth 
-        - me=true requires auth through JWT simply to identify user
-      security:
-        - {}
-        - bearerAuth: []
+        The tournament schema is public information, so we have a public endpoint
+        to get all tournaments with the possibility to filter by status
       responses:
         '200':
           description: List of tournaments retrieved successfully
@@ -292,6 +282,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Tournament'
+        '400':
+          description: Bad request - e.g. wrong status provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Missing or invalid JWT token
           content:
@@ -570,6 +566,37 @@ paths:
                 $ref: '#/components/schemas/Error'
         '500':
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/me/tournaments:
+    get:
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: filter for status
+          schema:
+            $ref: '#/components/schemas/Status'
+      tags:
+        - Users
+        - Tournaments
+      summary: Get all tournaments of a user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of tournaments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid JWT token
           content:
             application/json:
               schema:
