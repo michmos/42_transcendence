@@ -82,12 +82,11 @@ components:
       description: |
         uuid only exposed to yourself
       required:
-        - uuid
         - username
       properties:
         uuid:
           description: Unique encrypted user ID
-          type: integer
+          type: integer #TODO: @jensbouma why integer - its uuid, so string no?
           example: 42
         username:
           type: string
