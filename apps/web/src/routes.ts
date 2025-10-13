@@ -5,6 +5,11 @@ export const routes = {
     css: () => import('./routes/index.css?inline'),
     script: () => import('./routes/index.js'),
   },
+  '/landing': {
+    html: () => import('./routes/landing/index.html?raw'),
+    css: () => import('./routes/landing/index.css?inline'),
+    script: () => import('./routes/landing/index.js'),
+  },
   '/socket': {
     html: () => import('./routes/socket/index.html?raw'),
     css: () => import('./routes/socket/index.css?inline'),
@@ -14,6 +19,31 @@ export const routes = {
     html: () => import('./routes/login/index.html?raw'),
     css: () => import('./routes/login/index.css?inline'),
     script: () => import('./routes/login/index.js'),
+  },
+  '/dashboard': {
+    html: () => import('./routes/dashboard/index.html?raw'),
+    css: () => import('./routes/dashboard/index.css?inline'),
+    script: () => import('./routes/dashboard/index.js'),
+  },
+  '/game': {
+    html: () => import('./routes/game/index.html?raw'),
+    css: () => import('./routes/game/index.css?inline'),
+    script: () => import('./routes/game/index.js'),
+  },
+  '/tournaments': {
+    html: () => import('./routes/tournaments/index.html?raw'),
+    css: () => import('./routes/tournaments/index.css?inline'),
+    script: () => import('./routes/tournaments/index.js'),
+  },
+  '/profile': {
+    html: () => import('./routes/profile/index.html?raw'),
+    css: () => import('./routes/profile/index.css?inline'),
+    script: () => import('./routes/profile/index.js'),
+  },
+  '/settings': {
+    html: () => import('./routes/settings/index.html?raw'),
+    css: () => import('./routes/settings/index.css?inline'),
+    script: () => import('./routes/settings/index.js'),
   },
   '/error': {
     html: () => import('./routes/error/index.html?raw'),
@@ -34,5 +64,11 @@ export const dynamicRoutes = [
     html: () => import('./routes/user[id]/index.html?raw'),
     css: () => import('./routes/user[id]/index.css?inline'),
     script: () => import('./routes/user[id]/index.js'),
+  },
+  {
+    pattern: /^\/tournament\/(?<id>[^/]+)$/,
+    html: () => import('./routes/tournament[id]/index.html?raw'),
+    css: () => import('./routes/tournament[id]/index.css?inline'),
+    script: () => import('./routes/tournament[id]/index.js'),
   },
 ];
