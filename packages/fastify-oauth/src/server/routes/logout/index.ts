@@ -3,7 +3,7 @@ import TokenUtility from '../../utils/token/index.js';
 
 function setupLogoutRoute(ctx: OAuthContext) {
   // Logout endpoint to clear the session cookie
-  ctx.app.get('/logout', async (request, reply) => {
+  ctx.app.get('/auth/logout', async (request, reply) => {
     const { session: sessionCookieValue } = request.cookies;
 
     if (!sessionCookieValue)

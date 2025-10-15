@@ -1,7 +1,7 @@
 import type { OAuthContext } from '../../index.js';
 import TokenUtility, { type SessionCookie } from '../../utils/token/index.js';
 import ProviderUtility from '../providers/index.js';
-import { getUser, getUserUUID } from '../../utils/user/index.js';
+import { getOauthUser, getUserUUID } from '../../utils/user/index.js';
 import type { FastifyReply } from 'fastify';
 
 class SessionManager {
@@ -41,7 +41,7 @@ class SessionManager {
 
   // Endpoint to get the current session data
   private async initializeSessionRoute() {
-    this.ctx.app.get('/session', async (request, reply) => {
+    this.ctx.app.get('/auth/session', async (request, reply) => {
       const { session: sessionCookieValue } = request.cookies;
 
       // Verify and decode the JWT token from the session cookie
@@ -125,7 +125,11 @@ class SessionManager {
         }
 
         // Fetch the user info from the provider via the fetchUserData callback
-        const user = await getUser(provider, accessToken, sessionCookie.name);
+        const user = await getOauthUser(
+          provider,
+          accessToken,
+          sessionCookie.name
+        );
         if (!user) {
           return reply.status(400).send({ error: 'Failed to fetch user info' });
         }

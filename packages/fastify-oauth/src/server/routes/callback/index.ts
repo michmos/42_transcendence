@@ -1,10 +1,14 @@
 import type { OAuthContext } from '../../index.js';
-import { getUser, getUserUUID, getUserName } from '../../utils/user/index.js';
+import {
+  getOauthUser,
+  getUserUUID,
+  getUserName,
+} from '../../utils/user/index.js';
 
 import jwt from 'jsonwebtoken';
 
 function setupCallbackRoute(ctx: OAuthContext) {
-  ctx.app.get(`/callback`, async (request, reply) => {
+  ctx.app.get(`/auth/callback`, async (request, reply) => {
     // Get the provider based on the query parameter
     const state = (request.query as { state?: string }).state;
 
@@ -53,7 +57,7 @@ function setupCallbackRoute(ctx: OAuthContext) {
       return ctx.error(new Error('Failed to obtain access token'));
     }
 
-    const user = await getUser(provider, accessToken);
+    const user = await getOauthUser(provider, accessToken);
 
     if (!user) {
       return ctx.error(new Error('Failed to fetch user info during callback'));
@@ -85,7 +89,6 @@ function setupCallbackRoute(ctx: OAuthContext) {
       uuid,
       refreshToken: accessToken.token.refresh_token as string,
       expiresAt: Date.parse(accessToken.token.expires_at as string),
-      issuedAt: new Date().getTime(),
     };
 
     const sessionJWT = jwt.sign(session, ctx.jwtSecret);
