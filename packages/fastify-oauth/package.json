@@ -21,7 +21,6 @@
   "scripts": {
     "dep:build": "tsc",
     "build": "tsc",
-    "prebuild": "tsc --watch --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"

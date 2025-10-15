@@ -36,8 +36,5 @@ jobs:
       - name: Prisma - Generate client
         run: pnpm db:generate
 
-      - name: Build the dependency packages
-        run: pnpm dep:build
-
       - name: Build all packages
         run: pnpm build

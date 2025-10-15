@@ -6,6 +6,7 @@
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "db:generate": "turbo run db:generate",
+    "prebuild": "turbo run dep:build",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "preview": "turbo run preview",
