@@ -48,7 +48,7 @@ function getUserUUID(
   } else if ('uuid' in user) {
     return String(user['uuid']);
   } else if ('email' in user) {
-    return String(['email']);
+    return String(user['email']);
   }
   return null;
 }
