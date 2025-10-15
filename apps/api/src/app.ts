@@ -18,6 +18,7 @@ const start = async () => {
       dirNameRoutePrefix: true,
       indexPattern: /^no$/i,
     });
+    console.log('');
 
     // Load all API routes defined in routes
     app.register(AutoLoad, {

@@ -116,6 +116,7 @@ class CryptoManager {
 
         const encryptedDataArray = encryptedData as UserItem[];
         console.log('Encrypting UUIDs for users:', encryptedDataArray);
+        console.log('Is array: ', Array.isArray(encryptedDataArray));
         encryptedDataArray.forEach((item: UserItem) => {
           if (
             item &&

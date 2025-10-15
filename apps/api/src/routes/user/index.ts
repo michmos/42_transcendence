@@ -1,49 +1,13 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import { type FastifyInstance } from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 
 import Database from 'db';
 import { userRole } from 'db/generated/client/index.js';
-import CryptoManager from '../../plugins/encryption/index.js';
-
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: {
-      id: string;
-      email: string;
-      role?: userRole;
-    };
-  }
-}
-
-import { SessionManager } from 'fastify-oauth/server';
-
-async function checkAuthenticationHook(
-  request: Fastify.FastifyRequest,
-  reply: Fastify.FastifyReply
-) {
-  console.log('🔒 Authentication hook called');
-  const user = SessionManager.userIsLoggedIn(request.cookies.session as string);
-
-  if (!user) return reply.status(401).send({ error: 'Unauthorized' });
-
-  const dbUser = await Database.getUser(user.uuid);
-  if (!dbUser)
-    return reply.status(401).send({ error: 'User not found in database' });
-
-  // Attach user info to request object for further use in route handlers
-  request.user = {
-    id: dbUser.uuid,
-    email: dbUser.email,
-    role: dbUser.role || userRole.MEMBER,
-  };
-}
 
 export default async function (app: FastifyInstance): Promise<void> {
   await app.register(fastifyCookie);
 
-  app.addHook('preHandler', CryptoManager.uuidDecryption.bind(CryptoManager));
-  app.addHook('onRequest', checkAuthenticationHook);
-  app.addHook('onSend', CryptoManager.uuidEmailEncryption.bind(CryptoManager));
+  app.addAuthHook();
 
   app.get('/', async function (request, reply) {
     if (request.user?.role !== userRole.ADMIN) {
@@ -66,7 +30,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       email: string;
     };
     if (!email) {
-      return new Error('Email and username are required');
+      return new Error('Email and username are required'); // TODO: we are not even getting the username here no?
     }
     return await Database.addUser(
       email,
