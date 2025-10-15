@@ -10,7 +10,7 @@
     "preview": "node dist/app.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-	"test": "echo 'No tests specified' && exit 0"
+    "test": "echo 'No tests specified' && exit 0"
   },
   "keywords": [],
   "author": "",
@@ -25,9 +25,9 @@
     "@fastify/websocket": "^11.2.0",
     "@t3-oss/env-core": "^0.13.8",
     "db": "../../packages/database",
-    "fastify-oauth": "../../packages/fastify-oauth",
     "fastify": "^5.5.0",
-    "fastify-plugin": "^5.0.1",
+    "fastify-oauth": "../../packages/fastify-oauth",
+    "fastify-plugin": "^5.1.0",
     "googleapis": "^160.0.0",
     "jsonwebtoken": "^9.0.2",
     "simple-oauth2": "^5.1.0",
