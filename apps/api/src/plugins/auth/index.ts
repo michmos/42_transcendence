@@ -21,7 +21,7 @@ async function authPlugin(app: Fastify.FastifyInstance) {
   // Initialize the auth plugin
   Auth(app, env.REDIRECT_URL, '/', env.JWT_SECRET)
     .add(Google)
-    .add(GitHub)
+    // .add(GitHub) This is not working at the moment probaly because of the API key restrictions
     .add(FortyTwo)
     .addAuthenticationHook(app.db.user.get.bind(app.db.user))
     .on('login', async (args: unknown) => {
