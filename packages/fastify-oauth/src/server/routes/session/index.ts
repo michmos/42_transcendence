@@ -56,7 +56,17 @@ class SessionManager {
         return this.logoutUser(reply, new Error('Unknown provider'));
 
       // If the session is issued less than 60 seconds ago, return it as is
-      const timeNow = new Date().getTime();
+      if (!sessionCookie.iat) {
+        return this.logoutUser(reply, new Error('Invalid session token'));
+      }
+      const timeNow = new Date().getTime() / 1000;
+
+      console.log(
+        'Session issued at:',
+        sessionCookie.iat,
+        'Current time:',
+        timeNow
+      );
       if (timeNow - sessionCookie.iat < 60) {
         return this.returnSession(reply, sessionCookie);
       }
@@ -141,7 +151,6 @@ class SessionManager {
           uuid: getUserUUID(user) || sessionCookie.uuid,
           refreshToken: accessToken.token.refresh_token as string,
           eat: Date.parse(accessToken.token.expires_at as string),
-          iat: Date.now(),
         });
 
         // Extract a unique user identifier

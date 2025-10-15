@@ -6,7 +6,7 @@ export interface SessionCookie {
   uuid: string;
   refreshToken: string;
   eat: number;
-  iat: number;
+  iat?: number;
 }
 
 class TokenUtility {
