@@ -1,4 +1,4 @@
-import type { User } from 'db';
+import type { User } from 'db/generated/client/index.js';
 import { Table, type TableColumn } from './Table.js';
 import { Button } from './Button.js';
 
