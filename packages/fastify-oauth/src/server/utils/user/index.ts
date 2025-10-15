@@ -6,10 +6,10 @@ export interface User {
   uuid: string | number;
   name: string;
   email: string | null;
-  avatar_url?: string | null;
+  avatar?: string | null;
 }
 
-async function getUser(
+async function getOauthUser(
   provider: OAuthProvider,
   accessToken: AccessToken,
   name?: string
@@ -42,11 +42,13 @@ function getUserUUID(
   user: Record<string, unknown> | OpenIDUser
 ): string | null {
   if ('sub' in user) {
-    return user['sub'] as string;
+    return String(user['sub']);
   } else if ('id' in user) {
-    return user['id'] as string;
+    return String(user['id']);
+  } else if ('uuid' in user) {
+    return String(user['uuid']);
   } else if ('email' in user) {
-    return user['email'] as string;
+    return String(['email']);
   }
   return null;
 }
@@ -54,6 +56,8 @@ function getUserUUID(
 function getUserName(user: Record<string, unknown> | OpenIDUser): string {
   if ('name' in user && typeof user['name'] === 'string') {
     return user['name'];
+  } else if ('username' in user && typeof user['username'] === 'string') {
+    return user['username'];
   } else if (
     'firstname' in user &&
     'lastname' in user &&
@@ -67,4 +71,4 @@ function getUserName(user: Record<string, unknown> | OpenIDUser): string {
   return 'Unknown';
 }
 
-export { getUser, getUserUUID, getUserName };
+export { getOauthUser, getUserUUID, getUserName };

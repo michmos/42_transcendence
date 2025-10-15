@@ -53,7 +53,7 @@ export function extractOpenIDUser(accessToken: AccessToken, name?: string) {
     email: decoded.email,
     email_verified: decoded.email_verified,
     username: decoded.name,
-    avatar_url: decoded.picture || '',
+    avatar: decoded.picture || '',
   };
 
   return user;

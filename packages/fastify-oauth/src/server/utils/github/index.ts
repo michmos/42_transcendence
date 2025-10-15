@@ -75,7 +75,7 @@ async function fetchGithubUser(token: string) {
     uuid: userData.id,
     username: userData.name,
     email: userData.email,
-    avatar_url: userData.avatar_url,
+    avatar: userData.avatar_url,
   };
 
   return user;
