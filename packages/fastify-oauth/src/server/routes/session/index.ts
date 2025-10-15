@@ -57,7 +57,7 @@ class SessionManager {
 
       // If the session is issued less than 60 seconds ago, return it as is
       const timeNow = new Date().getTime();
-      if ((timeNow - sessionCookie.issuedAt) / 1000 < 60) {
+      if (timeNow - sessionCookie.iat < 60) {
         return this.returnSession(reply, sessionCookie);
       }
 
@@ -140,8 +140,8 @@ class SessionManager {
           name: sessionCookie.name,
           uuid: getUserUUID(user) || sessionCookie.uuid,
           refreshToken: accessToken.token.refresh_token as string,
-          expiresAt: Date.parse(accessToken.token.expires_at as string),
-          issuedAt: new Date().getTime(),
+          eat: Date.parse(accessToken.token.expires_at as string),
+          iat: Date.now(),
         });
 
         // Extract a unique user identifier

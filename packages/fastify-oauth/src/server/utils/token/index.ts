@@ -5,8 +5,8 @@ export interface SessionCookie {
   name: string;
   uuid: string;
   refreshToken: string;
-  expiresAt: number;
-  issuedAt: number;
+  eat: number;
+  iat: number;
 }
 
 class TokenUtility {
@@ -59,7 +59,7 @@ class TokenUtility {
     }
 
     // Check if the session has expired
-    if (sessionCookie.expiresAt && sessionCookie.expiresAt < Date.now()) {
+    if (sessionCookie.eat && sessionCookie.eat < Date.now()) {
       console.error('Session cookie has expired', sessionCookie);
       return null;
     }

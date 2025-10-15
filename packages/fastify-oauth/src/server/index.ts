@@ -19,9 +19,15 @@
  */
 
 import { type FastifyInstance, type FastifyReply } from 'fastify';
+import fastifyCookie from '@fastify/cookie';
+
 import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
 
-import fastifyCookie from '@fastify/cookie';
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: unknown | undefined;
+  }
+}
 
 import setupCallbackRoute from './routes/callback/index.js';
 import setupLoginRoute from './routes/login/index.js';
@@ -63,6 +69,7 @@ class OAuth {
     ProviderUtility.initialize(this.ctx);
     SessionManager.initialize(this.ctx);
     TokenUtility.initialize(jwtSecret);
+
     this.initialize();
   }
 
@@ -109,6 +116,61 @@ class OAuth {
   // Remove a provider by name
   public removeProvider(name: string) {
     ProviderUtility.remove(name);
+    return this;
+  }
+
+  // Check authentication for incoming requests and populate request.user when valid
+  private async checkAuthenticationHook(
+    request: import('fastify').FastifyRequest,
+    reply: import('fastify').FastifyReply,
+    loadUserFromDatabase: (uuid: string) => unknown | null
+  ) {
+    // Allow unauthenticated access to the login routes
+    if (request.url.startsWith('/auth')) return;
+
+    console.info('🔒 Checking authentication for request to', request.url);
+
+    // Check for a valid session cookie
+    const user = SessionManager.userIsLoggedIn(
+      request.cookies.session as string
+    );
+
+    // If no valid session, respond with 401 Unauthorized
+    if (!user) {
+      console.warn(
+        'No valid session found for request to',
+        request.url,
+        'from ip',
+        request.ip
+      );
+
+      return reply
+        .status(401)
+        .send({ error: 'No valid session found, please log in' });
+    }
+
+    // Fetch the user object from the database using the provided callback
+    const userObj = await loadUserFromDatabase(user.uuid);
+    if (!userObj)
+      return reply.status(401).send({ error: 'User not found in database' });
+    request.user = userObj as {
+      uuid: string;
+      email: string;
+      username?: string;
+      avatar?: string;
+      role?: string;
+    };
+  }
+
+  // Add an authentication hook to Fastify
+  public addAuthenticationHook(
+    getUserObjectCallback: (uuid: string) => Promise<unknown | null>
+  ) {
+    console.info('🔒 Adding authentication hook to Fastify');
+
+    this.ctx.app.addHook('onRequest', (request, reply) =>
+      this.checkAuthenticationHook(request, reply, getUserObjectCallback)
+    );
     return this;
   }
 }
