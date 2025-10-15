@@ -1,4 +1,4 @@
-import type { User } from 'db';
+import type { User } from 'db/generated/client/index.js';
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
