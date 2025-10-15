@@ -1,5 +1,5 @@
-import type { User } from '../../../../../packages/database/generated/client/index.js';
-import { Database } from '../../../../../packages/database/dist/index.js';
+import type { User } from 'db/generated/client/index.js';
+import { Database } from 'db';
 
 export class UserDatabase extends Database {
   public async getAll(): Promise<User[]> {

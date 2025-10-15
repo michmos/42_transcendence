@@ -27,7 +27,7 @@
       "cache": false
     },
     "dev": {
-      "dependsOn": ["^db:generate", "^db:push"],
+      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "./packages/**",
