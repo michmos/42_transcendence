@@ -220,7 +220,7 @@ async function fetch42User(token: string) {
     uuid: userData.id,
     username: userData.first_name + ' ' + userData.last_name,
     email: userData.email,
-    avatar_url: userData.image.link,
+    avatar: userData.image.link,
   };
 
   return user;
