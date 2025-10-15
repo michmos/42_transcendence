@@ -24,7 +24,7 @@ async function authPlugin(app: Fastify.FastifyInstance) {
     .add(GitHub)
     .add(FortyTwo)
     .addAuthenticationHook(app.db.user.get.bind(app.db.user))
-    .on('login', (args: unknown) => {
+    .on('login', async (args: unknown) => {
       const { uuid, providerName, user } = args as {
         uuid: string;
         providerName: string;
@@ -33,7 +33,7 @@ async function authPlugin(app: Fastify.FastifyInstance) {
       console.info(
         `User logged in: ${user.username} (UUID: ${uuid}) via ${providerName}`
       );
-      app.db.user.upsert(user);
+      await app.db.user.upsert(user);
     })
     .on('logout', (args: unknown) => {
       const { uuid, providerName } = args as {

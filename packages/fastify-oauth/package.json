@@ -20,7 +20,9 @@
   },
   "scripts": {
     "dep:build": "tsc",
-    "dev": "echo 'TypeScript watch disabled for dev'",
+    "build": "tsc",
+    "prebuild": "tsc --watch --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },

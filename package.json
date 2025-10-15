@@ -2,11 +2,10 @@
   "private": true,
   "name": "trancendence",
   "scripts": {
-    "predev": "turbo run dep:build && pnpm install",
+    "predev": "turbo run dep:build",
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "db:generate": "turbo run db:generate",
-    "dep:build": "turbo run dep:build",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "preview": "turbo run preview",

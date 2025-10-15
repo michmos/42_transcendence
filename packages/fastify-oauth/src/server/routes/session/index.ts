@@ -55,21 +55,23 @@ class SessionManager {
       if (!provider || !provider.oauth2Client || !provider.scopes)
         return this.logoutUser(reply, new Error('Unknown provider'));
 
-      // If the session is issued less than 60 seconds ago, return it as is
+      // If no issued at timestamp, clear cookie and return null
       if (!sessionCookie.iat) {
         return this.logoutUser(reply, new Error('Invalid session token'));
       }
-      const timeNow = new Date().getTime() / 1000;
 
-      console.log(
-        'Session issued at:',
-        sessionCookie.iat,
-        'Current time:',
-        timeNow
-      );
-      if (timeNow - sessionCookie.iat < 60) {
+      // JWT iat (issued at) is automatically generated in seconds by the JWT library
+      // eat (expiry) is in milliseconds
+      const timeNow = Math.floor(new Date().getTime() / 1000);
+
+      // If the token is not close to expiry (more than 5 minutes left), return the current session
+      if (sessionCookie.eat - timeNow * 1000 > 5 * 60 * 1000) {
         return this.returnSession(reply, sessionCookie);
       }
+
+      console.info(
+        `Access token for provider ${provider.name} is expired or close to expiry, refreshing...`
+      );
 
       // Generate a unique state parameter for CSRF protection
       const state = {

@@ -1,9 +1,6 @@
 import Fastify from 'fastify';
 
-import {
-  type User,
-  userRole,
-} from '../../../../../packages/database/generated/client/index.js';
+import { type User, userRole } from 'db/generated/client/index.js';
 
 /**
  *
