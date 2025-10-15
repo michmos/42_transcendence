@@ -14,7 +14,7 @@ class ProviderUtility {
   initialize(ctx: OAuthContext) {
     this.ctx = ctx;
 
-    this.ctx.app.get('/providers', async (request, reply) => {
+    this.ctx.app.get('/auth/providers', async (request, reply) => {
       reply.send({
         providers: this.oAuthProviders.map((provider) => ({
           name: provider.name,

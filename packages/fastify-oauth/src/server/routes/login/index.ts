@@ -52,7 +52,7 @@ async function generateAuthUrl(
 }
 
 function setupLoginRoute(ctx: OAuthContext) {
-  ctx.app.get(`/login`, async (request, reply) => {
+  ctx.app.get(`/auth/login`, async (request, reply) => {
     const { provider: providerName } = request.query as { provider: string };
     const provider = ProviderUtility.get(providerName);
     const ipNumber = request.ip;
