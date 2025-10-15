@@ -19,7 +19,7 @@ export function checkAdminAccess(
   if (!user) {
     reply.status(401).send({ error: 'Unauthorized. Please log in.' });
     console.warn(
-      'Unauthorized access attempt from ip adress:',
+      'Unauthorized access attempt from ip address:',
       request.ip,
       'with invalid user session'
     );
@@ -29,7 +29,7 @@ export function checkAdminAccess(
   if (user.role !== userRole.ADMIN) {
     reply.status(403).send({ error: 'Forbidden. ADMIN role required.' });
     console.warn(
-      'Unauthorized admin access attempt from ip adress:',
+      'Unauthorized admin access attempt from ip address:',
       request.ip,
       'with user:',
       user?.email || 'unknown'
@@ -55,7 +55,7 @@ export function verifyResourceOwnership(
   if (!user) {
     reply.status(401).send({ error: 'Unauthorized. Please log in.' });
     console.warn(
-      'Unauthorized access attempt from ip adress:',
+      'Unauthorized access attempt from ip address:',
       request.ip,
       'to resource owned by user with uuid:',
       resourceOwnerUuid
