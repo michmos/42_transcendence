@@ -28,7 +28,13 @@
     },
     "dev": {
       "dependsOn": ["^db:generate", "^db:push"],
-      "inputs": ["$TURBO_DEFAULT$", "./packages/**", "./apps/**", ".env"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "./packages/**",
+        "./plugins/**",
+        "./apps/**",
+        ".env"
+      ],
       "env": [
         "DATABASE_URL",
         "API_URL",
