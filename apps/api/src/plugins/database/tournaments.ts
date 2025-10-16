@@ -1,5 +1,6 @@
 import Database from 'db';
 import type {
+  Match,
   Tournament,
   TournamentRound,
   status,
@@ -68,24 +69,30 @@ export async function deleteTournament(uuid: string): Promise<Tournament> {
 export async function createTournamentRound(
   tournamentId: string,
   index: number,
-  matches: { player1Id: string; player2Id: string }[]
-): Promise<TournamentRound> {
-  // add tournamentId to matches
-  const matchesWithTournamentId = matches.map((match) => {
-    return { ...match, tournamentId };
-  });
-
+  matches: Partial<Match>[]
+): Promise<TournamentRound | null> {
   // needs to be transaction for operations to be atomic
-  const [, tournamentRound] = await Database.$transaction([
-    Database.match.createManyAndReturn({
-      data: matchesWithTournamentId,
-    }),
-    Database.tournamentRound.create({
+  return await Database.$transaction(async (tx) => {
+    if (!tx.tournament.findUnique({ where: { uuid: tournamentId } }))
+      throw new Error('tournamendId not found');
+
+    const tournamentRound = await tx.tournamentRound.create({
       data: { tournamentId, index },
       include: { matches: true },
-    }),
-  ]);
-  return tournamentRound;
+    });
+
+    const matchesWithTournamentId = matches.map((match) => {
+      return { ...match, tournamentRoundId: tournamentRound.uuid };
+    });
+
+    tx.match.createManyAndReturn({
+      data: matchesWithTournamentId,
+    });
+    return tx.tournamentRound.findUnique({
+      where: { uuid: tournamentRound.uuid },
+      include: { matches: true },
+    });
+  });
 }
 
 export async function updateTournamentRound(
