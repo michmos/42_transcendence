@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 
-declare module 'fastify' {
+declare namespace Fastify {
   interface FastifyRequest {
     user?: {
       uuid: string;
