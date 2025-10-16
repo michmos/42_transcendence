@@ -16,7 +16,7 @@ class SessionManager {
     this.initializeSessionRoute();
   }
 
-  public userIsLoggedIn(session: string | undefined): SessionCookie | null {
+  public decodeJWT(session: string | undefined): SessionCookie | null {
     if (!session) return null;
 
     // Verify and decode the JWT token from the session cookie
