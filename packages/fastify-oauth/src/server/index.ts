@@ -25,7 +25,13 @@ import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: unknown | undefined;
+    user?: {
+      uuid: string;
+      email: string;
+      username?: string;
+      avatar?: string;
+      role?: string;
+    };
   }
 }
 
