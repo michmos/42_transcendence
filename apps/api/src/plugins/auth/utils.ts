@@ -8,7 +8,7 @@ import { type User, userRole } from 'db/generated/client/index.js';
  * @param reply
  * @returns true if the user is an admin, false otherwise (and sends the appropriate HTTP response)
  */
-export function checkAdminAccess(
+export function isAdmin(
   request: Fastify.FastifyRequest,
   reply: Fastify.FastifyReply
 ): boolean {
@@ -43,7 +43,7 @@ export function checkAdminAccess(
  * @param resourceOwnerUuid
  * @returns true if the user owns the resource or is an admin, false otherwise (and sends the appropriate HTTP response)
  */
-export function verifyResourceOwnership(
+export function isSameUUID(
   request: Fastify.FastifyRequest,
   reply: Fastify.FastifyReply,
   resourceOwnerUuid: string

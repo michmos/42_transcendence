@@ -123,7 +123,7 @@ class OAuth {
   private async checkAuthenticationHook(
     request: import('fastify').FastifyRequest,
     reply: import('fastify').FastifyReply,
-    loadUserFromDatabase: (uuid: string) => unknown | null
+    getUserCallback: (uuid: string) => unknown | null
   ) {
     // Allow unauthenticated access to the login routes
     if (request.url.startsWith('/auth')) return;
@@ -131,12 +131,10 @@ class OAuth {
     console.info('🔒 Checking authentication for request to', request.url);
 
     // Check for a valid session cookie
-    const user = SessionManager.userIsLoggedIn(
-      request.cookies.session as string
-    );
+    const session = SessionManager.decodeJWT(request.cookies.session as string);
 
     // If no valid session, respond with 401 Unauthorized
-    if (!user) {
+    if (!session) {
       console.warn(
         'No valid session found for request to',
         request.url,
@@ -150,7 +148,7 @@ class OAuth {
     }
 
     // Fetch the user object from the database using the provided callback
-    const userObj = await loadUserFromDatabase(user.uuid);
+    const userObj = await getUserCallback(session.uuid);
     if (!userObj)
       return reply.status(401).send({ error: 'User not found in database' });
     request.user = userObj as {
