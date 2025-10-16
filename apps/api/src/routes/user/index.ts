@@ -8,7 +8,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   app.get('/', async function (request, reply) {
     if (!checkAdminAccess(request, reply)) return;
 
-    const users = await app.db.user.getAll();
+    const users = await app.db.getUsers();
     console.log('Fetched users:', users);
     return reply.status(200).send(users);
   });
@@ -22,7 +22,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     ) {
       return;
     }
-    return await app.db.user.get(uuid);
+    return await app.db.getUser(uuid);
   });
 
   app.post('/', async function (request, reply) {
@@ -34,7 +34,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       return new Error('Email is required');
     }
 
-    return await app.db.user.add(
+    return await app.db.addUser(
       email,
       email.split('@')[0] || 'user' + Math.floor(Math.random() * 1000)
     );
@@ -48,6 +48,6 @@ export default async function (app: FastifyInstance): Promise<void> {
     if (!uuid) {
       return new Error('UUID is required');
     }
-    return await app.db.user.remove(uuid);
+    return await app.db.removeUser(uuid);
   });
 }

@@ -2,7 +2,7 @@ import { env } from '../../env.js';
 import Fastify from 'fastify';
 import fp from 'fastify-plugin';
 
-import Auth, { FortyTwo, GitHub, Google } from 'fastify-oauth/server';
+import Auth, { FortyTwo, Google } from 'fastify-oauth/server';
 import { type User } from 'db/generated/client/index.js';
 
 declare module 'fastify' {
@@ -14,16 +14,15 @@ declare module 'fastify' {
 async function authPlugin(app: Fastify.FastifyInstance) {
   console.info('🔐 Loading auth plugin...');
 
-  if (!app.db || !app.db.user) {
+  if (!app.db || !app.db.getUsers) {
     throw new Error('Database plugin is not loaded');
   }
 
   // Initialize the auth plugin
   Auth(app, env.REDIRECT_URL, '/', env.JWT_SECRET)
     .add(Google)
-    // .add(GitHub) This is not working at the moment probaly because of the API key restrictions
     .add(FortyTwo)
-    .addAuthenticationHook(app.db.user.get.bind(app.db.user))
+    .addAuthenticationHook(app.db.getUser.bind(app.db))
     .on('login', async (args: unknown) => {
       const { uuid, providerName, user } = args as {
         uuid: string;
@@ -33,7 +32,7 @@ async function authPlugin(app: Fastify.FastifyInstance) {
       console.info(
         `User logged in: ${user.username} (UUID: ${uuid}) via ${providerName}`
       );
-      await app.db.user.upsert(user);
+      await app.db.upsertUser(user);
     })
     .on('logout', (args: unknown) => {
       const { uuid, providerName } = args as {
