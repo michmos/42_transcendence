@@ -4,9 +4,7 @@ import { UserDatabase } from './user.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: {
-      user: UserDatabase;
-    };
+    db: typeof UserDatabase;
   }
 }
 
@@ -14,10 +12,8 @@ export default fp(
   async (app: FastifyInstance) => {
     console.info('🗄️  Loading database plugin...');
 
-    const userDb = new UserDatabase();
-
     app.decorate('db', {
-      user: userDb,
+      ...UserDatabase,
     });
   },
   {
