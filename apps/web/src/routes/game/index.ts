@@ -1,5 +1,5 @@
-import { json } from 'zod';
-import { drawScore } from './score';
+
+import { drawScore, drawTime } from './score';
 
 const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -12,7 +12,7 @@ if (!clientId) {
   localStorage.setItem('transcendenceClientId', clientId);
 }
 
-const ballSize = 10;
+const ballSize = 5;
 const padding = 10;
 
 let serverState = {
@@ -35,36 +35,87 @@ let serverState = {
  };
 
 let role = 'spectator';
+let connectionState = 'connecting';
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 3;
+let reconnectTimeout: NodeJS.Timeout;
+let ws: WebSocket;
+let networkBlocked = false;
 
 // const ws = new WebSocket("ws://10.11.4.4:3001/"); // Hardcoded network IP
-const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`);
+function createWebSocket() {
+	if (ws) {
+		ws.close();
+	}
 
-ws.onopen = () => {
-	ws.send(JSON.stringify({ type: "connect", clientId }))
+	// If network is blocked, immediately fail
+	if (networkBlocked) {
+		console.log('🧪 Network blocked - connection attempt failed');
+		connectionState = 'disconnected';
+		
+		attemptReconnection();
+		return;
+	}
+
+	connectionState = 'connecting';
+	ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`);
+	
+	ws.onopen = () => {
+		connectionState = 'connected';
+		reconnectAttempts = 0;
+		console.log('🏓 Connected to game server');
+		// ws.send(JSON.stringify({ type: "connect", clientId }));
+		sendMessage({ type: "connect", clientId });
+	}
+	
+	ws.onclose = (event) => {
+		connectionState = 'disconnected';
+		console.log('🔌 Disconnected from server:', event.code, event.reason);
+	
+		attemptReconnection();
+	}
+	
+	ws.onerror = (error) => {
+		console.error('WebSocket error:', error);
+	}
+	
+	ws.onmessage = (event) => {
+	  const message = JSON.parse(event.data);
+	  
+	  // Only update serverState and draw if it's a state message
+	  if (message.type === 'state') {
+		serverState = message;
+		// draw();
+	  }
+	  
+	  // Handle other message types if needed
+	  if (message.type === 'role') {
+		role = message.role;
+		console.log(`🎮 Received role "${message.role}" for client ID: ${message.clientId}`);
+	  }
+	};
 }
 
-ws.onmessage = (event) => {
-  const message = JSON.parse(event.data);
-  
-  // Only update serverState and draw if it's a state message
-  if (message.type === 'state') {
-    serverState = message;
-    draw();
-  }
-  
-  // Handle other message types if needed
-  if (message.type === 'role') {
-	role = message.role;
-    console.log(`Received role "${message.role}" for client ID: ${message.clientId}`);
-  }
-};
-
-function formatTime(milliseconds: number): string {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return (`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+function attemptReconnection() {
+	
+	if (reconnectAttempts >= maxReconnectAttempts) {
+		connectionState = 'disconnected';
+		console.log('⛔ Max reconnection attempts reached. Please refresh the page.');
+		return;
+	}
+	
+	connectionState = 'reconnecting';
+	reconnectAttempts++;
+	
+	const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 16000);
+	console.log(`🔁 Reconnection attempt ${reconnectAttempts} in ${delay}ms`);
+	
+	reconnectTimeout = setTimeout(() => {
+		createWebSocket(); // Create entirely new connection
+	}, delay);
 }
+
+createWebSocket();
 
 function draw()
 {
@@ -91,8 +142,12 @@ function draw()
 	ctx.fillRect(0, serverState.leftY, serverState.paddleWidth, serverState.paddleHeight);
 	ctx.fillRect(canvas.width - serverState.paddleWidth, serverState.rightY, serverState.paddleWidth, serverState.paddleHeight);
 
-	if (!serverState.ballPaused)
-		ctx.fillRect(serverState.ballX, serverState.ballY, ballSize, ballSize);
+	if (!serverState.ballPaused) {
+		ctx.beginPath();
+		ctx.arc(serverState.ballX, serverState.ballY, ballSize, 0, 2 * Math.PI);
+		ctx.fill();
+		// ctx.fillRect(serverState.ballX, serverState.ballY, ballSize, ballSize);
+	}
 
 	if (serverState.gamePaused){
 		ctx.fillStyle = "rgba(255, 255, 255)";
@@ -122,43 +177,8 @@ function draw()
 	}
 	else {
 		ctx.textAlign = "center";
-		ctx.fillText("SPECTATING", canvas.width / 2, canvas.height - padding);
+		ctx.fillText("SPECTATING", canvas.width / 2, canvas.height / 20);
 	}
-
-	// ctx.font = "48px Arial";
-	// ctx.textAlign = "center";
-	// if (serverState.gameOver && (role === 'local' || role === 'player1') && serverState.leftScore > serverState.rightScore) {
-	// 	ctx.fillText("YOU WON", (canvas.width / 4), (canvas.height / 2));
-	// 	ctx.font = "16px Arial";
-	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4, canvas.height / 2 + 25);
-	// }
-	// else if (serverState.gameOver && (role === 'local')) {
-	// 	if (serverState.aiEnabled) {
-	// 		ctx.fillText("YOU LOST", (canvas.width / 4), (canvas.height / 2));
-	// 		ctx.font = "16px Arial";
-	// 		ctx.fillText("Press 'R' to restart", canvas.width / 4, canvas.height / 2 + 25);
-	// 	}
-	// 	else {
-	// 		ctx.fillText("YOU WON", (canvas.width / 4 * 3), (canvas.height / 2));
-	// 		ctx.font = "16px Arial";
-	// 		ctx.fillText("Press 'R' to restart", canvas.width / 4 * 3, canvas.height / 2 + 25);
-	// 	}
-	// }
-	// else if (serverState.gameOver && (role === 'player1')) {
-	// 	ctx.fillText("YOU LOST", (canvas.width / 4), (canvas.height / 2));
-	// 	ctx.font = "16px Arial";
-	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4, canvas.height / 2 + 25);
-	// }
-	// else if (serverState.gameOver && (role === 'player2') && serverState.leftScore < serverState.rightScore)  {
-	// 	ctx.fillText("YOU WON", (canvas.width / 4 * 3), (canvas.height / 2));
-	// 	ctx.font = "16px Arial";
-	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4 * 3, canvas.height / 2 + 25);
-	// }
-	// else if (serverState.gameOver && (role === 'player2')) {
-	// 	ctx.fillText("YOU LOST", (canvas.width / 4 * 3), (canvas.height / 2));
-	// 	ctx.font = "16px Arial";
-	// 	ctx.fillText("Press 'R' to restart", canvas.width / 4 * 3, canvas.height / 2 + 25);
-	// }
 
 	if (serverState.gameOver) {
 		const leftWon = serverState.leftScore > serverState.rightScore;
@@ -185,120 +205,155 @@ function draw()
 		ctx.font = `${fontSize / 3}px Arial`;
 		ctx.fillText("Press 'R' to restart", x, canvas.height / 2 + fontSize / 2);
 	}
-	ctx.textAlign = "center";
-	ctx.font = "32px Arial";
-	ctx.fillText(formatTime(serverState.timeRemaining), canvas.width / 2, canvas.height - padding)
+
+	drawTime(serverState.timeRemaining, canvas.width / 2 + 5, canvas.height -  canvas.height / 15, (canvas.height / 200));
+
+	// Draw connection status indicator
+	ctx.fillStyle = getConnectionColor();
+	ctx.beginPath();
+	ctx.arc(canvas.width / 2 + (canvas.height / 10), canvas.height - 2.5 * padding, 5, 0, 2 * Math.PI);
+	ctx.fill();
+
+	if (connectionState !== 'connected') {
+        ctx.fillStyle = "white";
+        ctx.font = "14px Arial";
+        ctx.textAlign = "left";
+        let statusText = '';
+        
+        switch (connectionState) {
+            case 'connecting':
+                statusText = 'Connecting...';
+                break;
+            case 'reconnecting':
+                statusText = `Reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})`;
+                break;
+            case 'disconnected':
+                statusText = reconnectAttempts >= maxReconnectAttempts ? 'Connection Failed' : 'Disconnected';
+                break;
+        }
+        
+        ctx.fillText(statusText, canvas.width / 2 + (canvas.height / 9), canvas.height - 2 * padding);
+    }
+}
+
+function getConnectionColor(): string {
+	switch (connectionState) {
+		case 'connected': return '#00ff00ff';     // Green
+		case 'connecting': return '#ffff00ff';    // Orange
+		case 'reconnecting': return '#ff5c00ff';  // Red-orange
+		case 'disconnected': return '#ff0000ff';  // Red
+		default: return '#9E9E9E';              // Gray
+	}	
+}
+
+let inputBuffer: any[] = [];
+
+function sendMessage(data: any) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
+        
+        // Send any buffered messages
+        while (inputBuffer.length > 0) {
+            const bufferedMessage = inputBuffer.shift();
+            ws.send(JSON.stringify(bufferedMessage));
+        }
+    } else if (connectionState === 'reconnecting') {
+        // Buffer the message for when connection is restored
+        inputBuffer.push(data);
+        console.log('Buffering message during reconnection:', data);
+    } else {
+        console.warn('WebSocket not connected, message not sent:', data);
+    }
 }
 
 const keys: { [key: string]: boolean } = {};
 
 document.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
-  if (e.key === "p")
-	ws.send(JSON.stringify({ game: "pause"}));
-  if (e.key === "r")
-	ws.send(JSON.stringify({ game: "reset"}));
-  if (e.key === ".")
-	ws.send(JSON.stringify({ game: "ai"}));
+  if (e.key === "p") {
+	// ws.send(JSON.stringify({ game: "pause"}));
+	sendMessage({ game: "pause"});
+  }
+  if (e.key === "r") {
+	// ws.send(JSON.stringify({ game: "reset"}));
+	sendMessage({ game: "reset"});
+  }
+  if (e.key === ".") {
+	// ws.send(JSON.stringify({ game: "ai"}));
+	sendMessage({ game: "ai"});
+  }
+  if (e.key === "x") {
+	if (!networkBlocked) {
+		// Simulate network outage
+		console.log("🧪 Simulating connection loss");
+		networkBlocked = true;
+
+		if (reconnectTimeout) {
+        	clearTimeout(reconnectTimeout);
+      	}
+
+		if (ws && ws.readyState === WebSocket.OPEN) {
+		  ws.close(3000, 'Simulated network error'); // 1006 = abnormal closure
+		}
+
+		connectionState = 'disconnected';
+    } else {
+		// Restore network
+		console.log("🧪 Network connection restored");
+		networkBlocked = false;
+
+		if (reconnectTimeout) {
+			clearTimeout(reconnectTimeout);
+      	}
+
+		// Reset reconnection attempts
+		reconnectAttempts = 0;
+		createWebSocket();
+	}
+  }
 })
 
 document.addEventListener("keyup", (e) => {
   keys[e.key.toLowerCase()] = false;
 })
 
+document.addEventListener("visibilitychange", () => {
+	if (document.hidden) {
+		console.log('🕶️ Page hidden');
+		// ws.send(JSON.stringify({ game: "hidden"}));
+		sendMessage({ game: "hidden"});
+	}
+	else {
+		console.log('👓 Page visible');
+		// ws.send(JSON.stringify({ type: "connect", clientId }));
+		sendMessage({ type: "connect", clientId });
+	}
+})
+
+function gameLoop() {
+	draw();
+	requestAnimationFrame(gameLoop);
+}
 
 setInterval(() => {
 	if (role === 'local' || role === 'player1' || role === 'player2') {
-		// if (keys.w)
-		// 	ws.send(JSON.stringify({ type: "move", left: "up"}));
-		// if (keys.s)
-		// 	ws.send(JSON.stringify({ type: "move", left: "down"}));
-		// if (keys.o)
-		// 	ws.send(JSON.stringify({ type: "move", right: "up"}));
-		// if (keys.l)
-		// 	ws.send(JSON.stringify({ type: "move", right: "down"}));
-		if (keys.w)
-			ws.send(JSON.stringify({ type: "move", action: "up"}));
-		if (keys.s)
-			ws.send(JSON.stringify({ type: "move", action: "down"}));
-		if (keys.o)
-			ws.send(JSON.stringify({ type: "move", right: "up"}));
-		if (keys.l)
-			ws.send(JSON.stringify({ type: "move", right: "down"}));
+		if (keys.w) {
+			// ws.send(JSON.stringify({ type: "move", action: "up"}));
+			sendMessage({ type: "move", action: "up"});
+		}
+		if (keys.s) {
+			// ws.send(JSON.stringify({ type: "move", action: "down"}));
+			sendMessage({ type: "move", action: "down"});
+		}
+		if (keys.o) {
+			// ws.send(JSON.stringify({ type: "move", right: "up"}));
+			sendMessage({ type: "move", right: "up"});
+		}
+		if (keys.l) {
+			// ws.send(JSON.stringify({ type: "move", right: "down"}));
+			sendMessage({ type: "move", right: "down"});
+		}
 	}
 }, 1000 / 60);
 
-// const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
-// const ctx = canvas.getContext("2d")!;
-
-// const paddleWidth = 10;
-// const paddleHeight = 100;
-// const ballSize = 10;
-// const moveSpeed = 5;
-
-// let ballX = canvas.width / 2;
-// let ballY = canvas.height / 2;
-// let ballSpeed = 5;
-// let leftY = (canvas.height / 2) - (paddleHeight / 2);
-// let rightY = (canvas.height / 2) - (paddleHeight / 2);
-
-// function draw()
-// {
-// 	ctx.fillStyle = "black";
-// 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-// 	ctx.fillStyle = "white";
-
-// 	ctx.fillRect(0, leftY, paddleWidth, paddleHeight);
-// 	ctx.fillRect(canvas.width - paddleWidth, rightY, paddleWidth, paddleHeight);
-
-// 	ctx.fillRect(ballX, ballY, ballSize, ballSize);
-
-// }
-
-// const keys: { [key: string]: boolean } = {};
-
-// document.addEventListener("keydown", (e) => {
-//   keys[e.key.toLowerCase()] = true;
-// })
-
-// document.addEventListener("keyup", (e) => {
-//   keys[e.key.toLowerCase()] = false;
-// })
-
-// function input()
-// {
-// 	if (keys['w'] && leftY > 0)
-// 		leftY -= moveSpeed;
-// 	if (keys['s'] && leftY < (canvas.height - paddleHeight))
-// 		leftY += moveSpeed;
-// }
-
-// function update()
-// {
-// 	ballX -= ballSpeed;
-// 	// ballY -= ballSpeed;
-
-// 	if (ballX <= 0 || ballX >= (canvas.width - ballSize))
-// 	{
-// 		ballX = canvas.width / 2;
-// 		ballY = canvas.height / 2;
-// 	}
-
-// 	if (ballX <= paddleWidth && ballY + ballSize >= leftY && ballY <= leftY + paddleHeight)
-// 		ballSpeed = ballSpeed * -1;
-
-// 	if (ballX + ballSize >= canvas.width - paddleWidth && ballY + ballSize >= rightY && ballY <= rightY + paddleHeight)
-// 		ballSpeed = ballSpeed * -1;
-
-// }
-
-// function gameLoop()
-// {
-// 	input();
-// 	update();
-// 	draw();
-// 	requestAnimationFrame(gameLoop);
-// }
-
-// gameLoop();
+gameLoop();

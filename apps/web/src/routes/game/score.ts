@@ -125,6 +125,18 @@ function drawDigit(digit: number, x: number, y: number, size = 4) {
             [false, false, false, false, true],
             [false, false, false, false, true],
             [false, false, false, false, true]
+        ],
+		// :
+        [
+            [false, false, false, false, false],
+            [false, false, false, false, false],
+            [false, false, false, false, true],
+            [false, false, false, false, false],
+            [false, false, false, false, false],
+            [false, false, false, false, false],
+            [false, false, false, false, true],
+            [false, false, false, false, false],
+            [false, false, false, false, false]
         ]
     ];
 	const pattern = patterns[digit]!;
@@ -158,4 +170,28 @@ function drawScore(score: number, x: number, y: number, size: number)
     }
 }
 
-export { drawScore }; 
+function drawTime(milliseconds: number, x: number, y: number, size: number)
+{
+	const totalSeconds = Math.floor(milliseconds / 1000);
+	const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+	
+	const digitsMin = minutes.toString().padStart(2, '0').split('').map(d => parseInt(d));
+	const digitsSec = seconds.toString().padStart(2, '0').split('').map(d => parseInt(d));
+    const digitWidth = canvas.width / 480 * size + 20;
+
+    for (let i = 0; i < digitsMin.length; i++) {
+        const digitIndex = (digitsMin.length - 1) - i; // Get digit from right to left
+        drawDigit(digitsMin[digitIndex]!, x - (i + 1) * digitWidth, y, size);
+    }
+	
+	drawDigit(10, x - (1 * digitWidth) + size * 2, y, size)
+
+	for (let i = 0; i < digitsSec.length; i++)
+    	drawDigit(digitsSec[i]!, x + i * digitWidth + size, y, size);
+
+
+}
+
+export { drawScore };
+export { drawTime };
