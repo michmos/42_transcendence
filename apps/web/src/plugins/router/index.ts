@@ -3,7 +3,9 @@ import { routes, dynamicRoutes } from '../../routes.js';
 interface RouteConfig {
   html: () => Promise<{ default: string } | string>;
   css: () => Promise<{ default: string } | string>;
-  script: () => Promise<{ default?: () => void }>;
+  script: () => Promise<
+    Record<string, unknown> & { default?: () => void | Promise<void> }
+  >;
   pattern?: RegExp;
 }
 

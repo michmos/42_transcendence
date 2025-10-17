@@ -1,10 +1,11 @@
-/* Root page specific styles - Full Screen Purple Theme */
+/* Root page specific styles - Full Screen Purple Theme 
 body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   min-height: 100vh;
 }
 
 .root-page {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   min-height: 100vh;
   padding: 20px;
 }
@@ -14,19 +15,19 @@ body {
   text-align: center;
   margin-bottom: 30px;
   font-size: 3rem;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Improved navigation menu */
+Improved navigation menu
 .main-menu {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
   margin: 30px 0;
   padding: 20px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px);
 }
 
@@ -44,49 +45,51 @@ body {
 
 .menu-section a {
   display: block;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   padding: 5px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.2s;
 }
 
 .menu-section a:hover {
   color: #fff;
   padding-left: 5px;
-  text-shadow: 0 0 10px rgba(255,255,255,0.5);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .menu-section a:last-child {
   border-bottom: none;
 }
 
-/* Button styles */
-.root-page button {
+Button styles - only for non-login page buttons
+.root-page .main-menu button,
+.root-page #userContainer button {
   margin: 5px;
   padding: 10px 20px;
   background: linear-gradient(45deg, #fff, #f0f0f0);
   color: #667eea;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 25px;
   cursor: pointer;
   transition: all 0.3s;
   font-weight: 600;
 }
 
-.root-page button:hover {
+.root-page .main-menu button:hover,
+.root-page #userContainer button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
   background: #fff;
 }
 
-/* User list styles */
+User list styles
 #userContainer {
   margin-top: 30px;
   padding: 20px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px);
 }
 
@@ -95,12 +98,12 @@ body {
   margin-bottom: 15px;
 }
 
-/* Fancy table styles */
+Fancy table styles
 .users-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
@@ -192,7 +195,7 @@ body {
 
 .btn-info:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-remove {
@@ -208,11 +211,11 @@ body {
 
 .btn-remove:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .login-page {
   min-height: 100vh;
   padding: 24px;
   color: white;
-}
+} */
