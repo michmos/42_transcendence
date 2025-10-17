@@ -5,12 +5,6 @@ import fp from 'fastify-plugin';
 import Auth, { FortyTwo, Google } from 'fastify-oauth/server';
 import { type User } from 'db/generated/client/index.js';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: User | null | undefined | unknown;
-  }
-}
-
 async function authPlugin(app: Fastify.FastifyInstance) {
   console.info('🔐 Loading auth plugin...');
 

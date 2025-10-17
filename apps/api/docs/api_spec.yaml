@@ -59,6 +59,7 @@ components:
 
     Group:
       type: object
+      description: all times in minutes
       required:
         - uuid
         - name
@@ -180,7 +181,7 @@ components:
           example: 0
         numberOfRounds:
           type: integer
-          example: 4 #can be calculated based on amount of player
+          example: 4
 
     TournamentRound:
       type: object

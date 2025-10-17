@@ -1,10 +1,12 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
-import { UserDatabase } from './user.js';
+import * as MatchDatabase from './match.js';
+import * as UserDatabase from './user.js';
+import * as TournamentDatabase from './tournaments.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: typeof UserDatabase;
+    db: typeof MatchDatabase & typeof UserDatabase & typeof TournamentDatabase;
   }
 }
 
@@ -13,7 +15,9 @@ export default fp(
     console.info('🗄️  Loading database plugin...');
 
     app.decorate('db', {
+      ...MatchDatabase,
       ...UserDatabase,
+      ...TournamentDatabase,
     });
   },
   {
@@ -21,4 +25,4 @@ export default fp(
   }
 );
 
-export { UserDatabase } from './user.js';
+// export { UserDatabase } from './user.js';
