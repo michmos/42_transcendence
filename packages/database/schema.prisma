@@ -102,7 +102,7 @@ model TournamentRound {
 
   // Relations
   matches       Match[]
-  tournament    Tournament  @relation(fields: [tournamentId], references: [uuid])
+  tournament    Tournament  @relation(fields: [tournamentId], references: [uuid], onDelete: Cascade)
 }
 
 model Match {
@@ -123,7 +123,7 @@ model Match {
   // Relations
   player1           User?  @relation("MatchesAsPlayer1", fields: [player1Id], references: [uuid])
   player2           User?  @relation("MatchesAsPlayer2", fields: [player2Id], references: [uuid])
-  tournament        TournamentRound?  @relation(fields: [tournamentRoundId], references: [uuid])
+  tournament        TournamentRound?  @relation(fields: [tournamentRoundId], references: [uuid], onDelete: SetNull)
 }
 
 model Group {
