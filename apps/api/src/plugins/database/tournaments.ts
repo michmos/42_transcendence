@@ -36,6 +36,30 @@ export async function updateTournament(
   });
 }
 
+export async function addUserToTournament(
+  tournamentId: string,
+  userId: string
+): Promise<Tournament | null> {
+  return Database.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({
+      where: {
+        uuid: userId,
+        tournaments: { some: { uuid: tournamentId } },
+      },
+    });
+    const incrementValue = user ? 0 : 1;
+    return tx.tournament.update({
+      where: { uuid: tournamentId },
+      data: {
+        playerCount: { increment: incrementValue },
+        participants: {
+          connect: { uuid: userId },
+        },
+      },
+    });
+  });
+}
+
 export async function getAllTournaments(): Promise<Tournament[]> {
   return Database.tournament.findMany();
 }

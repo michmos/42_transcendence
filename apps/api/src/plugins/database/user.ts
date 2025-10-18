@@ -32,20 +32,6 @@ export async function upsertUser(
   });
 }
 
-export async function addUserToTournament(
-  uuid: string,
-  tournamentUuid: string
-): Promise<User | null> {
-  return Database.user.update({
-    where: { uuid },
-    data: {
-      tournaments: {
-        connect: { uuid: tournamentUuid },
-      },
-    },
-  });
-}
-
 export async function removeUser(uuid: string): Promise<User> {
   const user = await Database.user.findUnique({ where: { uuid } });
   if (!user) throw new Error('User not found');
