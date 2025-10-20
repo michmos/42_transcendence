@@ -27,6 +27,13 @@ enum groupType {
   TOURNAMENT
 }
 
+enum FriendshipState {
+	FRIENDS
+	REQUESTED
+	BLOCKED
+	DENIED
+}
+
 model oAuthProvider {
   // Meta
   uuid              String   @id @default(uuid())
@@ -67,6 +74,9 @@ model User {
   tournaments       Tournament[]
   matches1          Match[]    @relation("MatchesAsPlayer1")
   matches2          Match[]    @relation("MatchesAsPlayer2")
+
+  friendsA		     	Friends[]	@relation(name: "friendsA")
+  friendsB		    	Friends[]	@relation(name: "friendsB")
 }
 
 model Tournament {
@@ -139,5 +149,22 @@ model Group {
   
   // Relations
   users       User[]      @relation("UserGroups")
-  owner       User        @relation("UserOwnedGroups", fields: [ownerId], references: [uuid])
+  owner       User        @relation("UserOwnedGroups", fields: [ownerId], references: [uuid])  
+}
+
+model Friends {
+	// Meta
+	uuid			String			@id @default(uuid())
+	createdAt		DateTime		@default(now())			
+	updatedAt		DateTime		@default(now())
+
+	// Relations
+	friendA			User 			@relation("friendsA", fields: [friendAId], references: [uuid])
+	friendAId		String
+	friendB			User 			@relation("friendsB", fields: [friendBId], references: [uuid])
+	friendBId		String
+	state			FriendshipState	@default(REQUESTED)
+	
+	@@unique([friendAId, friendBId])
+	@@index(state)
 }
