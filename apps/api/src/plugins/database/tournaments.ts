@@ -29,10 +29,9 @@ export async function createTournament(data: {
 export async function updateTournament(
   tournament: Partial<Tournament> & { uuid: string }
 ): Promise<Tournament> {
-  return Database.tournament.upsert({
+  return Database.tournament.update({
     where: { uuid: tournament.uuid },
-    update: tournament,
-    create: tournament as Tournament,
+    data: tournament,
   });
 }
 
