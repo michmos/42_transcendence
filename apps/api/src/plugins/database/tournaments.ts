@@ -36,8 +36,8 @@ export async function updateTournament(
 }
 
 export async function addUserToTournament(
-  tournamentId: string,
-  userId: string
+  userId: string,
+  tournamentId: string
 ): Promise<Tournament | null> {
   return Database.$transaction(async (tx) => {
     const user = await tx.user.findFirst({
