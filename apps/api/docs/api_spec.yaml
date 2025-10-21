@@ -363,8 +363,21 @@ paths:
       summary: Add user to tournament
       description: |
         JWT required to authenticate and identify user
+
+        Admin users can put a uuid in the body to add this user instead
       security:
         - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  format: uiud
+
       responses:
         '204':
           description: User added successfully
