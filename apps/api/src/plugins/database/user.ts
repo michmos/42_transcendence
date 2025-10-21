@@ -32,6 +32,37 @@ export async function upsertUser(
   });
 }
 
+export async function participatesInTournament(
+  userId: string,
+  tournamentId: string
+): Promise<boolean> {
+  const user = await Database.user.findUnique({
+    where: {
+      uuid: userId,
+      tournaments: {
+        some: {
+          uuid: tournamentId,
+        },
+      },
+    },
+  });
+  return user != null;
+}
+
+export async function getTournamentParticipants(
+  tournamentId: string
+): Promise<User[]> {
+  return await Database.user.findMany({
+    where: {
+      tournaments: {
+        some: {
+          uuid: tournamentId,
+        },
+      },
+    },
+  });
+}
+
 export async function removeUser(uuid: string): Promise<User> {
   const user = await Database.user.findUnique({ where: { uuid } });
   if (!user) throw new Error('User not found');
