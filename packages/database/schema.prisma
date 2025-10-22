@@ -99,6 +99,7 @@ model TournamentRound {
   // Data
   index         Int
   tournamentId  String
+  status        status    @default(outstanding)
 
   // Relations
   matches       Match[]
