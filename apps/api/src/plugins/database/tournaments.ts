@@ -96,14 +96,13 @@ export async function createTournamentRound(
 
     const tournamentRound = await tx.tournamentRound.create({
       data: { tournamentId, index },
-      include: { matches: true },
     });
 
     const matchesWithTournamentId = matches.map((match) => {
       return { ...match, tournamentRoundId: tournamentRound.uuid };
     });
 
-    tx.match.createManyAndReturn({
+    tx.match.createMany({
       data: matchesWithTournamentId,
     });
     return tx.tournamentRound.findUnique({
