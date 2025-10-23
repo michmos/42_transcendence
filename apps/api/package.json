@@ -10,7 +10,8 @@
     "preview": "node dist/app.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "echo 'No tests specified' && exit 0"
+    "test": "NODE_OPTIONS='--import tsx' vitest run",
+    "test:watch": "NODE_OPTIONS='--import tsx' vitest"
   },
   "keywords": [],
   "author": "",
@@ -38,7 +39,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.3.0",
     "@types/simple-oauth2": "^5.0.7",
+    "@vitest/ui": "^3.2.4",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }
