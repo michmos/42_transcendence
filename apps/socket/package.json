@@ -10,7 +10,8 @@
     "preview": "node dist/app.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-	"test": "echo 'No tests specified' && exit 0"
+    "test": "echo 'No tests specified' && exit 0",
+    "test:watch": "echo 'No tests specified' && exit 0"
   },
   "keywords": [],
   "author": "",
