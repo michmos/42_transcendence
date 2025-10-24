@@ -20,7 +20,7 @@ export function initRoute() {
   new HeaderBar(header, {
     title: 'Game',
     links: [
-      { label: 'Dashboard', href: '/dashboard' },
+      { label: 'Profile', href: '/profile' },
       { label: 'Tournaments', href: '/tournaments' },
     ],
     onNavigate: (href) =>

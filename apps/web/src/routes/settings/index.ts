@@ -23,8 +23,8 @@ export function initRoute() {
   new HeaderBar(header, {
     title: 'Settings',
     links: [
-      { label: 'Dashboard', href: '/dashboard' },
       { label: 'Profile', href: '/profile' },
+      { label: 'Tournaments', href: '/tournaments' },
     ],
     onNavigate: (href) =>
       window.navigateToRoute && window.navigateToRoute(href),
@@ -83,7 +83,7 @@ export function initRoute() {
       text: 'Logout',
       variant: 'danger',
       onClick: () => {
-        if (window.navigateToRoute) window.navigateToRoute('/landing');
+        if (window.navigateToRoute) window.navigateToRoute('/');
       },
     });
     actions.appendChild(a2);

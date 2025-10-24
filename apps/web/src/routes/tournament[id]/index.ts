@@ -33,7 +33,7 @@ export function initRoute() {
     title: `Tournament #${id}`,
     links: [
       { label: 'All Tournaments', href: '/tournaments' },
-      { label: 'Dashboard', href: '/dashboard' },
+      { label: 'Profile', href: '/profile' },
     ],
     onNavigate: (href) =>
       window.navigateToRoute && window.navigateToRoute(href),

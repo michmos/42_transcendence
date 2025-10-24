@@ -28,8 +28,8 @@ export function initRoute() {
   new HeaderBar(header, {
     title: 'Tournaments',
     links: [
-      { label: 'Dashboard', href: '/dashboard' },
       { label: 'Profile', href: '/profile' },
+      { label: 'Settings', href: '/settings' },
     ],
     onNavigate: (href) =>
       window.navigateToRoute && window.navigateToRoute(href),
