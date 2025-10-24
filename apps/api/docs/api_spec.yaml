@@ -57,26 +57,9 @@ components:
       type: string
       enum: [outstanding, ongoing, finished, canceled]
 
-    Group:
-      type: object
-      description: all times in minutes
-      required:
-        - uuid
-        - name
-      properties:
-        uuid:
-          type: string
-          example: 'group1-uuid'
-        name:
-          type: string
-          example: 'group1'
-        owner:
-          type: string
-          example: 'owner-uuid'
-        type:
-          type: string
-          enum: [FRIENDS, GAME]
-          example: 'FRIENDS'
+    FriendshipState:
+      type: string
+      enum: [REQUESTED, FRIENDS, BLOCKED, DENIED]
 
     User:
       type: object
@@ -87,7 +70,7 @@ components:
       properties:
         uuid:
           description: Unique encrypted user ID
-          type: integer #TODO: @jensbouma why integer - its uuid, so string no?
+          type: string
           example: 42
         username:
           type: string
@@ -99,16 +82,24 @@ components:
           type: string
           enum: [MEMBER, ADMIN]
           example: 'MEMBER'
-        groups:
-          type: array
-          items:
-            type: array
-            items:
-              $ref: '#/components/schemas/Group'
-          example: ['group1', 'group2']
         email:
           type: string
           example: 'example@example.com'
+        gamesPlayed:
+          type: integer
+          example: 10
+        gamesWon:
+          type: integer
+          example: 5
+        tournamentsPlayed:
+          type: integer
+          example: 2
+        tournamentsWon:
+          type: integer
+          example: 1
+        currentlyOnline:
+          type: boolean
+          example: true
 
     Provider:
       type: object
@@ -607,3 +598,78 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+
+  # ----------------   PAGE: User profile
+  /user/me:
+    get:
+      summary: Endpoint for user's profile page
+      description: This endpoint is used for populating all dynamic data on a user's profile page. This API endpoint is called on loading the profile page, when logged in.
+      tags:
+        - Users
+      parameters:
+        - name: uuid
+          description: The id is used by the database client to look up the correct user
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 36
+            minLength: 36
+            example: dad4bd48-1f50-45fb-8fec-3759cfab8a93
+      responses:
+        '200':
+          description: a JSON object of user data to display of profile page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+        '403':
+          description: Forbidden
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+
+  /user/me/friends:
+    get:
+      summary: Get all friends of user
+
+  /user/me/setAvatar:
+    patch:
+      summary: Set a different avatar
+
+  /user/me/setNickname:
+     patch:
+       summary: Set a different nickname
+
+  /user/me/addFriend?user={uuid}:
+    post:
+      summary: On the dashboard look for a user by username and add as a friend
+
+  /user/friendRequestResponse?user={uuid}:
+    patch:
+      summary: Accepting or denying a friendship request by another user
+
+
+  
+
+
+  # ----------------   PAGE: Other user's profile
+  /user/{uuid}:
+    get:
+      summary: get all relevant data of other user whose profile you're visiting
+
+    post:
+      summary: Add other user as a friend
+
+    patch:
+      summary: Accept or deny friendship request from user whose profile you're visiting
+
+  /user{uuid}/friends:
+    get:
+      summary: Get friends of other user

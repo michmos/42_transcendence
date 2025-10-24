@@ -9,6 +9,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+
+// ----- ENUMS -----
 enum userRole {
   ADMIN
   MEMBER
@@ -21,19 +24,15 @@ enum status {
   CANCELED
 }
 
-enum groupType {
-  FRIENDS
-  GAME
-  TOURNAMENT
-}
-
-enum FriendshipState {
-	FRIENDS
+enum friendshipState {
 	REQUESTED
-	BLOCKED
+	ACCEPTED
 	DENIED
 }
 
+
+
+// ----- User management -----
 model oAuthProvider {
   // Meta
   uuid              String   @id @default(uuid())
@@ -67,18 +66,44 @@ model User {
   twoFactorSecret   String?
   role              userRole    @default(MEMBER)
   
-  // Relations
-  groups            Group[]     @relation("UserGroups")
-  ownedGroups       Group[]     @relation("UserOwnedGroups")
-
+  // Games
   tournaments       Tournament[]
   matches1          Match[]    @relation("MatchesAsPlayer1")
   matches2          Match[]    @relation("MatchesAsPlayer2")
 
-  friendsA		     	Friends[]	@relation(name: "friendsA")
-  friendsB		    	Friends[]	@relation(name: "friendsB")
+  // Statistics
+  gamesPlayed       Int @default(0)
+  gamesWon          Int @default(0)
+
+  tournamentsPlayed Int @default(0)
+  tournamentsWon    Int @default(0)
+
+  // Relations / Friendships
+  friendsA		    	Friends[]	@relation(name: "friendsA")
+  friendsB		   		Friends[]	@relation(name: "friendsB")
+  currentlyOnline		Boolean		@default(false)
 }
 
+model Friends {
+	// Meta
+	uuid			String			@id @default(uuid())
+	createdAt		DateTime		@default(now())			
+	updatedAt		DateTime		@default(now())
+
+	// Relations
+	friendA			User 			@relation("friendsA", fields: [friendAId], references: [uuid])
+	friendAId		String
+	friendB			User 			@relation("friendsB", fields: [friendBId], references: [uuid])
+	friendBId		String
+	state			friendshipState	@default(REQUESTED)
+	
+	@@unique([friendAId, friendBId])
+	@@index(state)
+}
+
+
+
+// ----- GAME -----
 model Tournament {
   // Meta
   uuid              String    @id @default(uuid())
@@ -134,37 +159,4 @@ model Match {
   player1           User?  @relation("MatchesAsPlayer1", fields: [player1Id], references: [uuid])
   player2           User?  @relation("MatchesAsPlayer2", fields: [player2Id], references: [uuid])
   tournament        TournamentRound?  @relation(fields: [tournamentRoundId], references: [uuid], onDelete: SetNull)
-}
-
-model Group {
-  // Meta
-  uuid        String      @id @default(uuid())
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Data
-  name        String?
-  ownerId     String
-  type        groupType   @default(FRIENDS)
-  
-  // Relations
-  users       User[]      @relation("UserGroups")
-  owner       User        @relation("UserOwnedGroups", fields: [ownerId], references: [uuid])  
-}
-
-model Friends {
-	// Meta
-	uuid			String			@id @default(uuid())
-	createdAt		DateTime		@default(now())			
-	updatedAt		DateTime		@default(now())
-
-	// Relations
-	friendA			User 			@relation("friendsA", fields: [friendAId], references: [uuid])
-	friendAId		String
-	friendB			User 			@relation("friendsB", fields: [friendBId], references: [uuid])
-	friendBId		String
-	state			FriendshipState	@default(REQUESTED)
-	
-	@@unique([friendAId, friendBId])
-	@@index(state)
 }
