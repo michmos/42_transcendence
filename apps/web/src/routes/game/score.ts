@@ -4,7 +4,7 @@ const ctx = canvas.getContext("2d")!;
 // Custom bitmap font for authentic arcade look
 function drawDigit(digit: number, x: number, y: number, size = 4) {
     const pixelSize = size;
-    // 5x9 pixel patterns for digits 0-9
+    // 5x9 pixel patterns for digits 0-9 & :
     const patterns = [
         // 0
         [
@@ -150,14 +150,10 @@ function drawDigit(digit: number, x: number, y: number, size = 4) {
 			}
 		}
 	}
-	}
+}
 
 function drawScore(score: number, x: number, y: number, size: number)
-{
-	// const digit = score.toString()
-	// ctx.font = "48px Arial";
-	// ctx.fillText(digit, x, y);
-	
+{	
 	const digits = score.toString().split('').map(d => parseInt(d));
     const digitWidth = 5 * size + 20; // 5 pixels wide + 2 pixel spacing
     // for (let i = 0; i < digits.length; i++)

@@ -349,6 +349,8 @@ function updateGame()
 	
 	if (gameState.ballX <= 0 || gameState.ballX >= CANVAS_WIDTH - BALL_SIZE) {
 		
+		// // Left and right collision
+		// gameState.ballSpeedX *= -1;
 		if (gameState.ballX <= 0)
 			gameState.rightScore++;
 		else
@@ -419,6 +421,7 @@ function updateGame()
 			// console.log(gameState.ballSpeedX * gameSpeed);
 			console.log('Bounce count:', bounceCount, 'Base speed:', baseGameSpeed, 'Current speed:', gameSpeed);
 	}
+
 	if (gameState.aiEnabled) {
 		if (gameState.rightY + (gameState.paddleHeight / 2) < gameState.ballY && gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight) {
 			gameState.rightY += 4;
@@ -437,6 +440,7 @@ function updateGame()
 	if (gameState.leftScore >= 10 || gameState.rightScore >= 10) {
 		console.log('GAME OVER');
 		gameState.gameOver = true;
+		
 	}
 
 }
