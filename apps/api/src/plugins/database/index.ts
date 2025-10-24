@@ -6,8 +6,17 @@ import * as TournamentDatabase from './tournaments.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: typeof MatchDatabase & typeof UserDatabase & typeof TournamentDatabase;
+    db: typeof MatchDatabase &
+      typeof UserDatabase &
+      typeof TournamentDatabase & { clearAllData: () => Promise<void> };
   }
+}
+
+async function clearAllData() {
+  // order important due to cascading of deletion
+  await TournamentDatabase.removeAllTournaments();
+  await MatchDatabase.removeAllMatches();
+  await UserDatabase.removeAllUsers();
 }
 
 export default fp(
@@ -18,6 +27,7 @@ export default fp(
       ...MatchDatabase,
       ...UserDatabase,
       ...TournamentDatabase,
+      clearAllData: clearAllData,
     });
   },
   {

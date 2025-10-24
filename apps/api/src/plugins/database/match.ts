@@ -37,3 +37,7 @@ export async function removeMatch(uuid: string): Promise<Match> {
   await Database.match.delete({ where: { uuid } });
   return match;
 }
+
+export async function removeAllMatches(): Promise<void> {
+  await Database.match.deleteMany();
+}

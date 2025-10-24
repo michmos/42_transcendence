@@ -69,3 +69,7 @@ export async function removeUser(uuid: string): Promise<User> {
   await Database.user.delete({ where: { uuid } });
   return user;
 }
+
+export async function removeAllUsers(): Promise<void> {
+  await Database.user.deleteMany();
+}
