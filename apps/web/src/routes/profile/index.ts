@@ -2,7 +2,6 @@ import {
   StatCard,
   MatchCard,
   QuickActionButton,
-  EventCard,
   GlassCard,
 } from '../../components/index.js';
 
@@ -19,13 +18,7 @@ interface MatchData {
   playerAvatar: string;
   score: string;
   tournament: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-}
-
-interface EventData {
-  title: string;
-  date: string;
-  location: string;
+  result: 'win' | 'loss';
 }
 
 export default function initRoute() {
@@ -60,7 +53,7 @@ export default function initRoute() {
   statsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
   leftColumn.appendChild(statsGrid);
 
-  // TODO: Replace with actual API call to fetch user stats
+  // TODO: Replace with actual API calls to fetch user stats
   const stats = [
     {
       icon: '🎯',
@@ -76,14 +69,14 @@ export default function initRoute() {
     },
     {
       icon: '🏆',
-      label: 'Active Tour Rewards',
-      value: '8',
+      label: 'Tournaments',
+      value: '12',
       iconColor: 'text-accent',
     },
     {
-      icon: '📊',
-      label: 'Global Ranking',
-      value: '#42',
+      icon: '👥',
+      label: 'Active Friends',
+      value: '28',
       iconColor: 'text-foreground',
     },
   ];
@@ -103,16 +96,14 @@ export default function initRoute() {
   // Quick Actions
   renderQuickActions(rightColumn);
 
-  // Upcoming Events
-  renderUpcomingEvents(rightColumn);
-
-  // Achievement Card
-  renderAchievement(rightColumn);
+  // Friends List
+  renderFriendsList(rightColumn);
 }
 
 function renderHeader(container: HTMLElement): void {
   const header = document.createElement('header');
-  header.className = 'border-b border-border backdrop-blur-glass bg-muted/30';
+  header.className =
+    'border-b border-border backdrop-blur-glass bg-muted/30 relative z-40';
 
   const headerInner = document.createElement('div');
   headerInner.className = 'max-w-7xl mx-auto px-6 py-4';
@@ -137,13 +128,11 @@ function renderHeader(container: HTMLElement): void {
     <h1 class="text-xl font-bold text-foreground">The Pong Game</h1>
   `;
 
-  // Center: Navigation
+  // Right-aligned Navigation
   const nav = document.createElement('nav');
-  nav.className = 'flex items-center gap-8';
+  nav.className = 'flex items-center gap-8 ml-auto';
   const navLinks = [
     { label: 'Tournament', href: '/tournaments', active: false },
-    { label: 'Profile', href: '/profile', active: true },
-    { label: 'Settings', href: '/settings', active: false },
   ];
 
   navLinks.forEach((link) => {
@@ -158,8 +147,92 @@ function renderHeader(container: HTMLElement): void {
     nav.appendChild(button);
   });
 
+  // Right: Profile Dropdown
+  const rightDiv = document.createElement('div');
+  rightDiv.className = 'relative';
+
+  // Profile Avatar Button
+  const avatarButton = document.createElement('button');
+  avatarButton.className =
+    'w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center hover:opacity-80 transition-opacity';
+  avatarButton.innerHTML = `
+    <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  `;
+
+  // Dropdown Menu
+  const dropdown = document.createElement('div');
+  dropdown.className =
+    'hidden absolute right-0 mt-2 w-48 rounded-lg border border-border shadow-glow overflow-hidden';
+  dropdown.style.top = '100%';
+  dropdown.style.zIndex = '9999';
+  dropdown.style.backgroundColor = 'hsl(262, 83%, 25%)'; // Solid dark purple background
+  dropdown.innerHTML = `
+    <div class="py-1">
+      <button class="w-full px-4 py-2 text-left text-foreground hover:bg-muted/50 transition-colors flex items-center gap-2" data-action="settings">
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Settings
+      </button>
+      <button class="w-full px-4 py-2 text-left text-white hover:bg-muted/50 transition-colors flex items-center gap-2" data-action="logout">
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Logout
+      </button>
+    </div>
+  `;
+
+  // Toggle dropdown visibility
+  let isOpen = false;
+  avatarButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isOpen = !isOpen;
+    if (isOpen) {
+      dropdown.classList.remove('hidden');
+    } else {
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!rightDiv.contains(e.target as Node) && isOpen) {
+      isOpen = false;
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  // Handle dropdown actions
+  const settingsBtn = dropdown.querySelector('[data-action="settings"]');
+  const logoutBtn = dropdown.querySelector('[data-action="logout"]');
+
+  settingsBtn?.addEventListener('click', () => {
+    if (window.navigateToRoute) window.navigateToRoute('/settings');
+    dropdown.classList.add('hidden');
+    isOpen = false;
+  });
+
+  logoutBtn?.addEventListener('click', () => {
+    // TODO: Add logout API call here
+    console.log('Logout clicked');
+    if (window.navigateToRoute) window.navigateToRoute('/login');
+    dropdown.classList.add('hidden');
+    isOpen = false;
+  });
+
+  rightDiv.appendChild(avatarButton);
+  rightDiv.appendChild(dropdown);
+
   flexContainer.appendChild(leftDiv);
   flexContainer.appendChild(nav);
+  flexContainer.appendChild(rightDiv);
   headerInner.appendChild(flexContainer);
   header.appendChild(headerInner);
   container.appendChild(header);
@@ -167,41 +240,41 @@ function renderHeader(container: HTMLElement): void {
 
 function renderRecentMatches(container: HTMLElement): void {
   const card = new GlassCard(container, {
-    title: 'Recent Matches',
+    title: 'Match History',
   });
   const body = card.getBodyElement();
   if (!body) return;
 
-  // TODO: Replace with actual API call to fetch recent matches
-  // Example API endpoint: GET /api/matches/recent
+  // TODO: Replace with actual API call to fetch match history with pagination
+  // Example API endpoint: GET /api/matches/history?page=1&limit=10
   const matches: MatchData[] = [
     {
       playerName: 'Sarah Chen',
       playerAvatar: '',
       score: '21-18',
       tournament: 'Spring Championship',
-      difficulty: 'Easy',
+      result: 'win',
     },
     {
       playerName: 'Mike Rodriguez',
       playerAvatar: '',
       score: '19-21',
       tournament: 'Weekly League',
-      difficulty: 'Hard',
+      result: 'loss',
     },
     {
       playerName: 'Alex Thompson',
       playerAvatar: '',
       score: '21-15',
       tournament: 'Daily Challenge',
-      difficulty: 'Easy',
+      result: 'win',
     },
     {
       playerName: 'Emma Wilson',
       playerAvatar: '',
       score: '21-16',
       tournament: 'Spring Championship',
-      difficulty: 'Medium',
+      result: 'win',
     },
   ];
 
@@ -213,6 +286,49 @@ function renderRecentMatches(container: HTMLElement): void {
   matches.forEach((match) => {
     new MatchCard(matchesList, match);
   });
+
+  // TODO: Show pagination only if total matches > 10
+  // Pagination arrows
+  const paginationDiv = document.createElement('div');
+  paginationDiv.className =
+    'flex items-center justify-center gap-4 mt-4 pt-4 border-t border-border';
+
+  const prevButton = document.createElement('button');
+  prevButton.className =
+    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed';
+  prevButton.disabled = true; // TODO: Enable based on current page
+  prevButton.innerHTML = `
+    <svg class="w-5 h-5 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  `;
+  prevButton.addEventListener('click', () => {
+    // TODO: Load previous page of matches
+    console.log('Previous page');
+  });
+
+  const pageInfo = document.createElement('span');
+  pageInfo.className = 'text-sm text-muted-foreground';
+  pageInfo.textContent = 'Page 1 of 1'; // TODO: Update based on actual pagination data
+
+  const nextButton = document.createElement('button');
+  nextButton.className =
+    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed';
+  nextButton.disabled = true; // TODO: Enable based on total pages
+  nextButton.innerHTML = `
+    <svg class="w-5 h-5 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  `;
+  nextButton.addEventListener('click', () => {
+    // TODO: Load next page of matches
+    console.log('Next page');
+  });
+
+  paginationDiv.appendChild(prevButton);
+  paginationDiv.appendChild(pageInfo);
+  paginationDiv.appendChild(nextButton);
+  body.appendChild(paginationDiv);
 }
 
 function renderQuickActions(container: HTMLElement): void {
@@ -228,9 +344,8 @@ function renderQuickActions(container: HTMLElement): void {
 
   const actions = [
     { icon: '🎮', label: 'Start New Match', href: '/game' },
-    { icon: '👥', label: 'Join Tournament', href: '/tournaments' },
-    { icon: '🎯', label: 'Find Players', href: '/profile' },
-    { icon: '📊', label: 'View Stats', href: '/profile' },
+    { icon: '🏆', label: 'Create Tournament', href: '/tournaments' },
+    { icon: '⚙️', label: 'Settings', href: '/settings' },
   ];
 
   actions.forEach((action) => {
@@ -244,58 +359,72 @@ function renderQuickActions(container: HTMLElement): void {
   });
 }
 
-function renderUpcomingEvents(container: HTMLElement): void {
+function renderFriendsList(container: HTMLElement): void {
   const card = new GlassCard(container, {
-    title: 'Upcoming Events',
+    title: 'Friends List',
   });
   const body = card.getBodyElement();
   if (!body) return;
 
-  // TODO: Replace with actual API call to fetch upcoming events
-  // Example API endpoint: GET /api/events/upcoming
-  const events: EventData[] = [
-    {
-      title: 'Spring Finals',
-      date: 'Tomorrow, 2:30 PM',
-      location: 'Central Arena',
-    },
-    {
-      title: 'Team League',
-      date: 'Friday, 6:00 PM',
-      location: 'North Court',
-    },
-    {
-      title: 'Practice Session',
-      date: 'Saturday, 10:00 AM',
-      location: 'Service Venue',
-    },
+  // TODO: Replace with actual API call to fetch friends list
+  // Example API endpoint: GET /api/friends
+  interface FriendData {
+    name: string;
+    username: string;
+    isOnline: boolean;
+  }
+
+  const friends: FriendData[] = [
+    { name: 'Sarah Chen', username: '@sarah_c', isOnline: true },
+    { name: 'Mike Rodriguez', username: '@mike_r', isOnline: true },
+    { name: 'Alex Thompson', username: '@alex_t', isOnline: false },
+    { name: 'Emma Wilson', username: '@emma_w', isOnline: true },
+    { name: 'James Miller', username: '@james_m', isOnline: false },
+    { name: 'Lisa Anderson', username: '@lisa_a', isOnline: true },
+    { name: 'David Lee', username: '@david_l', isOnline: false },
+    { name: 'Sofia Martinez', username: '@sofia_m', isOnline: true },
   ];
 
-  const eventsList = document.createElement('div');
-  eventsList.className = 'space-y-3';
-  body.appendChild(eventsList);
+  // Scrollable friends list container
+  const friendsListContainer = document.createElement('div');
+  friendsListContainer.className = 'space-y-2 max-h-72 overflow-y-auto pr-2';
+  friendsListContainer.style.scrollbarWidth = 'thin'; // Firefox
+  body.appendChild(friendsListContainer);
 
-  events.forEach((event) => {
-    new EventCard(eventsList, event);
-  });
-}
+  friends.forEach((friend) => {
+    const friendItem = document.createElement('div');
+    friendItem.className =
+      'flex items-center gap-3 p-3 rounded-lg bg-gradient-card backdrop-blur-glass border border-border hover:bg-muted/30 transition-all cursor-pointer';
 
-function renderAchievement(container: HTMLElement): void {
-  const achievementCard = document.createElement('div');
-  achievementCard.className =
-    'border-border bg-gradient-card backdrop-blur-glass p-6 shadow-glow rounded-2xl border text-center';
-  container.appendChild(achievementCard);
+    // Get initials from name
+    const initials = friend.name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
 
-  achievementCard.innerHTML = `
-    <div class="mb-4 flex justify-center">
-      <div class="p-4 bg-accent rounded-full">
-        <svg class="w-8 h-8 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="6"/>
-          <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
-        </svg>
+    friendItem.innerHTML = `
+      <div class="relative">
+        <div class="h-10 w-10 border-2 border-border rounded-full flex items-center justify-center text-foreground bg-muted font-semibold">
+          ${initials}
+        </div>
+        <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${friend.isOnline ? 'bg-accent' : 'bg-destructive'}"></div>
       </div>
-    </div>
-    <h3 class="text-lg font-bold text-foreground mb-1">Achievement Unlocked!</h3>
-    <p class="text-sm text-muted-foreground">Win 5 matches in a row</p>
-  `;
+      <div class="flex-1">
+        <p class="font-semibold text-foreground">${friend.name}</p>
+        <p class="text-xs text-muted-foreground">${friend.username}</p>
+      </div>
+      <div class="text-xs text-muted-foreground">
+        ${friend.isOnline ? '<span class="text-accent">Online</span>' : '<span class="text-muted-foreground">Offline</span>'}
+      </div>
+    `;
+
+    friendItem.addEventListener('click', () => {
+      // TODO: Navigate to friend's profile
+      console.log('View friend profile:', friend.username);
+    });
+
+    friendsListContainer.appendChild(friendItem);
+  });
 }

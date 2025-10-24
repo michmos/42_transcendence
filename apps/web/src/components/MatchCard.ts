@@ -3,7 +3,7 @@ export interface MatchCardProps {
   playerAvatar?: string;
   score: string;
   tournament: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  result: 'win' | 'loss';
   className?: string;
   onClick?: () => void;
 }
@@ -24,13 +24,11 @@ export class MatchCard {
     this.render();
   }
 
-  private getDifficultyColor(difficulty: string): string {
-    switch (difficulty) {
-      case 'Easy':
+  private getResultColor(result: string): string {
+    switch (result) {
+      case 'win':
         return 'bg-accent/20 text-accent border-accent/50';
-      case 'Medium':
-        return 'bg-secondary/20 text-secondary border-secondary/50';
-      case 'Hard':
+      case 'loss':
         return 'bg-destructive/20 text-destructive border-destructive/50';
       default:
         return 'bg-muted text-foreground';
@@ -80,9 +78,9 @@ export class MatchCard {
     scoreSpan.textContent = this.props.score;
 
     const badge = document.createElement('span');
-    const badgeClass = this.getDifficultyColor(this.props.difficulty);
+    const badgeClass = this.getResultColor(this.props.result);
     badge.className = `px-2 py-1 text-xs font-semibold rounded border ${badgeClass}`;
-    badge.textContent = this.props.difficulty;
+    badge.textContent = this.props.result === 'win' ? 'Won' : 'Lost';
 
     rightDiv.appendChild(scoreSpan);
     rightDiv.appendChild(badge);

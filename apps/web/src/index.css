@@ -106,6 +106,9 @@
   border-radius: 1rem;
 }
 
+@utility w-3 {
+  width: 0.75rem;
+}
 @utility w-4 {
   width: 1rem;
 }
@@ -122,6 +125,9 @@
   width: 2.5rem;
 }
 
+@utility h-3 {
+  height: 0.75rem;
+}
 @utility h-4 {
   height: 1rem;
 }
@@ -136,6 +142,46 @@
 }
 @utility h-10 {
   height: 2.5rem;
+}
+
+@utility relative {
+  position: relative;
+}
+@utility absolute {
+  position: absolute;
+}
+
+@utility z-40 {
+  z-index: 40;
+}
+@utility z-50 {
+  z-index: 50;
+}
+
+@utility ml-auto {
+  margin-left: auto;
+}
+
+@utility pr-2 {
+  padding-right: 0.5rem;
+}
+
+@utility max-h-64 {
+  max-height: 16rem;
+}
+@utility max-h-72 {
+  max-height: 18rem;
+}
+@utility max-h-96 {
+  max-height: 24rem;
+}
+
+@utility overflow-y-auto {
+  overflow-y: auto;
+}
+
+@utility cursor-pointer {
+  cursor: pointer;
 }
 
 /* Design system CSS variables - All colors are HSL */
@@ -229,6 +275,10 @@ body {
     background: var(--gradient-card);
   }
 
+  .bg-card {
+    background-color: hsl(var(--card));
+  }
+
   .backdrop-blur-glass {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -276,6 +326,10 @@ body {
 
   .text-foreground {
     color: hsl(var(--foreground));
+  }
+
+  .text-white {
+    color: rgb(255, 255, 255);
   }
 
   .text-muted-foreground {
