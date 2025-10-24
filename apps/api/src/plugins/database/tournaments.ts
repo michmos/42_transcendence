@@ -74,14 +74,18 @@ export async function getTournamentsByStatus(
 }
 
 // delete a tournament including all tournament rounds (not including the matches)
-export async function deleteTournament(uuid: string): Promise<Tournament> {
-  return await Database.tournament.delete({
+export async function removeTournament(uuid: string): Promise<Tournament> {
+  const tournament = await Database.tournament.delete({
     where: { uuid },
     include: { rounds: true },
   });
   // tournament rounds are deleted automatically through 'onDelete: cascade' setting
   // in relation in schema
   // match.tournamentRoundId is updated automatically thorugh 'onDelete: SetNull'
+}
+
+export async function removeAllTournaments(): Promise<void> {
+  await Database.tournament.deleteMany();
 }
 
 export async function createTournamentRound(
