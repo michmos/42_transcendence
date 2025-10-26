@@ -1,41 +1,47 @@
-import { beforeEach, beforeAll, afterAll } from 'vitest';
+import { beforeAll, beforeEach, afterAll } from 'vitest';
 import { build } from '../build.js';
 import { type FastifyInstance } from 'fastify';
-import { adminUser, normalUser, testUser } from './utils.js';
+import { testUser, adminUser, normalUser } from './utils.js';
 
-const app: FastifyInstance = await build(false);
+// This file describes the setup / teardown for EACH file
+// with other words - everything here will be performed for
+// each file (e.g. beforeAll is preformed once per file)
 
-beforeEach(async () => {
-  // clear database
-  await app.db.clearAllData();
-
-  // add admin and normal user to db and get their uuids
-  const dbNormalUser = await app.db.addUser(
-    normalUser.email,
-    normalUser.username
-  );
-  normalUser.uuid = dbNormalUser.uuid;
-  const dbAdminUser = await app.db.addUser(adminUser.email, adminUser.username);
-  adminUser.uuid = dbAdminUser.uuid;
-});
+export let app: FastifyInstance;
 
 beforeAll(async () => {
   // add hook to mock authentication
-  app.addHook('onRequest', async (request, reply) => {
+  if (!app) {
+    app = await build(false);
+  }
+  app.addHook('onRequest', async (request) => {
     // Mock authentication by attaching a user object to the request
     request.user = testUser;
   });
 });
 
-afterAll(async () => {
-  await app.db.clearAllData();
-  try {
-    await app.db.removeUser(normalUser.uuid);
-  } catch (e) {}
-  try {
-    await app.db.removeUser(adminUser.uuid);
-  } catch (e) {}
-  await app.close();
+// this ensures that each test is run on an empty
+// database with only the two default users added
+beforeEach(async () => {
+  // Clear database
+  await app!.db.clearAllData();
+
+  // Add standard test users
+  const dbNormalUser = await app!.db.addUser(
+    normalUser.email,
+    normalUser.username
+  );
+  normalUser.uuid = dbNormalUser.uuid;
+
+  // Add admin test user
+  const dbAdminUser = await app!.db.addUser(
+    adminUser.email,
+    adminUser.username
+  );
+  adminUser.uuid = dbAdminUser.uuid;
 });
 
-export default app;
+afterAll(async () => {
+  await app!.db.clearAllData();
+  await app!.close();
+});
