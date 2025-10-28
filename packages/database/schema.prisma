@@ -57,6 +57,7 @@ model User {
 
   // Authentication
   username          String      @unique
+  nickname			String
   email             String      @unique
   oAuthProviders    oAuthProvider[]
 
@@ -65,7 +66,7 @@ model User {
   twoFactorEnabled  Boolean     @default(false)
   twoFactorSecret   String?
   role              userRole    @default(MEMBER)
-  
+
   // Games
   tournaments       Tournament[]
   matches1          Match[]    @relation("MatchesAsPlayer1")
@@ -81,13 +82,12 @@ model User {
   // Relations / Friendships
   friendsA		    	Friends[]	@relation(name: "friendsA")
   friendsB		   		Friends[]	@relation(name: "friendsB")
-  currentlyOnline		Boolean		@default(false)
 }
 
 model Friends {
 	// Meta
 	uuid			String			@id @default(uuid())
-	createdAt		DateTime		@default(now())			
+	createdAt		DateTime		@default(now())
 	updatedAt		DateTime		@default(now())
 
 	// Relations
@@ -96,7 +96,7 @@ model Friends {
 	friendB			User 			@relation("friendsB", fields: [friendBId], references: [uuid])
 	friendBId		String
 	state			friendshipState	@default(REQUESTED)
-	
+
 	@@unique([friendAId, friendBId])
 	@@index(state)
 }

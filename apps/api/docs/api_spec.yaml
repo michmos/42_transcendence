@@ -59,7 +59,7 @@ components:
 
     FriendshipState:
       type: string
-      enum: [REQUESTED, FRIENDS, BLOCKED, DENIED]
+      enum: [REQUESTED, ACCEPTED, DENIED]
 
     User:
       type: object
@@ -75,6 +75,9 @@ components:
         username:
           type: string
           example: 'player42'
+        nickname:
+          type: string
+          example: 'Billy'
         avatar:
           type: string
           example: 'https://avatar.example.com/player42.png'
@@ -97,9 +100,19 @@ components:
         tournamentsWon:
           type: integer
           example: 1
-        currentlyOnline:
-          type: boolean
-          example: true
+
+    Friends:
+      type: object
+      description: Schema used for looking up friends
+      properties:
+        uuid:               # Do we even want / need uuid here?
+          type: string
+          example: 'somevery-longstring-thatishard-toguess'
+        name:
+          type: string
+          example: 'Bobby'
+      enum:
+        value: ACCEPTED
 
     Provider:
       type: object
@@ -607,47 +620,190 @@ paths:
       description: This endpoint is used for populating all dynamic data on a user's profile page. This API endpoint is called on loading the profile page, when logged in.
       tags:
         - Users
-      parameters:
-        - name: uuid
-          description: The id is used by the database client to look up the correct user
-          in: path
-          required: true
-          schema:
-            type: string
-            maxLength: 36
-            minLength: 36
-            example: dad4bd48-1f50-45fb-8fec-3759cfab8a93
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: a JSON object of user data to display of profile page
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
         '400':
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /user/me/friends:
     get:
       summary: Get all friends of user
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: |
+            returns the uuid, username of the users that have a friendshipState set to 'ACCEPTED' with the currently logged-in user
 
-  /user/me/setAvatar:
+            Or an empty array if currently logged-in user has no friends :(
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Friends'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/me/setAvatar: # NOTE: we should change file name, and process/optimize file. Should also be able to remove avatar and use base avatar image
     patch:
       summary: Set a different avatar
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: New avatar image
+      responses:
+        '200':
+          description: |
+            File was succesfully uploaded and replaced
+
+            Or the payload was empty, and thus we replaced the old image with our base avatar image
+          content:
+            application/json:
+              schema:
+                type: string
+                example: https://example.com/uploads/avatars/user123.png
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /user/me/setNickname:
-     patch:
-       summary: Set a different nickname
+    patch:
+      summary: Set a different nickname
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          appplication/json:
+            schema:
+              type: object
+              properties:
+                type: string
+                maxLength: 15     # Max and minimum length could be bigger or smaller
+                minLength: 3
+              required:
+                - nickname
+      responses:
+        '200':
+          description: When setting a different nickname
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nickname:
+                    type: string
+                    example: Bobby
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-  /user/me/addFriend?user={uuid}:
+
+
+  /user/me/addFriend?user={username}:
     post:
       summary: On the dashboard look for a user by username and add as a friend
 
@@ -656,7 +812,7 @@ paths:
       summary: Accepting or denying a friendship request by another user
 
 
-  
+
 
 
   # ----------------   PAGE: Other user's profile
