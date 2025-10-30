@@ -7,13 +7,12 @@ async function fetchSessionData(): Promise<string | null> {
       credentials: 'include',
     });
 
+    // TODO: use standard error handler here!
     if (response.status === 400) {
       const json = await response.json();
-      console.log(json);
       if (json && json.error) {
         const error = json.error.message;
         const code = json.error.status;
-        // const details = json.error.stack;
         window.location.href = `/error?error=${error}&code=${code}`;
         return null;
       }

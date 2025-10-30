@@ -25,7 +25,7 @@ interface GithubUser {
   location: string;
   hireable: boolean;
   bio: string;
-  twitter_username: string;
+  twitter_nickname: string;
   public_repos: number;
   public_gists: number;
   followers: number;
@@ -73,7 +73,7 @@ async function fetchGithubUser(token: string) {
 
   const user = {
     uuid: userData.id,
-    username: userData.name,
+    nickname: userData.name,
     email: userData.email,
     avatar: userData.avatar_url,
   };

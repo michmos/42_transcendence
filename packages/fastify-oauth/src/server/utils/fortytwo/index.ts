@@ -218,7 +218,7 @@ async function fetch42User(token: string) {
 
   const user = {
     uuid: userData.id,
-    username: userData.first_name + ' ' + userData.last_name,
+    nickname: userData.first_name + ' ' + userData.last_name,
     email: userData.email,
     avatar: userData.image.link,
   };
