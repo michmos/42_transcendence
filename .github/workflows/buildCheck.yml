@@ -1,0 +1,40 @@
+name: build check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # populates environment with variables defined in .env.example
+      # mode: add on to .env
+      # load-mode: strict -> fail if file not found
+      - name: Load .env file
+        uses: xom9ikk/dotenv@v2.3.0
+        with:
+          mode: example
+          load-mode: strict
+
+      - name: Prisma - Generate client
+        run: pnpm db:generate
+
+      - name: Build all packages
+        run: pnpm build

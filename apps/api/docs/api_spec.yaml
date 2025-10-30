@@ -1,0 +1,609 @@
+# OpenAPI Specification - Team Introduction
+#
+# What is OpenAPI?
+# OpenAPI (formerly Swagger) is a standard way to document REST APIs. It describes:
+# - What endpoints exist (/users, /status, etc.)
+# - What HTTP methods they support (GET, POST, PUT, DELETE)
+# - What data they expect and return
+# - Examples and validation rules
+#
+# Main building blocks:
+# 1. info: Basic API information (title, version, description)
+# 2. servers: Where the API runs (localhost, production, etc.)
+# 3. paths: Your API endpoints and their operations
+# 4. components/schemas: Reusable data structures (User, Game, etc.)
+# 5. parameters: Query params (?page=1) and path params (/users/{id})
+# 6. requestBody: JSON data sent to POST/PUT endpoints
+# 7. responses: What the API returns (success/error responses)
+#
+# Benefits:
+# - Interactive documentation (try endpoints in the browser)
+# - Code generation (client SDKs, server stubs)
+# - API testing and validation
+# - Team communication and onboarding
+#
+# View this spec at: http://localhost:3002/documentation
+
+openapi: 3.0.0
+info:
+  description: '42 Transcendence API'
+  version: '1.0.0'
+  title: '42 Transcendence API'
+servers:
+  - url: http://localhost:5173/api/
+    description: Application Endpoint
+
+tags:
+  - name: Health
+    description: Server status endpoints
+  - name: Users
+    description: User management
+  - name: Tournament
+    description: Tournament management
+  - name: Match
+    description: Match management
+  - name: Authentication
+    description: OAuth authentication endpoints
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Status:
+      type: string
+      enum: [outstanding, ongoing, finished, canceled]
+
+    Group:
+      type: object
+      description: all times in minutes
+      required:
+        - uuid
+        - name
+      properties:
+        uuid:
+          type: string
+          example: 'group1-uuid'
+        name:
+          type: string
+          example: 'group1'
+        owner:
+          type: string
+          example: 'owner-uuid'
+        type:
+          type: string
+          enum: [FRIENDS, GAME]
+          example: 'FRIENDS'
+
+    User:
+      type: object
+      description: |
+        uuid only exposed to yourself
+      required:
+        - username
+      properties:
+        uuid:
+          description: Unique encrypted user ID
+          type: integer #TODO: @jensbouma why integer - its uuid, so string no?
+          example: 42
+        username:
+          type: string
+          example: 'player42'
+        avatar:
+          type: string
+          example: 'https://avatar.example.com/player42.png'
+        role:
+          type: string
+          enum: [MEMBER, ADMIN]
+          example: 'MEMBER'
+        groups:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Group'
+          example: ['group1', 'group2']
+        email:
+          type: string
+          example: 'example@example.com'
+
+    Provider:
+      type: object
+      properties:
+        name:
+          type: string
+          example: '42'
+        buttonUri:
+          type: string
+          example: 'api/auth/login?provider=42'
+
+    Session:
+      type: object
+      properties:
+        provider:
+          type: string
+          example: '42'
+        user:
+          type: object
+        uuid:
+          type: string
+          example: 'user-uuid-123'
+        accessToken:
+          type: string
+          example: 'access-token-123'
+        expiresAt:
+          type: integer
+          example: 1696176635492
+
+    Tournament:
+      type: object
+      description: all times in minutes
+      required:
+        - uuid
+        - tournamentName
+        - maxPlayers
+        - minPlayers
+        - lockTime
+        - gameTime
+        - playerCount
+        - status
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        tournamentName:
+          type: string
+          example: 'SomeTournamentName'
+        maxPlayers:
+          type: integer
+          example: 8
+        minPlayers:
+          type: integer
+          example: 4
+        playerCount:
+          type: integer
+          example: 5
+        lockTime:
+          type: integer
+          example: 3
+        gameTime:
+          type: integer
+          example: 3
+        winner:
+          $ref: '#/components/schemas/User'
+        status:
+          $ref: '#/components/schemas/Status'
+        currentRound:
+          type: integer
+          example: 0
+        numberOfRounds:
+          type: integer
+          example: 4
+
+    TournamentRound:
+      type: object
+      required:
+        - index
+        - matches
+      properties:
+        index:
+          type: integer
+          example: 0
+        matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/Match'
+
+    CreateTournamentInput:
+      type: object
+      required:
+        - tournamentName
+        - maxPlayers
+        - minPlayers
+        - lockTime
+        - gameTime
+      properties:
+        tournamentName:
+          type: string
+          example: 'SomeTournamentName'
+        maxPlayers:
+          type: integer
+          example: 8
+        minPlayers:
+          type: integer
+          example: 4
+        lockTime:
+          type: integer
+          example: 3
+        gameTime:
+          type: integer
+          example: 3
+
+    Match:
+      type: object
+      required:
+        - player1
+        - player2
+        - status
+        - score
+      properties:
+        player1:
+          $ref: '#/components/schemas/User'
+        player2:
+          $ref: '#/components/schemas/User'
+        status:
+          $ref: '#/components/schemas/Status'
+        score:
+          type: object
+          properties:
+            pointsPlayer1:
+              type: integer
+            pointsPlayer2:
+              type: integer
+
+    Error:
+      type: object
+      required:
+        - description
+      properties:
+        description:
+          type: string
+          example: 'some meaningful error message'
+
+  parameters:
+    uuid:
+      name: uuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+paths:
+  /tournaments:
+    get:
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: filter for status
+          schema:
+            $ref: '#/components/schemas/Status'
+
+      tags:
+        - Tournament
+      summary: Get tournaments (by status)
+      description: |
+        The tournament schema is public information, so we have a public endpoint
+        to get all tournaments with the possibility to filter by status
+      responses:
+        '200':
+          description: List of tournaments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+        '400':
+          description: Bad request - e.g. wrong status provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create new tournament
+      description: |
+        Create a new tournament
+
+        JWT used to identify user
+      security:
+        - bearerAuth: []
+      tags:
+        - Tournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTournamentInput'
+
+      responses:
+        '201':
+          description: Tournament added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '400':
+          description: Bad request - tournament couldn't be created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    get:
+      tags:
+        - Tournament
+      summary: Get tournament by uuid
+      description: Retrieve a tournament by uuid
+      responses:
+        '200':
+          description: Tournament retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}/users:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    post:
+      tags:
+        - Tournament
+      summary: Add user to tournament
+      description: |
+        JWT required to authenticate and identify user
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: User added successfully
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Tournament full, locked or canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}/rounds/{roundIdx}:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+      - name: roundIdx
+        in: path
+        required: true
+        description: tournament round
+        schema:
+          type: integer
+    get:
+      tags:
+        - Tournament
+      summary: Get tournament round data
+      description: |
+        Get all the data about a specific tournament round including the match data.
+
+        This step requires auth and only succeeds for admins or participants of the tournament.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tournament round data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentRound'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament or round not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/providers:
+    get:
+      tags:
+        - Authentication
+      summary: Get available OAuth providers
+      description: Retrieve a list of all configured OAuth providers
+      responses:
+        '200':
+          description: List of available providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Provider'
+
+  /auth/login:
+    get:
+      tags:
+        - Authentication
+      summary: Initiate OAuth login
+      description: |
+        Redirect to OAuth provider for authentication.
+
+        **⚠️ This endpoint must be accessed directly in the browser, not via AJAX/fetch.**
+
+        **Do not use the "Try it out" button - it will fail due to CORS restrictions.**
+
+        Instead, navigate to: `http://localhost:5173/api/auth/login?provider=42`
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+          example: '42'
+      responses:
+        '302':
+          description: Redirect to OAuth provider
+        '400':
+          description: Unknown provider or invalid request
+
+  /auth/callback:
+    get:
+      tags:
+        - Authentication
+      summary: OAuth callback endpoint
+      description: Handle OAuth provider callback and create session
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to success URL with session cookie set
+        '400':
+          description: Invalid or expired state/code
+
+  /auth/logout:
+    get:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Clear session cookie and logout user
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Logged out successfully'
+
+  /auth/session:
+    get:
+      tags:
+        - Authentication
+      summary: Get current session
+      description: Get current user session information, refreshing tokens if needed
+      responses:
+        '200':
+          description: Current session data or empty object if not logged in
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Session'
+                  - type: object
+                    additionalProperties: false
+                    description: Empty object returned
+
+  /user:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      description: |
+        Retrieve a list of all users.
+
+        **Requires authentication via JWT token in the Authorization header.**
+
+        **Only users with the ADMIN role can access this endpoint.**
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden. User does not have ADMIN role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/me/tournaments:
+    get:
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: filter for status
+          schema:
+            $ref: '#/components/schemas/Status'
+      tags:
+        - Users
+        - Tournaments
+      summary: Get all tournaments of a user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of tournaments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

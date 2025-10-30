@@ -40,12 +40,12 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*",
-    "src/app.ts",
+    "src/plugins/**/*",
+    "src/routes/**/*",
     "vite.config.ts"
-  ],
-  "exclude": ["dist", "out"]
+  ]
 }

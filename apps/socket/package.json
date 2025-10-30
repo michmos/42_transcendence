@@ -5,13 +5,12 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "start": "tsx src/app.ts",
     "build": "tsc",
     "dev": "tsx watch src/app.ts",
-    "run": "tsx watch src/app.ts",
     "preview": "node dist/app.js",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+	"test": "echo 'No tests specified' && exit 0"
   },
   "keywords": [],
   "author": "",

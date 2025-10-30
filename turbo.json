@@ -1,49 +1,93 @@
 {
-	"$schema": "https://turbo.build/schema.json",
-	"globalDependencies": [".env"],
-	"tasks": {
-		"db:generate": {
-			"inputs" : ["$TURBO_DEFAULT$"],
-			"env": ["DATABASE_URL"],
-			"cache": true
-		},
-		"db:push": {
-			"inputs" : ["$TURBO_DEFAULT$"],
-			"env": ["DATABASE_URL"],
-			"cache": true
-		},
-		"db:studio": {
-			"env": ["DATABASE_URL"]
-		},
-		"build": {
-			"dependsOn": ["^db:generate"],
-			"inputs": ["$TURBO_DEFAULT$"],
-			"outputs": ["dist/**", "out/**"]
-		},
-		"dev": {
-			"dependsOn": ["^db:generate", "^db:push"],
-			"inputs": ["$TURBO_DEFAULT$"],
-			"env": ["DATABASE_URL", "API_URL", "API_PORT", "SOCKET_URL", "SOCKET_PORT", "VITE_PORT"],
-			"cache": false,
-			"persistent": true
-		},
-		"docker": {
-			"dependsOn": ["^build"]
-		},
-		"preview": {
-			"dependsOn": ["build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env"],
-			"env": ["DATABASE_URL", "API_URL", "API_PORT", "SOCKET_URL", "SOCKET_PORT", "VITE_PORT"],
-			"cache": false,
-			"persistent": true
-		},
-		"lint": {
-			"inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
-			"cache": true
-		},
-		"lint:fix": {
-			"inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
-			"cache": false
-		}
-	}
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
+  "tasks": {
+    "db:generate": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "env": ["DATABASE_URL"],
+      "cache": false
+    },
+    "db:push": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "env": ["DATABASE_URL"],
+      "cache": false
+    },
+    "db:studio": {
+      "env": ["DATABASE_URL"]
+    },
+    "dep:build": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["dist/**", "out/**"],
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["dist/**", "out/**"],
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "./packages/**",
+        "./plugins/**",
+        "./apps/**",
+        ".env"
+      ],
+      "env": [
+        "DATABASE_URL",
+        "API_URL",
+        "API_PORT",
+        "SOCKET_URL",
+        "SOCKET_PORT",
+        "VITE_PORT",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "REDIRECT_URL",
+        "JWT_SECRET",
+        "FORTYTWO_CLIENT_SECRET",
+        "FORTYTWO_CLIENT_ID",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "UUID_ENCRYPTION_KEY"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "docker": {
+      "dependsOn": ["^build"]
+    },
+    "preview": {
+      "dependsOn": ["^db:generate", "^db:push", "build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env"],
+      "env": [
+        "DATABASE_URL",
+        "API_URL",
+        "API_PORT",
+        "SOCKET_URL",
+        "SOCKET_PORT",
+        "VITE_PORT",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "REDIRECT_URL",
+        "JWT_SECRET",
+        "FORTYTWO_CLIENT_SECRET",
+        "FORTYTWO_CLIENT_ID",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "UUID_ENCRYPTION_KEY"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
+      "cache": false
+    },
+    "lint:fix": {
+      "inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
+      "cache": false
+    }
+  }
 }

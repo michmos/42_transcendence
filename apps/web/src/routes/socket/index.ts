@@ -1,5 +1,3 @@
-import Socket from '../../plugins/websocket/index.js';
-
 function updateServerTime(event: MessageEvent) {
   try {
     const data = JSON.parse(event.data);
@@ -35,13 +33,8 @@ function SendMessageToServer() {
     'messageInput'
   ) as HTMLInputElement | null;
 
-  if (!sendButton) {
-    console.error('❌ sendMessageButton not found');
-    return;
-  }
-
-  if (!messageInput) {
-    console.error('❌ messageInput not found');
+  if (!sendButton || !messageInput) {
+    console.error('❌ Required elements not found');
     return;
   }
 
@@ -61,9 +54,9 @@ function SendMessageToServer() {
       return;
     }
 
-    if (Socket.isConnected()) {
+    if (window.socket.isConnected()) {
       console.log('Sending message:', message);
-      Socket.sendMessage(message);
+      window.socket.sendMessage(message);
 
       // Display sent message in the messages list
       const listItem = document.createElement('li');
@@ -82,8 +75,7 @@ function SendMessageToServer() {
   console.log('✅ Message sending functionality setup complete');
 }
 
-// Route initialization function - called by the dynamic route loader
-export function initRoute() {
+export default function initRoute() {
   console.log('🔌 Socket route initializing...');
 
   // Small delay to ensure DOM is fully ready
@@ -91,7 +83,7 @@ export function initRoute() {
     console.log('🔌 Socket route DOM setup starting...');
 
     // Register a WebSocket hook to update server time on the page
-    Socket.registerWebSocketHook(updateServerTime);
+    window.socket.registerWebSocketHook(updateServerTime);
 
     // Set up message sending functionality
     SendMessageToServer();

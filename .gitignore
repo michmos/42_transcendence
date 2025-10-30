@@ -7,7 +7,7 @@ dist
 .env.*.local
 pnpm-lock.yaml
 package-lock.json
-apps/web/out
 *secrets*
 *subject*
 AGENTS.md
+packages/database/dev.db

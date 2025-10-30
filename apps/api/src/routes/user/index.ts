@@ -1,35 +1,47 @@
-import type { FastifyInstance } from 'fastify';
+import { type FastifyInstance } from 'fastify';
+import { isAdmin, isSameUUID } from '../../plugins/auth/utils.js';
 
-// Import the database module from the database package
-// This is where the getters and setters for users are defined
-import Database from 'db';
+export default async function (app: FastifyInstance): Promise<void> {
+  app.get('/', async function (request, reply) {
+    if (!isAdmin(request, reply)) return;
 
-export default function (app: FastifyInstance): void {
-  app.get('/', Database.getAllUsers.bind(Database));
-
-  app.get('/:uuid', async function (request) {
-    const { uuid } = request.params as { uuid: string };
-    return Database.getUser(uuid);
+    const users = await app.db.getUsers();
+    console.log('Fetched users:', users);
+    return reply.status(200).send(users);
   });
 
-  app.post('/', async function (request) {
-    const { email } = request.body as {
-      email: string;
-    };
-    if (!email) {
-      return new Error('Email and username are required');
+  app.get('/:uuid', async function (request, reply) {
+    const { uuid } = request.params as { uuid: string };
+
+    if (!isAdmin(request, reply) && !isSameUUID(request, reply, uuid)) {
+      return;
     }
-    return await Database.addUser(
+    return await app.db.getUser(uuid);
+  });
+
+  app.post('/', async function (request, reply) {
+    const { email } = request.body as { email: string };
+
+    if (!isAdmin(request, reply)) return;
+
+    if (!email) {
+      return new Error('Email is required');
+    }
+
+    return await app.db.addUser(
       email,
       email.split('@')[0] || 'user' + Math.floor(Math.random() * 1000)
     );
   });
 
-  app.delete('/', async function (request) {
+  app.delete('/', async function (request, reply) {
     const { uuid } = request.body as { uuid: string };
+
+    if (!isAdmin(request, reply)) return;
+
     if (!uuid) {
       return new Error('UUID is required');
     }
-    return await Database.removeUser(uuid);
+    return await app.db.removeUser(uuid);
   });
 }

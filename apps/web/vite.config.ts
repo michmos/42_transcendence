@@ -1,5 +1,4 @@
 import { defineConfig, loadEnv } from 'vite';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -14,14 +13,12 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: vitePort,
       proxy: {
-        // Proxy /api/** requests to the API server
         '^/api(/.*)?$': {
           target: `http://localhost:${apiPort}`,
           changeOrigin: false,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
-        // Proxy WebSocket connections to the WebSocket server
         '/websocket': {
           target: `http://localhost:${socketPort}`,
           changeOrigin: true,
@@ -29,22 +26,20 @@ export default defineConfig(({ mode }) => {
           ws: true,
           rewrite: (path) => path.replace(/^\/websocket/, ''),
         },
+        '/documentation': {
+          target: `http://localhost:${apiPort}`,
+          changeOrigin: true,
+          secure: false,
+        },
       },
+    },
+    preview: {
+      host: '0.0.0.0',
+      port: vitePort,
     },
     build: {
       outDir: '../out',
       emptyOutDir: true,
     },
-    plugins: [
-      // Copy static files to the root of the build output directory
-      viteStaticCopy({
-        targets: [
-          {
-            src: 'static/*',
-            dest: '',
-          },
-        ],
-      }),
-    ],
   };
 });

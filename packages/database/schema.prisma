@@ -14,10 +14,17 @@ enum userRole {
   MEMBER
 }
 
+enum status {
+  OUTSTANDING
+  ONGOING
+  FINISHED
+  CANCELED
+}
 
 enum groupType {
   FRIENDS
   GAME
+  TOURNAMENT
 }
 
 model oAuthProvider {
@@ -38,38 +45,99 @@ model oAuthProvider {
 
 model User {
   // Meta
-  uuid              String    @id @default(uuid())
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  uuid              String      @id @default(uuid())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   // Authentication
-  username          String    @unique
-  email             String    @unique
+  username          String      @unique
+  email             String      @unique
   oAuthProviders    oAuthProvider[]
 
   // Profile
   avatar            String?
-  twoFactorEnabled  Boolean   @default(false)
+  twoFactorEnabled  Boolean     @default(false)
   twoFactorSecret   String?
-  role              userRole  @default(MEMBER)
+  role              userRole    @default(MEMBER)
   
   // Relations
-  groups            Group[]   @relation("UserGroups")
-  ownedGroups       Group[]   @relation("UserOwnedGroups")
+  groups            Group[]     @relation("UserGroups")
+  ownedGroups       Group[]     @relation("UserOwnedGroups")
+
+  tournaments       Tournament[]
+  matches1          Match[]    @relation("MatchesAsPlayer1")
+  matches2          Match[]    @relation("MatchesAsPlayer2")
+}
+
+model Tournament {
+  // Meta
+  uuid              String    @id @default(uuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tournamentName    String
+  minPlayers        Int
+  maxPlayers        Int
+  playerCount       Int       @default(1)
+  lockTime          Int       @default(10)
+  gameTime          Int       @default(3)
+  status            status    @default(OUTSTANDING)
+  numberOfRounds    Int       @default(1)
+  currentRound      Int       @default(0)
+
+  // Relations
+  participants      User[]
+  rounds            TournamentRound[]
+}
+
+model TournamentRound {
+  // Meta
+  uuid          String    @id @default(uuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Data
+  index         Int
+  tournamentId  String
+
+  // Relations
+  matches       Match[]
+  tournament    Tournament  @relation(fields: [tournamentId], references: [uuid], onDelete: Cascade)
+}
+
+model Match {
+  // Meta
+  uuid              String    @id @default(uuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Data
+  status            status    @default(OUTSTANDING)
+  Score1            Int       @default(0)
+  Score2            Int       @default(0)
+  player1Id         String?
+  player2Id         String?
+  winnerId          String?
+  tournamentRoundId String?
+
+  // Relations
+  player1           User?  @relation("MatchesAsPlayer1", fields: [player1Id], references: [uuid])
+  player2           User?  @relation("MatchesAsPlayer2", fields: [player2Id], references: [uuid])
+  tournament        TournamentRound?  @relation(fields: [tournamentRoundId], references: [uuid], onDelete: SetNull)
 }
 
 model Group {
   // Meta
-  uuid      String    @id @default(uuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  uuid        String      @id @default(uuid())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   // Data
-  name      String    @unique
-  ownerId   String
-  type      groupType @default(FRIENDS)
+  name        String?
+  ownerId     String
+  type        groupType   @default(FRIENDS)
   
   // Relations
-  users     User[]    @relation("UserGroups")
-  owner     User      @relation("UserOwnedGroups", fields: [ownerId], references: [uuid])
+  users       User[]      @relation("UserGroups")
+  owner       User        @relation("UserOwnedGroups", fields: [ownerId], references: [uuid])
 }

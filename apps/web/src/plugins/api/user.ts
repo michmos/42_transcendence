@@ -1,11 +1,24 @@
-import type { User } from 'db';
+import type { User } from 'db/generated/client/index.js';
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
   async getUsers(): Promise<User[]> {
     try {
-      const response = await fetch('/api/user');
-      return await response.json();
+      const response = await fetch('/api/user', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
+
+      const res = await response.json();
+      return res;
     } catch (error) {
       console.error('Error fetching users:', error);
       return [];

@@ -26,6 +26,16 @@ export default defineConfig(
     },
     rules: {
       'prettier/prettier': 'error',
+      '@typescript-eslint/unified-signatures': 'off',
+    },
+  },
+  // Use a dedicated tsconfig for apps/web to include config files like postcss.config.js
+  {
+    files: ['apps/web/**/*.{js,mjs,cjs,ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: './apps/web/tsconfig.eslint.json',
+      },
     },
   },
   {

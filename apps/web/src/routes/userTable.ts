@@ -37,9 +37,7 @@ function createUserRow(user: {
 
   if (detailsBtn) {
     detailsBtn.addEventListener('click', () => {
-      if (typeof window.navigateToRoute === 'function') {
-        window.navigateToRoute(`/user/${user.uuid}`);
-      }
+      window.router.navigate(`/user/${user.uuid}`);
     });
   }
 

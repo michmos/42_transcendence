@@ -1,0 +1,10 @@
+body {
+  background: linear-gradient(135deg, #7c3aed 0%, #4338ca 100%) !important;
+  min-height: 100vh;
+}
+
+.dashboard-page {
+  min-height: 100vh;
+  padding: 24px;
+  color: white;
+}
