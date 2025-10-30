@@ -79,9 +79,10 @@ export async function removeTournament(uuid: string): Promise<Tournament> {
     where: { uuid },
     include: { rounds: true },
   });
+  return tournament;
   // tournament rounds are deleted automatically through 'onDelete: cascade' setting
   // in relation in schema
-  // match.tournamentRoundId is updated automatically thorugh 'onDelete: SetNull'
+  // match.tournamentRoundId is updated automatically through 'onDelete: SetNull'
 }
 
 export async function removeAllTournaments(): Promise<void> {
