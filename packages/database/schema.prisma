@@ -48,7 +48,6 @@ model oAuthProvider {
   user              User     @relation(fields: [userId], references: [uuid])
 }
 
-
 model User {
   // Meta
   uuid              String      @id @default(uuid())
@@ -56,8 +55,7 @@ model User {
   updatedAt         DateTime    @updatedAt
 
   // Authentication
-  username          String      @unique
-  nickname			String
+  nickname          String      @unique
   email             String      @unique
   oAuthProviders    oAuthProvider[]
 
@@ -80,15 +78,15 @@ model User {
   tournamentsWon    Int @default(0)
 
   // Relations / Friendships
-  friendsA		    	Friends[]	@relation(name: "friendsA")
-  friendsB		   		Friends[]	@relation(name: "friendsB")
+  friendsA		    Friends[]	@relation(name: "friendsA")
+  friendsB		   	Friends[]	@relation(name: "friendsB")
 }
 
 model Friends {
 	// Meta
 	uuid			String			@id @default(uuid())
 	createdAt		DateTime		@default(now())
-	updatedAt		DateTime		@default(now())
+	updatedAt		DateTime		@updatedAt
 
 	// Relations
 	friendA			User 			@relation("friendsA", fields: [friendAId], references: [uuid])
