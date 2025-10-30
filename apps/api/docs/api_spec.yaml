@@ -83,13 +83,22 @@ components:
       description: |
         uuid only exposed to yourself
       required:
-        - username
+        - email
       properties:
         uuid:
           description: Unique encrypted user ID
-          type: integer #TODO: @jensbouma why integer - its uuid, so string no?
+          type: string
           example: 42
-        username:
+        providerName:
+          type: string
+          example: '42'
+        providerUUID:
+          type: string
+          example: 'player42-uuid'
+        fullName:
+          type: string
+          example: 'Rob Jetten'
+        nickName:
           type: string
           example: 'player42'
         avatar:
@@ -109,6 +118,9 @@ components:
         email:
           type: string
           example: 'example@example.com'
+        email_verified:
+          type: boolean
+          example: true
 
     Provider:
       type: object
