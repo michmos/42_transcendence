@@ -47,12 +47,11 @@ export function extractOpenIDUser(accessToken: AccessToken, name?: string) {
   }
 
   // Decoded ID Token successfully. User sub: %s, email: %s
-  console.log('Decoded ID Token for user:', decoded.sub);
   const user = {
     uuid: decoded.sub,
     email: decoded.email,
     email_verified: decoded.email_verified,
-    username: decoded.name,
+    nickname: decoded.name,
     avatar: decoded.picture || '',
   };
 

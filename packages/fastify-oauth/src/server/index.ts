@@ -18,7 +18,7 @@
  *
  */
 
-import { type FastifyInstance, type FastifyReply } from 'fastify';
+import { type FastifyInstance } from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 
 import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
@@ -27,10 +27,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     user?: {
       uuid: string;
-      email: string;
-      username?: string;
-      avatar?: string;
-      role?: string;
+      role: string;
     };
   }
 }
@@ -44,13 +41,15 @@ import ProviderUtility from './routes/providers/index.js';
 
 import TokenUtility from './utils/token/index.js';
 
+import { type oAuthUser } from './utils/user/index.js';
+
 interface OAuthContext {
   app: FastifyInstance;
   redirectUri: string;
-  loginSuccessRedirectUrl: string;
+  successRedirectUrl: string;
+  errorRedirectUrl: string;
   jwtSecret: string;
   state: State[];
-  error: (err: Error, reply?: FastifyReply) => void;
   callbacks: Record<string, (args: unknown) => unknown>;
 }
 
@@ -60,16 +59,17 @@ class OAuth {
   constructor(
     app: FastifyInstance,
     redirectUri: string,
-    loginSuccessRedirectUrl: string,
+    successRedirectUrl: string,
+    errorRedirectUrl: string,
     jwtSecret: string
   ) {
     this.ctx = {
       app,
       redirectUri,
-      loginSuccessRedirectUrl,
+      successRedirectUrl,
+      errorRedirectUrl,
       jwtSecret,
       state: [],
-      error: this.error.bind(this),
       callbacks: {},
     };
     ProviderUtility.initialize(this.ctx);
@@ -77,15 +77,6 @@ class OAuth {
     TokenUtility.initialize(jwtSecret);
 
     this.initialize();
-  }
-
-  private error(this: OAuth, err: Error, reply?: FastifyReply) {
-    const jsonError = { status: 404, message: err.message, stack: err.stack };
-    if (reply) reply.status(400).send({ error: jsonError });
-
-    if (this.ctx.callbacks['error']) {
-      return this.ctx.callbacks['error'](err);
-    }
   }
 
   private removeExpiredStates() {
@@ -101,6 +92,15 @@ class OAuth {
 
     // Clean up expired states periodically
     setInterval(() => this.removeExpiredStates(), 1 * 60 * 1000); // Every 1 minutes
+
+    // TODO: Make this more standard someday!
+    this.ctx.app.setErrorHandler(async (error, request, reply) => {
+      // Check url to so it only responds to auth routes
+      if (!request.url.startsWith('/auth')) {
+        return;
+      }
+      reply.redirect(`/error?error=${error.message}&code=${500}`);
+    });
 
     setupCallbackRoute(this.ctx);
     setupLoginRoute(this.ctx);
@@ -129,7 +129,7 @@ class OAuth {
   private async checkAuthenticationHook(
     request: import('fastify').FastifyRequest,
     reply: import('fastify').FastifyReply,
-    getUserCallback: (uuid: string) => unknown | null
+    getUserRoleCallback: (uuid: string) => Promise<string | null>
   ) {
     // Allow unauthenticated access to the login routes
     if (request.url.startsWith('/auth')) return;
@@ -154,21 +154,19 @@ class OAuth {
     }
 
     // Fetch the user object from the database using the provided callback
-    const userObj = await getUserCallback(session.uuid);
-    if (!userObj)
+    const userRole = (await getUserRoleCallback(session.uuid)) as string | null;
+    console.log('Fetched user role for UUID', session.uuid, ':', userRole);
+    if (!userRole)
       return reply.status(401).send({ error: 'User not found in database' });
-    request.user = userObj as {
-      uuid: string;
-      email: string;
-      username?: string;
-      avatar?: string;
-      role?: string;
+    request.user = {
+      uuid: session.uuid,
+      role: userRole,
     };
   }
 
   // Add an authentication hook to Fastify
   public addAuthenticationHook(
-    getUserObjectCallback: (uuid: string) => Promise<unknown | null>
+    getUserObjectCallback: (uuid: string) => Promise<string | null>
   ) {
     console.info('🔒 Adding authentication hook to Fastify');
 
@@ -183,10 +181,17 @@ class OAuth {
 export default function Auth(
   app: FastifyInstance,
   redirectUri: string,
-  loginSuccessRedirectUrl: string,
+  successRedirectUrl: string,
+  errorRedirectUrl: string,
   jwtSecret: string
 ): OAuth {
-  return new OAuth(app, redirectUri, loginSuccessRedirectUrl, jwtSecret);
+  return new OAuth(
+    app,
+    redirectUri,
+    successRedirectUrl,
+    errorRedirectUrl,
+    jwtSecret
+  );
 }
 
 export { type OAuthContext, type AccessToken, OAuth };
@@ -227,4 +232,4 @@ export interface State {
 export { GitHub } from './utils/github/index.js';
 export { FortyTwo } from './utils/fortytwo/index.js';
 export { Google } from './utils/google/index.js';
-export { SessionManager };
+export { SessionManager, type oAuthUser };

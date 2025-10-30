@@ -9,11 +9,22 @@ export interface User {
   avatar?: string | null;
 }
 
+export interface oAuthUser {
+  uuid: string;
+  fullName: string;
+  email: string;
+  email_verified?: boolean;
+  avatar?: string | null;
+  providerName: string;
+}
+
 async function getOauthUser(
   provider: OAuthProvider,
   accessToken: AccessToken,
   name?: string
 ) {
+  let user: Record<string, unknown> | OpenIDUser;
+
   if (!provider) {
     throw new Error('Provider is undefined');
   }
@@ -22,23 +33,39 @@ async function getOauthUser(
   }
   // If the provider uses OpenID Connect, extract user info from the ID token
   if (accessToken.token.id_token) {
-    return extractOpenIDUser(accessToken, name);
+    user = extractOpenIDUser(accessToken, name);
   }
 
   // If a custom user data fetcher is provided, use it
-  if (provider.fetchUserData) {
-    return await provider.fetchUserData(
+  else if (provider.fetchUserData) {
+    user = await provider.fetchUserData(
       accessToken.token.access_token as string
     );
+  } else {
+    throw new Error('No method to fetch user data for this provider');
   }
 
-  // If no method is available to fetch user data, throw an error
-  throw new Error(
-    `No method available to fetch user data for provider: ${provider.name}`
-  );
+  if (!user) {
+    throw new Error('Failed to fetch user data');
+  }
+
+  const uuid = provider.name + getOauthUserUUID(user);
+  const fullName = getOauthUserName(user);
+  const email = 'email' in user ? (user['email'] as string) : null;
+  const avatar = 'avatar' in user ? (user['avatar'] as string) : null;
+
+  return {
+    uuid,
+    fullName,
+    email,
+    avatar,
+    email_verified:
+      'email_verified' in user ? (user['email_verified'] as boolean) : false,
+    providerName: provider.name,
+  } as oAuthUser;
 }
 
-function getUserUUID(
+function getOauthUserUUID(
   user: Record<string, unknown> | OpenIDUser
 ): string | null {
   if ('sub' in user) {
@@ -53,11 +80,11 @@ function getUserUUID(
   return null;
 }
 
-function getUserName(user: Record<string, unknown> | OpenIDUser): string {
+function getOauthUserName(user: Record<string, unknown> | OpenIDUser): string {
   if ('name' in user && typeof user['name'] === 'string') {
     return user['name'];
-  } else if ('username' in user && typeof user['username'] === 'string') {
-    return user['username'];
+  } else if ('nickname' in user && typeof user['nickname'] === 'string') {
+    return user['nickname'];
   } else if (
     'firstname' in user &&
     'lastname' in user &&
@@ -71,4 +98,4 @@ function getUserName(user: Record<string, unknown> | OpenIDUser): string {
   return 'Unknown';
 }
 
-export { getOauthUser, getUserUUID, getUserName };
+export { getOauthUser, getOauthUserName, getOauthUserUUID };
