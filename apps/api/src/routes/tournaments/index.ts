@@ -77,7 +77,6 @@ export default async function (app: FastifyInstance): Promise<void> {
         });
       }
       // update tournament status
-      const users = await app.db.getTournamentParticipants(request.params.uuid);
       if (tournamentWithUser.playerCount === tournamentWithUser.maxPlayers) {
         generateTournamentPlan(request.params.uuid, app);
         tournamentWithUser = await app.db.updateTournament({
@@ -94,6 +93,11 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.getTournamentRound,
       preHandler: async (request, reply) => {
+        if (!(await app.db.getTournament(request.params.uuid))) {
+          return reply.status(404).send({
+            error: `Tournament with uuid: $(request.params.uuid) not found`,
+          });
+        }
         if (!(await isParticipant(request, reply, app))) return;
       },
     },
@@ -104,7 +108,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       );
       if (!round) {
         return reply.status(404).send({
-          error: `Tournament round for tournamentId: ${request.params.uuid} and roundIndex ${request.params.roundIndex} not found`,
+          error: `Tournament round with index: ${request.params.roundIndex} not found`,
         });
       }
       return reply.status(200).send(round);
