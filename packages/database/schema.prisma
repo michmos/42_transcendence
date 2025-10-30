@@ -27,22 +27,6 @@ enum groupType {
   TOURNAMENT
 }
 
-model oAuthProvider {
-  // Meta
-  uuid              String   @id @default(uuid())
-  provider          String   // google, github, etc.
-
-  // Data
-  accessToken       String?
-  refreshToken      String?
-  expiresAt         DateTime?
-  userId            String
-
-  // Relations
-  user              User     @relation(fields: [userId], references: [uuid])
-}
-
-
 model User {
   // Meta
   uuid              String      @id @default(uuid())
@@ -50,14 +34,13 @@ model User {
   updatedAt         DateTime    @updatedAt
 
   // Authentication
-  username          String      @unique
   email             String      @unique
-  oAuthProviders    oAuthProvider[]
-
+  email_verified    Boolean?
+  
   // Profile
   avatar            String?
-  twoFactorEnabled  Boolean     @default(false)
-  twoFactorSecret   String?
+  fullName          String?
+  nickName          String?     @unique
   role              userRole    @default(MEMBER)
   
   // Relations

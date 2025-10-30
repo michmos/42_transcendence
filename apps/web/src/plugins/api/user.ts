@@ -54,6 +54,7 @@ const UserAPI = {
     }
   },
 
+  // TODO: @mlubber can you add your fancy code here who checks everthing for delete before deleting?
   async deleteUser(uuid: string): Promise<boolean> {
     try {
       const response = await fetch('/api/user', {
@@ -61,8 +62,7 @@ const UserAPI = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uuid }),
       });
-      const data = await response.json();
-      console.log('User deleted:', data);
+      await response.json();
       return true;
     } catch (error) {
       console.error('Error deleting user:', error);
