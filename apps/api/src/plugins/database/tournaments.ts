@@ -38,7 +38,7 @@ export async function updateTournament(
 export async function addUserToTournament(
   userId: string,
   tournamentId: string
-): Promise<Tournament | null> {
+): Promise<Tournament> {
   return Database.$transaction(async (tx) => {
     const user = await tx.user.findFirst({
       where: {

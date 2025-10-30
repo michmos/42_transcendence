@@ -67,15 +67,18 @@ export default async function (app: FastifyInstance): Promise<void> {
     async function (request, reply) {
       const userUuid = request.body.uuid || request.user!.uuid;
       // add user
-      let tournamentWithUser = await app.db.addUserToTournament(
-        userUuid,
-        request.params.uuid
-      );
-      if (!tournamentWithUser) {
+      let tournamentWithUser;
+      try {
+        tournamentWithUser = await app.db.addUserToTournament(
+          userUuid,
+          request.params.uuid
+        );
+      } catch (error) {
         return reply.status(404).send({
           error: `User not found: ${request.user!.uuid}`,
         });
       }
+
       // update tournament status
       if (tournamentWithUser.playerCount === tournamentWithUser.maxPlayers) {
         generateTournamentPlan(request.params.uuid, app);
