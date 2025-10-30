@@ -1,5 +1,10 @@
-const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d")!;
+// const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
+// const ctx = canvas.getContext("2d")!;
+
+import {
+	canvas,
+	ctx
+} from './state';
 
 // Custom bitmap font for authentic arcade look
 function drawDigit(digit: number, x: number, y: number, size = 4) {
