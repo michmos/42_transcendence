@@ -4,6 +4,6 @@ export default defineConfig({
     environment: 'node',
     pool: 'forks',
     fileParallelism: false, // required to avoid race conditions between testfiles
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./test/setup.ts'],
   },
 });
