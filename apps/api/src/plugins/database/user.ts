@@ -59,42 +59,13 @@ export async function getUsers(): Promise<User[]> {
   });
 }
 
-// Get specific user while exposing
 export async function getUser(nickname: string): Promise<User | null> {
-  return Database.user.findUnique({ where: { nickname } });
+  return Database.user.findUniqueOrThrow({ where: { nickname } });
 }
 
 // ----------------   PAGE: User profile
-export async function getUserMe(uuid: string): Promise<User | null> {
-  return Database.user.findUnique({ where: { uuid } });
-}
-
-export async function getFriends(uuid: string) {
-  const foundRelations = await Database.friends.findMany({
-    where: {
-      AND: [
-        {
-          OR: [{ friendAId: uuid }, { friendBId: uuid }],
-        },
-        {
-          OR: [{ state: 'ACCEPTED' }, { state: 'REQUESTED' }],
-        },
-      ],
-    },
-    select: {
-      friendAId: true,
-      friendBId: true,
-      friendA: { select: { nickname: true, avatar: true } },
-      friendB: { select: { nickname: true, avatar: true } },
-      state: true,
-    },
-  });
-
-  const friendsList: object = foundRelations.map((f) =>
-    f.friendAId === uuid ? f.friendB : f.friendA
-  );
-
-  return friendsList;
+export async function getUserMe(uuid: string): Promise<User> {
+  return Database.user.findUniqueOrThrow({ where: { uuid } });
 }
 
 // ---------------- OTHER STUFF

@@ -84,7 +84,7 @@ model User {
 
 model Friends {
 	// Meta
-	uuid			String			@id @default(uuid())
+	uuid			  String			@id @default(uuid())
 	createdAt		DateTime		@default(now())
 	updatedAt		DateTime		@updatedAt
 

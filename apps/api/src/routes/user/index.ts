@@ -1,24 +1,64 @@
 import { type FastifyInstance } from 'fastify';
 import { isAdmin, isSameUUID } from '../../plugins/auth/utils.js';
+import type { User } from 'db/generated/client/client';
 
 export default async function (app: FastifyInstance): Promise<void> {
-  app.get('/', async function (request, reply) {
-    if (!isAdmin(request, reply)) return;
+  // ----------- USERS
 
-    const users = await app.db.getUsers();
-    console.log('Fetched users:', users);
-    return reply.status(200).send(users);
-  });
+  app.get('/user', async function (request, reply) {
+    try {
+      if (!isAdmin(request, reply)) return;
 
-  app.get('/:uuid', async function (request, reply) {
-    const { uuid } = request.params as { uuid: string };
-
-    if (!isAdmin(request, reply) && !isSameUUID(request, reply, uuid)) {
-      return;
+      const users = await app.db.getUsers();
+      console.log('Fetched users:', users);
+      return reply.status(200).send(users);
+    } catch (error) {
+      return reply.code(500).send({ Error: `${error}` });
     }
-    return await app.db.getUser(uuid);
   });
 
+  // Getting all logged-in user's own data to display on his profile page.
+  // First getting the user data from the User table
+  // Second getting all ACCEPTED friends and friend REQUESTS from other users
+  // Returning an object with user and friends data
+  app.get('/user/me', async function (request, reply) {
+    try {
+      const ownUuid: string | undefined = request.user?.uuid as string;
+      if (ownUuid === undefined)
+        return reply.code(500).send({ Error: 'Invalid or no uuid in request' });
+
+      const userData = await app.db.getUserMe(ownUuid);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { uuid, updatedAt, ...cleanedUserData } = userData;
+      const userFriends = await app.db.getFriends(ownUuid);
+
+      // For testing :
+      console.log('/user/me - userData:', cleanedUserData);
+      console.log('/user/me - userFriends:', userFriends);
+      console.log('/user/me - userFriends:', { cleanedUserData, userFriends });
+      // End of testing
+
+      return reply.code(200).send({ userData, userFriends });
+    } catch (error) {
+      return reply.code(500).send({ Error: `${error}` });
+    }
+  });
+
+  app.get('/user/:nickname', async function (request, reply) {
+    try {
+      const { nickname } = request.params as { nickname: string };
+      const user = await app.db.getUser(nickname);
+
+      if (!user) return reply.code(404).send({ Error: 'user not found' });
+
+      const cleanedUser = cleanOtherUserData(user);
+      return reply.code(200).send(cleanedUser);
+    } catch (error) {
+      return reply.code(500).send({ Error: `${error}` });
+    }
+  });
+
+  // ----------- ADD / DELETE USERS
   app.post('/', async function (request, reply) {
     const { email } = request.body as { email: string };
 
@@ -34,14 +74,36 @@ export default async function (app: FastifyInstance): Promise<void> {
     );
   });
 
+  // First deletes user's Friends records, and then deletes own User record
   app.delete('/', async function (request, reply) {
     const { uuid } = request.body as { uuid: string };
 
-    if (!isAdmin(request, reply)) return;
+    if (!isAdmin(request, reply) && isSameUUID(request, reply, uuid)) return;
 
     if (!uuid) {
       return new Error('UUID is required');
     }
+    app.db.deleteMultipleFriends(uuid);
     return await app.db.removeUser(uuid);
   });
+}
+
+// Cleans up another user's data that is requested but not the requesting user's own data
+export function cleanOtherUserData(user: User): Partial<User> {
+  const {
+    nickname,
+    avatar,
+    gamesPlayed,
+    gamesWon,
+    tournamentsPlayed,
+    tournamentsWon,
+  } = user;
+  return {
+    nickname,
+    avatar,
+    gamesPlayed,
+    gamesWon,
+    tournamentsPlayed,
+    tournamentsWon,
+  };
 }

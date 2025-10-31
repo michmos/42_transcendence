@@ -24,7 +24,7 @@ async function authPlugin(app: Fastify.FastifyInstance) {
         user: User;
       };
       console.info(
-        `User logged in: ${user.username} (UUID: ${uuid}) via ${providerName}`
+        `User logged in: ${user.nickname} (UUID: ${uuid}) via ${providerName}`
       );
       await app.db.upsertUser(user);
     })
