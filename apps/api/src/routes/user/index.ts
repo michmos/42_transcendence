@@ -3,8 +3,6 @@ import { isAdmin, isSameUUID } from '../../plugins/auth/utils.js';
 import type { User } from 'db/generated/client/client';
 
 export default async function (app: FastifyInstance): Promise<void> {
-  // ----------- USERS
-
   app.get('/user', async function (request, reply) {
     try {
       if (!isAdmin(request, reply)) return;
@@ -28,8 +26,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         return reply.code(500).send({ Error: 'Invalid or no uuid in request' });
 
       const userData = await app.db.getUserMe(ownUuid);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { uuid, updatedAt, ...cleanedUserData } = userData;
+      const cleanedUserData = cleanSelfUserData(userData);
       const userFriends = await app.db.getFriends(ownUuid);
 
       // For testing :
@@ -44,6 +41,49 @@ export default async function (app: FastifyInstance): Promise<void> {
     }
   });
 
+  // USER SETTINGS
+  app.patch('/user/me/setNickname', async function (request, reply) {
+    try {
+      const ownUuid: string | undefined = request.user?.uuid as string;
+      if (ownUuid === undefined)
+        return reply.code(500).send({ Error: 'Invalid or no uuid in request' });
+
+      const { nickname } = request.body as { nickname: string };
+      const existingUser = await app.db.getUser(nickname);
+      if (existingUser) {
+        return reply.code(409).send({
+          Error: `Nickname ${nickname} already exists and must be unique`,
+        });
+      }
+
+      const userData = await app.db.setUserMeNickname(ownUuid, nickname);
+      return reply.code(200).send(cleanSelfUserData(userData));
+    } catch (error) {
+      return reply.code(500).send({ Error: `${error}` });
+    }
+  });
+
+  // ---- TODO:
+  // - Needs image (type checking)
+  // - changing image to 1:1 and appropriate size if possible, to save storage
+  // - image name changing
+  // - fixing path to where image is saved, e.g. /public/profile-images/user12345
+  app.patch('/user/me/setAvatar', async function (request, reply) {
+    try {
+      const ownUuid: string | undefined = request.user?.uuid as string;
+      if (ownUuid === undefined)
+        return reply.code(500).send({ Error: 'Invalid or no uuid in request' });
+
+      const { avatar } = request.body as { avatar: string };
+
+      const userData = await app.db.setUserMeAvatar(ownUuid, avatar);
+      return reply.code(200).send(cleanSelfUserData(userData));
+    } catch (error) {
+      return reply.code(500).send({ Error: `${error}` });
+    }
+  });
+
+  // OTHER USER
   app.get('/user/:nickname', async function (request, reply) {
     try {
       const { nickname } = request.params as { nickname: string };
@@ -106,4 +146,10 @@ export function cleanOtherUserData(user: User): Partial<User> {
     tournamentsPlayed,
     tournamentsWon,
   };
+}
+
+export function cleanSelfUserData(userData: User): Partial<User> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { uuid, updatedAt, ...cleanedUserData } = userData;
+  return cleanedUserData;
 }

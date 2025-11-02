@@ -55,8 +55,8 @@ model User {
   updatedAt         DateTime    @updatedAt
 
   // Authentication
-  nickname          String      @unique
-  email             String      @unique
+  nickname          String      @unique @db.VarChar(40)
+  email             String      @unique @db.VarChar(80)
   oAuthProviders    oAuthProvider[]
 
   // Profile

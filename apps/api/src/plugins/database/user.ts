@@ -68,6 +68,26 @@ export async function getUserMe(uuid: string): Promise<User> {
   return Database.user.findUniqueOrThrow({ where: { uuid } });
 }
 
+export async function setUserMeNickname(
+  uuid: string,
+  newNickname: string
+): Promise<User> {
+  return Database.user.update({
+    where: { uuid },
+    data: { nickname: newNickname },
+  });
+}
+
+export async function setUserMeAvatar(
+  uuid: string,
+  newAvatarLoc: string
+): Promise<User> {
+  return Database.user.update({
+    where: { uuid },
+    data: { avatar: newAvatarLoc },
+  });
+}
+
 // ---------------- OTHER STUFF
 export async function addUser(email: string, nickname: string): Promise<User> {
   return Database.user.create({ data: { email, nickname } });

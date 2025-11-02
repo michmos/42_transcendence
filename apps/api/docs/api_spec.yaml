@@ -678,7 +678,7 @@ paths:
         - bearerAuth: []
       requestBody:
         description: |
-          Need to send the name of the user we want to add as a friend with the request, so we can check if that user exists 
+          Need to send the name of the user we want to add as a friend with the request, so we can check if that user exists
 
           We then check if we already have a record with them in the database, and then:
             if not, then we create a record in the friends table with the requester UUID in friendA, and the requested user in friendB, with state REQUESTED
@@ -797,7 +797,57 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /user/me/setAvatar: # NOTE: we should change file name, and process/optimize file. Should also be able to remove avatar and use base avatar image
+  /user/me/nickname:
+    patch:
+      summary: Set a different nickname
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                  minLength: 3 # Min and max length could be bigger or smaller
+                  maxLength: 15
+              required:
+                - nickname
+      responses:
+        '200':
+          description: When setting a different nickname
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nickname:
+                    type: string
+                    example: Bobby
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/me/avatar: # NOTE: we should change file name, and process/optimize file. Should also be able to remove avatar and use base avatar image
     patch:
       summary: Set a different avatar
       tags:
@@ -840,56 +890,6 @@ paths:
                 $ref: '#/components/schemas/Error'
         '415':
           description: Unsupported Media Type
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /user/me/setNickname:
-    patch:
-      summary: Set a different nickname
-      tags:
-        - user
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                nickname:
-                  type: string
-                  minLength: 3 # Min and max length could be bigger or smaller
-                  maxLength: 15
-              required:
-                - nickname
-      responses:
-        '200':
-          description: When setting a different nickname
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  nickname:
-                    type: string
-                    example: Bobby
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
           content:
             application/json:
               schema:
@@ -1081,7 +1081,7 @@ paths:
       security:
         - bearerAuth: []
       requestBody:
-        description: Needs the nickname of the other user 
+        description: Needs the nickname of the other user
         required: true
         content:
           application/json:
@@ -1127,4 +1127,4 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error' 
+                $ref: '#/components/schemas/Error'
