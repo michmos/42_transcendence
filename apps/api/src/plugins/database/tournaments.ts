@@ -97,10 +97,11 @@ export async function createTournamentRound(
   // needs to be transaction for operations to be atomic
   return await Database.$transaction(async (tx) => {
     // check if tournament exists
-    if (!tx.tournament.findUnique({ where: { uuid: tournamentId } }))
+    if (!(await tx.tournament.findUnique({ where: { uuid: tournamentId } }))) {
       throw new Error('tournamendId not found');
+    }
 
-    // createTournamentRound
+    // createTournamentRound first to get uuid
     const tournamentRound = await tx.tournamentRound.create({
       data: {
         tournament: {
@@ -111,17 +112,16 @@ export async function createTournamentRound(
     });
 
     // create matches
-    tx.match.createMany({
+    await tx.match.createMany({
       data: matches.map((match) => ({
         ...match,
-        tournament: {
-          connect: { uuid: tournamentRound.uuid },
-        },
+        tournamentRoundId: tournamentRound.uuid, // createMany doesn't support 'connect'
       })),
     });
 
     // increment numberOfRounds in tournament
-    tx.tournament.update({
+    // TODO: select just round and return it here instead of querying again
+    await tx.tournament.update({
       where: { uuid: tournamentId },
       data: { numberOfRounds: { increment: 1 } },
     });
