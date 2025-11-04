@@ -18,7 +18,7 @@ const app = Fastify({
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-export async function build(loadAuth: boolean = true) {
+export async function build(loadAuth = true) {
   console.info('⚙️  Auto-loading plugins and api routes...');
 
   // Load all plugins FIRST (especially auth plugin)

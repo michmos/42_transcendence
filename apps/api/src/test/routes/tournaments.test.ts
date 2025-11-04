@@ -171,7 +171,7 @@ describe('GET /tournaments', async () => {
         uuid: createdTournament.uuid,
         status: status,
       });
-      let response = await app.inject({
+      const response = await app.inject({
         method: 'GET',
         url: `/tournaments?status=${status}`,
       });

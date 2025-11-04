@@ -1,9 +1,8 @@
 import {
   type Tournament,
-  type User,
-  type Match,
   status as statusEnum,
 } from 'db/generated/client/index.js';
+import { getUuid } from '../../plugins/auth/utils.js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import * as schemas from './validationSchemas.js';
 
@@ -36,7 +35,7 @@ export async function isParticipant(
   app: FastifyInstance
 ) {
   const uuid = (request.params as schemas.getTournamentRound).uuid;
-  if (!(await app.db.participatesInTournament(request.user!.uuid, uuid))) {
+  if (!(await app.db.participatesInTournament(getUuid(request), uuid))) {
     reply
       .status(403)
       .send({ error: `User is not participating in this tournament` });

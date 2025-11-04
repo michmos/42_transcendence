@@ -6,11 +6,11 @@ class RoundRobin<T> {
   private fixedItem: T;
   private startIndex: number;
 
-  constructor(items: T[], startIndex: number = 0) {
+  constructor(items: T[], startIndex = 0) {
     if (items.length === 0 || items.length - 1 < startIndex) {
       throw new Error('Invalid arguments to RoundRobin constructor');
     }
-    this.fixedItem = items[0]!;
+    this.fixedItem = items[0] as T;
     this.items = items.slice(1);
     this.startIndex = startIndex;
   }
@@ -25,7 +25,7 @@ class RoundRobin<T> {
     if (index === 0) {
       return this.fixedItem;
     }
-    return this.items[(this.startIndex + index - 1) % this.items.length]!;
+    return this.items[(this.startIndex + index - 1) % this.items.length] as T;
   }
 
   length(): number {
@@ -34,7 +34,7 @@ class RoundRobin<T> {
 }
 
 function generateRound(roundRobin: RoundRobin<User>): Partial<Match>[] {
-  let matches: Partial<Match>[] = [];
+  const matches: Partial<Match>[] = [];
   const playerCount = roundRobin.length();
   for (let start = 0, end = playerCount; start < end; ++start, --end) {
     matches.push({

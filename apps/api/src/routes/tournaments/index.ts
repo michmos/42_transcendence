@@ -73,7 +73,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           userUuid,
           request.params.uuid
         );
-      } catch (error) {
+      } catch {
         return reply.status(404).send({
           error: `User not found: ${getUuid(request)}`,
         });
