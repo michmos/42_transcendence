@@ -63,8 +63,7 @@ export default async function generateTournamentPlan(
   const roundRobin = new RoundRobin(players);
   for (let roundIndex = 0; roundIndex < numberOfRounds; ++roundIndex) {
     const matches = generateRound(roundRobin as RoundRobin<User>);
-    console.log('tournament generated: ', JSON.stringify(matches));
-    app.db.createTournamentRound(tournamentId, roundIndex, matches);
+    await app.db.createTournamentRound(tournamentId, roundIndex, matches);
     roundRobin.rotate();
   }
 }
