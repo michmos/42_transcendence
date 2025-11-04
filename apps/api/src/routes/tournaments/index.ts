@@ -1,7 +1,7 @@
 import { type FastifyInstance } from 'fastify';
 import { status as statusEnum } from 'db/generated/client/index.js';
 import * as schemas from './validationSchemas.js';
-import { isAdmin } from '../../plugins/auth/utils.js';
+import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import { isOpenTournament, isParticipant } from './utils.js';
 import generateTournamentPlan from './matchmaking.js';
 
@@ -21,7 +21,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     async function (request, reply) {
       const tournament = await app.db.createTournament({
         ...request.body,
-        userUuid: request.user!.uuid,
+        userUuid: getUuid(request),
       });
       return reply.status(201).send(tournament);
     }
@@ -65,7 +65,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       },
     },
     async function (request, reply) {
-      const userUuid = request.body.uuid || request.user!.uuid;
+      const userUuid = request.body.uuid || getUuid(request);
       // add user
       let tournamentWithUser;
       try {
@@ -75,7 +75,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         );
       } catch (error) {
         return reply.status(404).send({
-          error: `User not found: ${request.user!.uuid}`,
+          error: `User not found: ${getUuid(request)}`,
         });
       }
 

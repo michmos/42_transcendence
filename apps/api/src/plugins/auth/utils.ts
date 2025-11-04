@@ -36,6 +36,14 @@ export function isAdmin(
   return true;
 }
 
+export function getUuid(request: Fastify.FastifyRequest): string {
+  const uuid = request.user?.uuid;
+  if (!uuid) {
+    throw new Error('Invalid invokation of getUuid: no user in request');
+  }
+  return uuid;
+}
+
 /**
  *
  * @param request
