@@ -81,7 +81,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       // update tournament status
       if (tournamentWithUser.playerCount === tournamentWithUser.maxPlayers) {
-        generateTournamentPlan(request.params.uuid, app);
+        await generateTournamentPlan(request.params.uuid, app);
         tournamentWithUser = await app.db.updateTournament({
           uuid: request.params.uuid,
           status: statusEnum.ongoing,
