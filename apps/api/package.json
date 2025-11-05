@@ -10,8 +10,8 @@
     "preview": "node dist/app.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "NODE_OPTIONS='--import tsx' vitest run",
-    "test:watch": "NODE_OPTIONS='--import tsx' vitest"
+    "test": "NODE_OPTIONS='--import tsx' vitest run --no-file-parallelism",
+    "test:watch": "NODE_OPTIONS='--import tsx' vitest --no-file-parallelism"
   },
   "keywords": [],
   "author": "",
