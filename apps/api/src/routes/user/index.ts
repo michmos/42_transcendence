@@ -1,6 +1,10 @@
 import { type FastifyInstance } from 'fastify';
 import { isAdmin, isSameUUID } from '../../plugins/auth/utils.js';
-import type { User } from 'db/generated/client/client';
+import type { User } from 'db/generated/client/client.js';
+import fs from 'fs';
+import path from 'path';
+import * as schemas from './userValidationSchemas.js';
+import fastifyMultipart from '@fastify/multipart';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.get('/user', async function (request, reply) {
@@ -21,62 +25,84 @@ export default async function (app: FastifyInstance): Promise<void> {
   // Returning an object with user and friends data
   app.get('/user/me', async function (request, reply) {
     try {
-      const ownUuid: string | undefined = request.user?.uuid as string;
-      if (ownUuid === undefined)
-        return reply.code(500).send({ Error: 'Invalid or no uuid in request' });
+      const uuidSelf: string = request.user.uuid;
 
-      const userData = await app.db.getUserMe(ownUuid);
+      const userData = await app.db.getUserMe(uuidSelf);
       const cleanedUserData = cleanSelfUserData(userData);
-      const userFriends = await app.db.getFriends(ownUuid);
+      const userFriends = await app.db.getFriends(uuidSelf);
 
       // For testing :
-      console.log('/user/me - userData:', cleanedUserData);
+      console.log('/user/me - userData:', userData);
+      console.log('/user/me - cleanedUserData:', cleanedUserData);
       console.log('/user/me - userFriends:', userFriends);
       console.log('/user/me - userFriends:', { cleanedUserData, userFriends });
       // End of testing
 
-      return reply.code(200).send({ userData, userFriends });
+      return reply.code(200).send({ cleanedUserData, userFriends });
     } catch (error) {
       return reply.code(500).send({ Error: `${error}` });
     }
   });
 
   // USER SETTINGS
-  app.patch('/user/me/setNickname', async function (request, reply) {
-    try {
-      const ownUuid: string | undefined = request.user?.uuid as string;
-      if (ownUuid === undefined)
-        return reply.code(500).send({ Error: 'Invalid or no uuid in request' });
+  app.patch<{ Body: schemas.PatchUserMeSetNicknameType }>(
+    '/user/me/setNickname',
+    {
+      schema: schemas.PatchUserMeSetNickname,
+    },
+    async function (request, reply) {
+      try {
+        const uuidSelf: string = request.user.uuid;
 
-      const { nickname } = request.body as { nickname: string };
-      const existingUser = await app.db.getUser(nickname);
-      if (existingUser) {
-        return reply.code(409).send({
-          Error: `Nickname ${nickname} already exists and must be unique`,
-        });
+        const { newNickname } = request.body as { newNickname: string };
+        const existingUser = await app.db.getUser(newNickname);
+        if (existingUser) {
+          return reply.code(409).send({
+            Error: `Nickname ${newNickname} already exists and must be unique`,
+          });
+        }
+
+        const userData = await app.db.setUserMeNickname(uuidSelf, newNickname);
+        return reply.code(200).send(cleanSelfUserData(userData));
+      } catch (error) {
+        return reply.code(500).send({ Error: `${error}` });
       }
-
-      const userData = await app.db.setUserMeNickname(ownUuid, nickname);
-      return reply.code(200).send(cleanSelfUserData(userData));
-    } catch (error) {
-      return reply.code(500).send({ Error: `${error}` });
     }
-  });
+  );
 
   // ---- TODO:
   // - Needs image (type checking)
   // - changing image to 1:1 and appropriate size if possible, to save storage
   // - image name changing
   // - fixing path to where image is saved, e.g. /public/profile-images/user12345
-  app.patch('/user/me/setAvatar', async function (request, reply) {
+  app.post('/user/me/setAvatar', async function (request, reply) {
     try {
-      const ownUuid: string | undefined = request.user?.uuid as string;
-      if (ownUuid === undefined)
-        return reply.code(500).send({ Error: 'Invalid or no uuid in request' });
+      // Getting the file and file data from request.file() and checking if file
+      const file: fastifyMultipart.MultipartFile | undefined =
+        await request.file();
+      if (!file) return reply.code(400).send({ Error: 'No image received' });
 
-      const { avatar } = request.body as { avatar: string };
+      // Getting the user uuid before doing any of the heavy lifting
+      const uuidSelf: string = request.user.uuid;
 
-      const userData = await app.db.setUserMeAvatar(ownUuid, avatar);
+      // Extracting the filename and stream from file
+      const { filename, file: stream } = file;
+
+      // Creating file path
+      const savePath = path.join(
+        process.cwd(),
+        'public/userAvatars',
+        request.user.uuid + path.extname(filename)
+      );
+
+      // Doing something I am not sure about
+      await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
+
+      // Doing next thing I am not sure about
+      await stream.pipe(fs.createWriteStream(savePath));
+
+      // Setting/replacing image file path in user's record database
+      const userData = await app.db.setUserMeAvatar(uuidSelf, savePath);
       return reply.code(200).send(cleanSelfUserData(userData));
     } catch (error) {
       return reply.code(500).send({ Error: `${error}` });
@@ -129,7 +155,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 }
 
 // Cleans up another user's data that is requested but not the requesting user's own data
-export function cleanOtherUserData(user: User): Partial<User> {
+function cleanOtherUserData(user: User): Partial<User> {
   const {
     nickname,
     avatar,
@@ -148,7 +174,7 @@ export function cleanOtherUserData(user: User): Partial<User> {
   };
 }
 
-export function cleanSelfUserData(userData: User): Partial<User> {
+function cleanSelfUserData(userData: User): Partial<User> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { uuid, updatedAt, ...cleanedUserData } = userData;
   return cleanedUserData;

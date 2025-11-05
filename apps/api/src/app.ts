@@ -20,6 +20,14 @@ const start = async () => {
 
     console.info('✅ Plugins loaded');
 
+    await app.register(import('@fastify/multipart'), {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB max file size
+      },
+    });
+
+    console.info('✅ Multipart loaded');
+
     // Load all API routes AFTER plugins
     await app.register(AutoLoad, {
       dir: path.join(__dirname, 'routes'),

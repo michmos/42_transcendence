@@ -1,6 +1,6 @@
 import { type FastifyRequest, type FastifyInstance } from 'fastify';
-import type { User, Friends } from 'db/generated/client/client';
-import { friendshipState } from 'db/generated/client/client';
+import type { User, Friends } from 'db/generated/client/client.js';
+import { friendshipState } from 'db/generated/client/client.js';
 import {
   findFriendRecord,
   modifyFriendsState,
@@ -35,7 +35,10 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       const uuidSelf: string = request.user?.uuid as string;
 
-      const friendRecord: Friends = await findFriendRecord(uuidSelf, uuidOther);
+      const friendRecord: Friends | null = await findFriendRecord(
+        uuidSelf,
+        uuidOther
+      );
       if (!friendRecord)
         return reply.code(404).send({ Error: 'Friendship request not found' });
 
@@ -55,7 +58,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         return reply
           .code(400)
           .send({ Error: `Invalid friend request response (${state})` });
-      return await modifyFriendsState(friendRecord, state);
+      return await modifyFriendsState(friendRecord.uuid, state);
     } catch (error) {
       return reply.code(500).send({ Error: `${error}` });
     }
@@ -104,8 +107,8 @@ export default async function (app: FastifyInstance): Promise<void> {
 
   // ------------- Helper functions
 
-  function getUserUuid(nickname: string) {
-    const user: User = app.db.getUser(nickname);
+  async function getUserUuid(nickname: string) {
+    const user: User | null = await app.db.getUser(nickname);
     if (!user) return null;
 
     const { uuid } = user;
