@@ -27,8 +27,8 @@ export default async function (app: FastifyInstance): Promise<void> {
     if (!email) {
       return new Error('Email is required');
     }
-    const nickName = await app.db.generateUniqueNickName();
-    return await app.db.addUser(email, nickName);
+    const nickname = await app.db.generateUniqueNickName();
+    return await app.db.addUser(email, nickname);
   });
 
   app.delete('/', async function (request, reply) {

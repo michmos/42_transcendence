@@ -28,7 +28,7 @@ export class UserTable {
   private columns(): TableColumn<User>[] {
     return [
       { key: 'uuid', header: 'ID', widthClass: 'w-1/3', sortable: true },
-      { key: 'nickname', header: 'NickName', sortable: true },
+      { key: 'nickname', header: 'Nickname', sortable: true },
       { key: 'email', header: 'Email', sortable: true },
       {
         key: 'actions',

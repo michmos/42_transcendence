@@ -98,7 +98,7 @@ components:
         fullName:
           type: string
           example: 'Rob Jetten'
-        nickName:
+        nickname:
           type: string
           example: 'player42'
         avatar:

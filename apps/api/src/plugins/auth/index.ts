@@ -19,12 +19,16 @@ async function authPlugin(app: Fastify.FastifyInstance) {
     .on('login', async (args: unknown) => {
       const user = args as oAuthUser;
 
+      // Check if user already exists
+      const existingUser = await app.db.getUser(user.uuid);
+
       await app.db.upsertUser({
         uuid: user.uuid,
-        email: user.email,
-        email_verified: user.email_verified ?? false,
-        fullName: user.fullName,
-        nickName: await app.db.generateUniqueNickName(),
+        email: user.email ?? null,
+        email_verified: user.email_verified ?? null,
+        fullName: user.fullName ?? null,
+        nickname:
+          existingUser?.nickname ?? (await app.db.generateUniqueNickName()),
         avatar: user.avatar ?? null,
       });
     })
