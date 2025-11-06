@@ -15,10 +15,10 @@ enum userRole {
 }
 
 enum status {
-  OUTSTANDING
-  ONGOING
-  FINISHED
-  CANCELED
+  outstanding
+  ongoing
+  finished
+  canceled
 }
 
 enum groupType {
@@ -81,8 +81,8 @@ model Tournament {
   playerCount       Int       @default(1)
   lockTime          Int       @default(10)
   gameTime          Int       @default(3)
-  status            status    @default(OUTSTANDING)
-  numberOfRounds    Int       @default(1)
+  status            status    @default(outstanding)
+  numberOfRounds    Int       @default(0)
   currentRound      Int       @default(0)
 
   // Relations
@@ -99,6 +99,7 @@ model TournamentRound {
   // Data
   index         Int
   tournamentId  String
+  status        status    @default(outstanding)
 
   // Relations
   matches       Match[]
@@ -112,7 +113,7 @@ model Match {
   updatedAt         DateTime  @updatedAt
 
   // Data
-  status            status    @default(OUTSTANDING)
+  status            status    @default(outstanding)
   Score1            Int       @default(0)
   Score2            Int       @default(0)
   player1Id         String?

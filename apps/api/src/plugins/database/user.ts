@@ -32,15 +32,32 @@ export async function upsertUser(
   });
 }
 
-export async function addUserToTournament(
-  uuid: string,
-  tournamentUuid: string
-): Promise<User | null> {
-  return Database.user.update({
-    where: { uuid },
-    data: {
+export async function participatesInTournament(
+  userId: string,
+  tournamentId: string
+): Promise<boolean> {
+  const user = await Database.user.findUnique({
+    where: {
+      uuid: userId,
       tournaments: {
-        connect: { uuid: tournamentUuid },
+        some: {
+          uuid: tournamentId,
+        },
+      },
+    },
+  });
+  return user != null;
+}
+
+export async function getTournamentParticipants(
+  tournamentId: string
+): Promise<User[]> {
+  return await Database.user.findMany({
+    where: {
+      tournaments: {
+        some: {
+          uuid: tournamentId,
+        },
       },
     },
   });
@@ -51,4 +68,8 @@ export async function removeUser(uuid: string): Promise<User> {
   if (!user) throw new Error('User not found');
   await Database.user.delete({ where: { uuid } });
   return user;
+}
+
+export async function removeAllUsers(): Promise<void> {
+  await Database.user.deleteMany();
 }
