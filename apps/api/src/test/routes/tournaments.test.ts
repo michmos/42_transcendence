@@ -130,7 +130,8 @@ describe('POST /tournaments', () => {
       url: '/tournaments',
       body: {
         ...validTournamentBody,
-        minPlayers: 8,
+        maxPlayers: 10,
+        minPlayers: 9,
       },
     });
     expect(response.statusCode).toBe(400);
