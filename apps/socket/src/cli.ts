@@ -40,7 +40,7 @@ ws.on('open', () => {
   enableKeyboardInput();
 });
 
-ws.on('message', (msg) => {
+ws.on('message', (msg: WebSocket.RawData) => {
   const message = JSON.parse(msg.toString());
   if (message.type === 'state') {
     gameState = message;
