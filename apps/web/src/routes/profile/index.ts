@@ -3,6 +3,7 @@ import {
   MatchCard,
   QuickActionButton,
   GlassCard,
+  Navbar,
 } from '../../components/index.js';
 
 // Extend Window interface for SPA navigation
@@ -32,7 +33,26 @@ export default function initRoute() {
   profileRoot.appendChild(mainWrapper);
 
   // ===== HEADER =====
-  renderHeader(mainWrapper);
+  const headerContainer = document.createElement('div');
+  mainWrapper.appendChild(headerContainer);
+  new Navbar(headerContainer, {
+    title: 'The Pong Game',
+    links: [
+      { label: 'Tournaments', href: '/tournaments', active: false },
+    ],
+    onSettingsClick: () => {
+      if (window.navigateToRoute) {
+        window.navigateToRoute('/settings');
+      } else if (window.router) {
+        window.router.navigate('/settings');
+      }
+    },
+    onLogoutClick: () => {
+      // TODO: Add logout API call here
+      console.log('Logout clicked');
+      if (window.navigateToRoute) window.navigateToRoute('/login');
+    },
+  });
 
   // ===== MAIN CONTENT =====
   const mainContent = document.createElement('main');
@@ -100,143 +120,6 @@ export default function initRoute() {
   renderFriendsList(rightColumn);
 }
 
-function renderHeader(container: HTMLElement): void {
-  const header = document.createElement('header');
-  header.className =
-    'border-b border-border backdrop-blur-glass bg-muted/30 relative z-40';
-
-  const headerInner = document.createElement('div');
-  headerInner.className = 'max-w-7xl mx-auto px-6 py-4';
-
-  const flexContainer = document.createElement('div');
-  flexContainer.className = 'flex items-center justify-between';
-
-  // Left: Logo and Title
-  const leftDiv = document.createElement('div');
-  leftDiv.className = 'flex items-center gap-3';
-  leftDiv.innerHTML = `
-    <div class="p-2 bg-accent rounded-lg">
-      <svg class="w-6 h-6 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-        <path d="M4 22h16"/>
-        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-      </svg>
-    </div>
-    <h1 class="text-xl font-bold text-foreground">The Pong Game</h1>
-  `;
-
-  // Right-aligned Navigation
-  const nav = document.createElement('nav');
-  nav.className = 'flex items-center gap-8 ml-auto';
-  const navLinks = [
-    { label: 'Tournament', href: '/tournaments', active: false },
-  ];
-
-  navLinks.forEach((link) => {
-    const button = document.createElement('button');
-    button.textContent = link.label;
-    button.className = link.active
-      ? 'text-foreground hover:text-accent transition-colors px-3 py-2 rounded-md'
-      : 'text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-md';
-    button.addEventListener('click', () => {
-      if (window.navigateToRoute) window.navigateToRoute(link.href);
-    });
-    nav.appendChild(button);
-  });
-
-  // Right: Profile Dropdown
-  const rightDiv = document.createElement('div');
-  rightDiv.className = 'relative';
-
-  // Profile Avatar Button
-  const avatarButton = document.createElement('button');
-  avatarButton.className =
-    'w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center hover:opacity-80 transition-opacity';
-  avatarButton.innerHTML = `
-    <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-      <circle cx="12" cy="7" r="4"/>
-    </svg>
-  `;
-
-  // Dropdown Menu
-  const dropdown = document.createElement('div');
-  dropdown.className =
-    'hidden absolute right-0 mt-2 w-48 rounded-lg border border-border shadow-glow overflow-hidden';
-  dropdown.style.top = '100%';
-  dropdown.style.zIndex = '9999';
-  dropdown.style.backgroundColor = 'hsl(262, 83%, 25%)'; // Solid dark purple background
-  dropdown.innerHTML = `
-    <div class="py-1">
-      <button class="w-full px-4 py-2 text-left text-foreground hover:bg-muted/50 transition-colors flex items-center gap-2" data-action="settings">
-        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        Settings
-      </button>
-      <button class="w-full px-4 py-2 text-left text-white hover:bg-muted/50 transition-colors flex items-center gap-2" data-action="logout">
-        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-        Logout
-      </button>
-    </div>
-  `;
-
-  // Toggle dropdown visibility
-  let isOpen = false;
-  avatarButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    isOpen = !isOpen;
-    if (isOpen) {
-      dropdown.classList.remove('hidden');
-    } else {
-      dropdown.classList.add('hidden');
-    }
-  });
-
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!rightDiv.contains(e.target as Node) && isOpen) {
-      isOpen = false;
-      dropdown.classList.add('hidden');
-    }
-  });
-
-  // Handle dropdown actions
-  const settingsBtn = dropdown.querySelector('[data-action="settings"]');
-  const logoutBtn = dropdown.querySelector('[data-action="logout"]');
-
-  settingsBtn?.addEventListener('click', () => {
-    if (window.navigateToRoute) window.navigateToRoute('/settings');
-    dropdown.classList.add('hidden');
-    isOpen = false;
-  });
-
-  logoutBtn?.addEventListener('click', () => {
-    // TODO: Add logout API call here
-    console.log('Logout clicked');
-    if (window.navigateToRoute) window.navigateToRoute('/login');
-    dropdown.classList.add('hidden');
-    isOpen = false;
-  });
-
-  rightDiv.appendChild(avatarButton);
-  rightDiv.appendChild(dropdown);
-
-  flexContainer.appendChild(leftDiv);
-  flexContainer.appendChild(nav);
-  flexContainer.appendChild(rightDiv);
-  headerInner.appendChild(flexContainer);
-  header.appendChild(headerInner);
-  container.appendChild(header);
-}
 
 function renderRecentMatches(container: HTMLElement): void {
   const card = new GlassCard(container, {
@@ -295,7 +178,7 @@ function renderRecentMatches(container: HTMLElement): void {
 
   const prevButton = document.createElement('button');
   prevButton.className =
-    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed';
+    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
   prevButton.disabled = true; // TODO: Enable based on current page
   prevButton.innerHTML = `
     <svg class="w-5 h-5 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -313,7 +196,7 @@ function renderRecentMatches(container: HTMLElement): void {
 
   const nextButton = document.createElement('button');
   nextButton.className =
-    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed';
+    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
   nextButton.disabled = true; // TODO: Enable based on total pages
   nextButton.innerHTML = `
     <svg class="w-5 h-5 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -342,20 +225,141 @@ function renderQuickActions(container: HTMLElement): void {
   actionsWrapper.className = 'space-y-3';
   body.appendChild(actionsWrapper);
 
-  const actions = [
-    { icon: '🎮', label: 'Start New Match', href: '/game' },
-    { icon: '🏆', label: 'Create Tournament', href: '/tournaments' },
-    { icon: '⚙️', label: 'Settings', href: '/settings' },
-  ];
+  // Start New Match button
+  new QuickActionButton(actionsWrapper, {
+    icon: '🎮',
+    label: 'Start New Match',
+    onClick: () => {
+      if (window.navigateToRoute) {
+        window.navigateToRoute('/game');
+      } else if (window.router) {
+        window.router.navigate('/game');
+      }
+    },
+  });
 
-  actions.forEach((action) => {
-    new QuickActionButton(actionsWrapper, {
-      icon: action.icon,
-      label: action.label,
-      onClick: () => {
-        if (window.navigateToRoute) window.navigateToRoute(action.href);
-      },
-    });
+  // Create Tournament button - shows popup
+  new QuickActionButton(actionsWrapper, {
+    icon: '🏆',
+    label: 'Create Tournament',
+    onClick: () => {
+      showNewTournamentDialog();
+    },
+  });
+
+  // Settings button - routes to settings page
+  new QuickActionButton(actionsWrapper, {
+    icon: '⚙️',
+    label: 'Settings',
+    onClick: () => {
+      if (window.navigateToRoute) {
+        window.navigateToRoute('/settings');
+      } else if (window.router) {
+        window.router.navigate('/settings');
+      }
+    },
+  });
+}
+
+function showNewTournamentDialog() {
+  // Create modal backdrop - darker for better contrast
+  const backdrop = document.createElement('div');
+  backdrop.className =
+    'fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in';
+
+  // Create dialog - lighter background with better contrast
+  const dialog = document.createElement('div');
+  dialog.className =
+    'bg-white rounded-lg shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95';
+  dialog.style.backgroundColor = 'rgb(255, 255, 255)';
+
+  dialog.innerHTML = `
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold mb-2 text-gray-900">Create New Tournament</h2>
+      <p class="text-sm text-gray-600">Set up a new tournament with your preferred settings</p>
+    </div>
+    
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <label for="tournament-name" class="text-sm font-semibold text-gray-700">Tournament Name</label>
+        <input
+          id="tournament-name"
+          type="text"
+          placeholder="Enter tournament name"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-2">
+          <label for="min-size" class="text-sm font-semibold text-gray-700">Min Size</label>
+          <input
+            id="min-size"
+            type="number"
+            placeholder="4"
+            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+          />
+        </div>
+        <div class="space-y-2">
+          <label for="max-players" class="text-sm font-semibold text-gray-700">Max Players</label>
+          <input
+            id="max-players"
+            type="number"
+            placeholder="16"
+            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+          />
+        </div>
+      </div>
+      
+      <div class="space-y-2">
+        <label for="lock-time" class="text-sm font-semibold text-gray-700">Lock Time</label>
+        <input
+          id="lock-time"
+          type="text"
+          placeholder="e.g., 30 sec"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+      </div>
+      
+      <div class="space-y-2">
+        <label for="game-time" class="text-sm font-semibold text-gray-700">Game Time</label>
+        <input
+          id="game-time"
+          type="text"
+          placeholder="e.g., 3 min"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+      </div>
+      
+      <div class="flex gap-3 pt-4">
+        <button class="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="create-btn">
+          Save
+        </button>
+        <button class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" id="cancel-btn">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+
+  backdrop.appendChild(dialog);
+  document.body.appendChild(backdrop);
+
+  // Close handlers
+  const closeDialog = () => {
+    backdrop.classList.add('animate-out', 'fade-out');
+    setTimeout(() => backdrop.remove(), 200);
+  };
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) closeDialog();
+  });
+
+  dialog.querySelector('#cancel-btn')?.addEventListener('click', closeDialog);
+  dialog.querySelector('#create-btn')?.addEventListener('click', () => {
+    // TODO: Implement tournament creation API call
+    console.log('Creating tournament...');
+    closeDialog();
   });
 }
 

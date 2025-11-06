@@ -61,4 +61,10 @@ export const dynamicRoutes = [
     css: () => import('./routes/tournament[id]/index.css?inline'),
     script: () => import('./routes/tournament[id]/index.js'),
   },
+  {
+    pattern: /^\/round\/(?<roundId>[^/]+)$/,
+    html: () => import('./routes/round[roundId]/index.html?raw'),
+    css: () => import('./routes/round[roundId]/index.css?inline'),
+    script: () => import('./routes/round[roundId]/index.js'),
+  },
 ];

@@ -36,7 +36,7 @@ export class QuickActionButton {
         ? 'bg-secondary hover:bg-secondary/80'
         : 'bg-secondary/30 hover:bg-secondary/50';
 
-    this.rootElement.className = `${baseClasses} ${variantClasses} ${this.props.className || ''}`;
+    this.rootElement.className = `${baseClasses} ${variantClasses} cursor-pointer ${this.props.className || ''}`;
 
     // Map emoji to icon SVG
     const iconMap: Record<string, string> = {

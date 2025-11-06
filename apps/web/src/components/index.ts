@@ -53,3 +53,6 @@ export type { EventCardProps } from './EventCard.js';
 
 export { GlassCard } from './GlassCard.js';
 export type { GlassCardProps } from './GlassCard.js';
+
+export { Navbar } from './Navbar.js';
+export type { NavbarProps, NavbarLink } from './Navbar.js';

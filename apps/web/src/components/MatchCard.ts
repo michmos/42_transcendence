@@ -41,10 +41,9 @@ export class MatchCard {
     }
 
     this.rootElement = document.createElement('div');
-    this.rootElement.className = `flex items-center justify-between p-4 rounded-lg bg-gradient-card backdrop-blur-glass border border-border hover:bg-muted/30 transition-all ${this.props.className || ''}`;
+    this.rootElement.className = `flex items-center justify-between p-4 rounded-lg bg-gradient-card backdrop-blur-glass border border-border hover:bg-muted/30 transition-all ${this.props.onClick ? 'cursor-pointer' : ''} ${this.props.className || ''}`;
 
     if (this.props.onClick) {
-      this.rootElement.style.cursor = 'pointer';
       this.rootElement.addEventListener('click', this.props.onClick);
     }
 

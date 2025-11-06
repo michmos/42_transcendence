@@ -3,37 +3,24 @@ import { Card, Button } from '../../components/index.js';
 export default function initRoute() {
   const pageRoot = document.querySelector('.root-page') as HTMLElement | null;
   if (!pageRoot) return;
-  pageRoot.classList.add('overflow-hidden', 'h-screen');
-  // Add purple gradient background
-  pageRoot.style.background =
-    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+  pageRoot.classList.add('overflow-hidden', 'h-screen', 'bg-gradient-primary');
 
-  // Style the h1 title from the HTML
+  // Style the h1 title from the HTML - moved lower with top padding
   const pageTitle = pageRoot.querySelector('h1') as HTMLElement | null;
   if (pageTitle) {
     pageTitle.className = 'text-white text-center mb-8 text-5xl font-bold';
     pageTitle.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.3)';
-  }
-
-  // Style the nav/back button from the HTML
-  const pageNav = pageRoot.querySelector('nav') as HTMLElement | null;
-  if (pageNav) {
-    pageNav.className = 'mb-6';
-    const backLink = pageNav.querySelector('a') as HTMLElement | null;
-    if (backLink) {
-      backLink.className =
-        'text-white/90 hover:text-white font-semibold transition-all hover:pl-1 no-underline';
-    }
+    pageTitle.style.paddingTop = '80px';
+    pageTitle.style.marginTop = '0';
   }
 
   const cardMount = document.getElementById('loginCard') as HTMLElement | null;
   if (!cardMount) return;
   cardMount.innerHTML = '';
 
-  // Main container - with top margin to push card lower
+  // Main container - centered with proper spacing
   const container = document.createElement('div');
   container.className = 'flex items-center justify-center p-4';
-  container.style.marginTop = '80px';
   cardMount.appendChild(container);
 
   // Card wrapper for custom styling
