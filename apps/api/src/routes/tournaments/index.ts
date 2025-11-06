@@ -60,7 +60,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.addUser,
       preHandler: async (request, reply) => {
-        if (!isOpenTournament(request.params.uuid, app, reply)) return;
+        if (!(await isOpenTournament(request.params.uuid, app, reply))) return;
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
       },
     },
