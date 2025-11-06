@@ -1,4 +1,5 @@
 import { Navbar, Card, Badge } from '../../components/index.js';
+import { navigateTo } from '../../utils/navigation.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -217,14 +218,10 @@ export default function initRoute() {
       { label: 'Profile', href: '/profile', active: false },
     ],
     onSettingsClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/settings');
-      } else if (window.router) {
-        window.router.navigate('/settings');
-      }
+      navigateTo('/settings');
     },
     onLogoutClick: () => {
-      if (window.navigateToRoute) window.navigateToRoute('/login');
+      navigateTo('/login');
     },
   });
 
@@ -247,15 +244,9 @@ export default function initRoute() {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (window.navigateToRoute) {
-        window.navigateToRoute(
-          tournamentId ? `/tournament/${tournamentId}` : '/tournaments'
-        );
-      } else if (window.router) {
-        window.router.navigate(
-          tournamentId ? `/tournament/${tournamentId}` : '/tournaments'
-        );
-      }
+      navigateTo(
+        tournamentId ? `/tournament/${tournamentId}` : '/tournaments'
+      );
     });
   }
   backButtonContainer.appendChild(backButton);

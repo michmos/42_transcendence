@@ -1,4 +1,5 @@
 import { Navbar, Card, Badge } from '../../components/index.js';
+import { navigateTo } from '../../utils/navigation.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -200,11 +201,7 @@ function renderTournamentProgress(container: HTMLElement) {
         if (tournamentId) {
           sessionStorage.setItem('lastTournamentId', tournamentId);
         }
-        if (window.navigateToRoute) {
-          window.navigateToRoute(`/round/${round.id}`);
-        } else if (window.router) {
-          window.router.navigate(`/round/${round.id}`);
-        }
+        navigateTo(`/round/${round.id}`);
       });
     }
 
@@ -292,14 +289,10 @@ export default function initRoute() {
       { label: 'Profile', href: '/profile', active: false },
     ],
     onSettingsClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/settings');
-      } else if (window.router) {
-        window.router.navigate('/settings');
-      }
+      navigateTo('/settings');
     },
     onLogoutClick: () => {
-      if (window.navigateToRoute) window.navigateToRoute('/login');
+      navigateTo('/login');
     },
   });
 
@@ -322,11 +315,7 @@ export default function initRoute() {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/tournaments');
-      } else if (window.router) {
-        window.router.navigate('/tournaments');
-      }
+      navigateTo('/tournaments');
     });
   }
   backButtonContainer.appendChild(backButton);

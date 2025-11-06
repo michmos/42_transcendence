@@ -1,4 +1,5 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
+import { navigateTo } from '../../utils/navigation.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -235,11 +236,7 @@ function renderTournamentGrid(
       viewBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (window.navigateToRoute) {
-          window.navigateToRoute(`/tournament/${tournament.id}`);
-        } else if (window.router) {
-          window.router.navigate(`/tournament/${tournament.id}`);
-        }
+        navigateTo(`/tournament/${tournament.id}`);
       });
     }
 
@@ -392,14 +389,10 @@ export default function initRoute() {
     title: 'The Pong Game',
     links: [{ label: 'Profile', href: '/profile', active: false }],
     onSettingsClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/settings');
-      } else if (window.router) {
-        window.router.navigate('/settings');
-      }
+      navigateTo('/settings');
     },
     onLogoutClick: () => {
-      if (window.navigateToRoute) window.navigateToRoute('/login');
+      navigateTo('/login');
     },
   });
 

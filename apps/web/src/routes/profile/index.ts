@@ -5,6 +5,7 @@ import {
   GlassCard,
   Navbar,
 } from '../../components/index.js';
+import { navigateTo } from '../../utils/navigation.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -39,16 +40,12 @@ export default function initRoute() {
     title: 'The Pong Game',
     links: [{ label: 'Tournaments', href: '/tournaments', active: false }],
     onSettingsClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/settings');
-      } else if (window.router) {
-        window.router.navigate('/settings');
-      }
+      navigateTo('/settings');
     },
     onLogoutClick: () => {
       // TODO: Add logout API call here
       console.log('Logout clicked');
-      if (window.navigateToRoute) window.navigateToRoute('/login');
+      navigateTo('/login');
     },
   });
 
@@ -227,11 +224,7 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🎮',
     label: 'Start New Match',
     onClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/game');
-      } else if (window.router) {
-        window.router.navigate('/game');
-      }
+      navigateTo('/game');
     },
   });
 
@@ -249,11 +242,7 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '⚙️',
     label: 'Settings',
     onClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/settings');
-      } else if (window.router) {
-        window.router.navigate('/settings');
-      }
+      navigateTo('/settings');
     },
   });
 }

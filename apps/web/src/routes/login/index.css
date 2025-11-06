@@ -1,4 +1,4 @@
-/* Root page specific styles - Full Screen Purple Theme 
+/* Root page specific styles - Full Screen Purple Theme */
 body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   min-height: 100vh;
@@ -18,7 +18,7 @@ body {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-Improved navigation menu
+/* Improved navigation menu */
 .main-menu {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -62,7 +62,7 @@ Improved navigation menu
   border-bottom: none;
 }
 
-Button styles - only for non-login page buttons
+/* Button styles - only for non-login page buttons */
 .root-page .main-menu button,
 .root-page #userContainer button {
   margin: 5px;
@@ -83,7 +83,7 @@ Button styles - only for non-login page buttons
   background: #fff;
 }
 
-User list styles
+/* User list styles */
 #userContainer {
   margin-top: 30px;
   padding: 20px;
@@ -98,7 +98,7 @@ User list styles
   margin-bottom: 15px;
 }
 
-Fancy table styles
+/* Fancy table styles */
 .users-table {
   width: 100%;
   border-collapse: collapse;
@@ -218,4 +218,4 @@ Fancy table styles
   min-height: 100vh;
   padding: 24px;
   color: white;
-} */
+}

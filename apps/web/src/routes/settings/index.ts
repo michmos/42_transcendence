@@ -1,4 +1,5 @@
 import { Navbar, Card, Button } from '../../components/index.js';
+import { navigateTo } from '../../utils/navigation.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -29,14 +30,10 @@ export default function initRoute() {
       { label: 'Profile', href: '/profile', active: false },
     ],
     onSettingsClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/settings');
-      } else if (window.router) {
-        window.router.navigate('/settings');
-      }
+      navigateTo('/settings');
     },
     onLogoutClick: () => {
-      if (window.navigateToRoute) window.navigateToRoute('/login');
+      navigateTo('/login');
     },
   });
 
@@ -223,9 +220,7 @@ export default function initRoute() {
     text: 'Cancel',
     variant: 'ghost',
     onClick: () => {
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/profile');
-      }
+      navigateTo('/profile');
     },
   });
   const cancelBtn = cancelBtnWrapper.querySelector('button');
@@ -246,9 +241,7 @@ export default function initRoute() {
       console.log('Saving settings:', { displayName });
       // Show success message
       alert('Settings saved successfully!');
-      if (window.navigateToRoute) {
-        window.navigateToRoute('/profile');
-      }
+      navigateTo('/profile');
     },
   });
   const saveBtn = saveBtnWrapper.querySelector('button');

@@ -1,3 +1,5 @@
+import { navigateTo } from '../utils/navigation.js';
+
 // Extend Window interface for SPA navigation
 declare global {
   interface Window {
@@ -84,11 +86,7 @@ export class Navbar {
       button.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (window.navigateToRoute) {
-          window.navigateToRoute(link.href);
-        } else if (window.router) {
-          window.router.navigate(link.href);
-        }
+        navigateTo(link.href);
       });
       nav.appendChild(button);
     });
@@ -158,13 +156,8 @@ export class Navbar {
       setTimeout(() => {
         if (this.props.onSettingsClick) {
           this.props.onSettingsClick();
-        } else if (window.navigateToRoute) {
-          window.navigateToRoute('/settings');
-        } else if (window.router) {
-          window.router.navigate('/settings');
         } else {
-          // Final fallback - direct navigation
-          window.location.href = '/settings';
+          navigateTo('/settings');
         }
       }, 100);
     });
@@ -172,8 +165,8 @@ export class Navbar {
     logoutBtn?.addEventListener('click', () => {
       if (this.props.onLogoutClick) {
         this.props.onLogoutClick();
-      } else if (window.navigateToRoute) {
-        window.navigateToRoute('/login');
+      } else {
+        navigateTo('/login');
       }
       this.closeDropdown();
     });

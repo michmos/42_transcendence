@@ -71,57 +71,45 @@ export default function initRoute() {
   oauthContainer.style.gap = '24px';
   cardBody.appendChild(oauthContainer);
 
-  // Google button using Button component
-  const googleBtnWrapper = document.createElement('div');
-  googleBtnWrapper.className = 'w-3/5';
-  oauthContainer.appendChild(googleBtnWrapper);
+  /**
+   * Creates an OAuth login button with consistent styling.
+   *
+   * @param container - The parent container to append the button to
+   * @param provider - The OAuth provider name (e.g., 'Google', '42')
+   * @param buttonText - The text to display on the button
+   */
+  function createOAuthButton(
+    container: HTMLElement,
+    provider: string,
+    buttonText: string
+  ): void {
+    const btnWrapper = document.createElement('div');
+    btnWrapper.className = 'w-3/5';
+    container.appendChild(btnWrapper);
 
-  new Button(googleBtnWrapper, {
-    text: 'Google',
-    onClick: () => {
-      window.location.href = '/api/auth/login?provider=Google';
-    },
-    variant: 'secondary',
-    size: 'lg',
-    fullWidth: true,
-    className:
-      '!bg-white hover:!bg-gray-100 !border-gray-200 !text-gray-800 !font-semibold !text-lg !transition-all hover:!scale-105 !cursor-pointer !h-20',
-  });
+    new Button(btnWrapper, {
+      text: buttonText,
+      onClick: () => {
+        window.location.href = `/api/auth/login?provider=${provider}`;
+      },
+      variant: 'secondary',
+      size: 'lg',
+      fullWidth: true,
+      className:
+        '!bg-white hover:!bg-gray-100 !border-gray-200 !text-gray-800 !font-semibold !text-lg !transition-all hover:!scale-105 !cursor-pointer !h-20',
+    });
 
-  // Apply inline styles to the actual button element
-  const googleBtnElement = googleBtnWrapper.querySelector(
-    'button'
-  ) as HTMLButtonElement;
-  if (googleBtnElement) {
-    googleBtnElement.style.borderRadius = '16px';
-    googleBtnElement.style.minHeight = '80px';
+    // Apply inline styles to the actual button element
+    const btnElement = btnWrapper.querySelector('button') as HTMLButtonElement;
+    if (btnElement) {
+      btnElement.style.borderRadius = '16px';
+      btnElement.style.minHeight = '80px';
+    }
   }
 
-  // 42 button using Button component
-  const fortyTwoBtnWrapper = document.createElement('div');
-  fortyTwoBtnWrapper.className = 'w-3/5';
-  oauthContainer.appendChild(fortyTwoBtnWrapper);
-
-  new Button(fortyTwoBtnWrapper, {
-    text: '42',
-    onClick: () => {
-      window.location.href = '/api/auth/login?provider=42';
-    },
-    variant: 'secondary',
-    size: 'lg',
-    fullWidth: true,
-    className:
-      '!bg-white hover:!bg-gray-100 !border-gray-200 !text-gray-800 !font-semibold !text-lg !transition-all hover:!scale-105 !cursor-pointer !h-20',
-  });
-
-  // Apply inline styles to the actual button element
-  const fortyTwoBtnElement = fortyTwoBtnWrapper.querySelector(
-    'button'
-  ) as HTMLButtonElement;
-  if (fortyTwoBtnElement) {
-    fortyTwoBtnElement.style.borderRadius = '16px';
-    fortyTwoBtnElement.style.minHeight = '80px';
-  }
+  // Create OAuth buttons
+  createOAuthButton(oauthContainer, 'Google', 'Google');
+  createOAuthButton(oauthContainer, '42', '42');
 
   // Footer
   const footer = document.createElement('div');
