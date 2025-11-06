@@ -196,12 +196,10 @@ function renderTournamentProgress(container: HTMLElement) {
         // Get tournamentId from route params
         const routeParams = window.routeParams || {};
         const tournamentId = routeParams.id;
-        
         // Store tournamentId in sessionStorage for round page to use
         if (tournamentId) {
           sessionStorage.setItem('lastTournamentId', tournamentId);
         }
-        
         if (window.navigateToRoute) {
           window.navigateToRoute(`/round/${round.id}`);
         } else if (window.router) {

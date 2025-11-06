@@ -37,9 +37,7 @@ export default function initRoute() {
   mainWrapper.appendChild(headerContainer);
   new Navbar(headerContainer, {
     title: 'The Pong Game',
-    links: [
-      { label: 'Tournaments', href: '/tournaments', active: false },
-    ],
+    links: [{ label: 'Tournaments', href: '/tournaments', active: false }],
     onSettingsClick: () => {
       if (window.navigateToRoute) {
         window.navigateToRoute('/settings');
@@ -119,7 +117,6 @@ export default function initRoute() {
   // Friends List
   renderFriendsList(rightColumn);
 }
-
 
 function renderRecentMatches(container: HTMLElement): void {
   const card = new GlassCard(container, {

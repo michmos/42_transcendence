@@ -99,7 +99,9 @@ export default function initRoute() {
   `;
 
   // Handle avatar upload
-  const avatarInput = profilePicSection.querySelector('#avatar-upload') as HTMLInputElement;
+  const avatarInput = profilePicSection.querySelector(
+    '#avatar-upload'
+  ) as HTMLInputElement;
   if (avatarInput) {
     avatarInput.addEventListener('change', (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -110,7 +112,9 @@ export default function initRoute() {
         const reader = new FileReader();
         reader.onload = (event) => {
           const img = event.target?.result as string;
-          const avatarDiv = profilePicSection.querySelector('.rounded-full');
+          const avatarDiv = profilePicSection.querySelector(
+            '.rounded-full'
+          ) as HTMLElement;
           if (avatarDiv && img) {
             avatarDiv.style.backgroundImage = `url(${img})`;
             avatarDiv.style.backgroundSize = 'cover';
@@ -128,7 +132,7 @@ export default function initRoute() {
   // Profile Settings Section
   const profileSection = document.createElement('div');
   profileSection.className = 'space-y-6 mb-8 pb-8 border-b border-white/20';
-  
+
   const sectionTitle = document.createElement('div');
   sectionTitle.className = 'flex items-center gap-3 mb-6';
   sectionTitle.innerHTML = `
@@ -176,7 +180,7 @@ export default function initRoute() {
   // Game Preferences Section
   const gameSection = document.createElement('div');
   gameSection.className = 'space-y-6 mb-8';
-  
+
   const gameTitle = document.createElement('div');
   gameTitle.className = 'flex items-center gap-3 mb-6';
   gameTitle.innerHTML = `
@@ -213,7 +217,7 @@ export default function initRoute() {
   // Action Buttons
   const actionsSection = document.createElement('div');
   actionsSection.className = 'flex gap-3 pt-6 border-t border-white/20';
-  
+
   const cancelBtnWrapper = document.createElement('div');
   new Button(cancelBtnWrapper, {
     text: 'Cancel',
@@ -226,16 +230,19 @@ export default function initRoute() {
   });
   const cancelBtn = cancelBtnWrapper.querySelector('button');
   if (cancelBtn) {
-    cancelBtn.className = 'px-6 py-3 border-2 border-white/20 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors cursor-pointer';
+    cancelBtn.className =
+      'px-6 py-3 border-2 border-white/20 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors cursor-pointer';
   }
-  
+
   const saveBtnWrapper = document.createElement('div');
   new Button(saveBtnWrapper, {
     text: 'Save Changes',
     variant: 'primary',
     onClick: () => {
       // TODO: Implement save logic when backend is ready
-      const displayName = (document.getElementById('display-name') as HTMLInputElement)?.value;
+      const displayName = (
+        document.getElementById('display-name') as HTMLInputElement
+      )?.value;
       console.log('Saving settings:', { displayName });
       // Show success message
       alert('Settings saved successfully!');
@@ -246,7 +253,8 @@ export default function initRoute() {
   });
   const saveBtn = saveBtnWrapper.querySelector('button');
   if (saveBtn) {
-    saveBtn.className = 'ml-auto px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer';
+    saveBtn.className =
+      'ml-auto px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer';
   }
 
   actionsSection.appendChild(cancelBtnWrapper);
@@ -256,20 +264,25 @@ export default function initRoute() {
   mainContent.appendChild(settingsCardContainer);
 }
 
-function createToggleSetting(label: string, description: string, checked: boolean): HTMLElement {
+function createToggleSetting(
+  label: string,
+  description: string,
+  checked: boolean
+): HTMLElement {
   const container = document.createElement('div');
-  container.className = 'flex items-center justify-between p-4 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-colors';
-  
+  container.className =
+    'flex items-center justify-between p-4 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-colors';
+
   const leftDiv = document.createElement('div');
   leftDiv.className = 'flex-1';
   leftDiv.innerHTML = `
     <h3 class="text-white font-medium mb-1">${label}</h3>
     <p class="text-sm text-white/60">${description}</p>
   `;
-  
+
   const toggleWrapper = document.createElement('div');
   toggleWrapper.className = 'flex-shrink-0 ml-4';
-  
+
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = `relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
@@ -277,14 +290,14 @@ function createToggleSetting(label: string, description: string, checked: boolea
   }`;
   toggle.setAttribute('role', 'switch');
   toggle.setAttribute('aria-checked', checked.toString());
-  
+
   const toggleThumb = document.createElement('span');
   toggleThumb.className = `inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
     checked ? 'translate-x-6' : 'translate-x-1'
   }`;
-  
+
   toggle.appendChild(toggleThumb);
-  
+
   toggle.addEventListener('click', () => {
     const isChecked = toggle.getAttribute('aria-checked') === 'true';
     const newState = !isChecked;
@@ -296,10 +309,10 @@ function createToggleSetting(label: string, description: string, checked: boolea
       newState ? 'translate-x-6' : 'translate-x-1'
     }`;
   });
-  
+
   toggleWrapper.appendChild(toggle);
   container.appendChild(leftDiv);
   container.appendChild(toggleWrapper);
-  
+
   return container;
 }

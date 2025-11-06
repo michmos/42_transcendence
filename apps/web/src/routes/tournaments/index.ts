@@ -68,7 +68,6 @@ function getStatusColor(status: string): string {
   }
 }
 
-
 function renderPageHeader(container: HTMLElement, onNewTournament: () => void) {
   const pageHeader = document.createElement('div');
   pageHeader.className =
@@ -116,7 +115,7 @@ function renderSearchBar(
 
   const searchWrapper = document.createElement('div');
   searchWrapper.className = 'relative';
-  
+
   // Create search icon with better rendering
   const searchIcon = document.createElement('svg');
   searchIcon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
@@ -128,17 +127,20 @@ function renderSearchBar(
   searchIcon.setAttribute('stroke-width', '2');
   searchIcon.setAttribute('stroke-linecap', 'round');
   searchIcon.setAttribute('stroke-linejoin', 'round');
-  searchIcon.style.cssText = 'position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); shape-rendering: geometricPrecision; image-rendering: -webkit-optimize-contrast;';
-  searchIcon.innerHTML = '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
-  
+  searchIcon.style.cssText =
+    'position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.6); shape-rendering: geometricPrecision; image-rendering: -webkit-optimize-contrast;';
+  searchIcon.innerHTML =
+    '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
+
   searchWrapper.appendChild(searchIcon);
-  
+
   const input = document.createElement('input');
   input.type = 'text';
   input.placeholder = 'Search tournaments...';
-  input.className = 'w-full border border-white/20 bg-white/5 pl-10 pr-4 py-3 rounded-lg text-white placeholder:text-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary';
+  input.className =
+    'w-full border border-white/20 bg-white/5 pl-10 pr-4 py-3 rounded-lg text-white placeholder:text-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary';
   input.id = 'tournament-search';
-  
+
   searchWrapper.appendChild(input);
 
   input.addEventListener('input', (e) => {
@@ -388,9 +390,7 @@ export default function initRoute() {
   mainWrapper.appendChild(headerContainer);
   new Navbar(headerContainer, {
     title: 'The Pong Game',
-    links: [
-      { label: 'Profile', href: '/profile', active: false },
-    ],
+    links: [{ label: 'Profile', href: '/profile', active: false }],
     onSettingsClick: () => {
       if (window.navigateToRoute) {
         window.navigateToRoute('/settings');

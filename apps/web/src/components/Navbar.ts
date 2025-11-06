@@ -27,7 +27,7 @@ export interface NavbarProps {
 export class Navbar {
   private container: HTMLElement;
   private props: NavbarProps;
-  private isDropdownOpen: boolean = false;
+  private isDropdownOpen = false;
 
   constructor(container: HTMLElement, props: NavbarProps = {}) {
     this.container = container;
@@ -152,10 +152,8 @@ export class Navbar {
     settingsBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
       // Close dropdown first
       this.closeDropdown();
-      
       // Small delay to ensure dropdown closes before navigation
       setTimeout(() => {
         if (this.props.onSettingsClick) {
@@ -202,7 +200,9 @@ export class Navbar {
 
   private toggleDropdown(): void {
     this.isDropdownOpen = !this.isDropdownOpen;
-    const dropdown = this.container.querySelector('[data-dropdown]') as HTMLElement;
+    const dropdown = this.container.querySelector(
+      '[data-dropdown]'
+    ) as HTMLElement;
     if (dropdown) {
       if (this.isDropdownOpen) {
         dropdown.classList.remove('hidden');
@@ -214,7 +214,9 @@ export class Navbar {
 
   private closeDropdown(): void {
     this.isDropdownOpen = false;
-    const dropdown = this.container.querySelector('[data-dropdown]') as HTMLElement;
+    const dropdown = this.container.querySelector(
+      '[data-dropdown]'
+    ) as HTMLElement;
     if (dropdown) {
       dropdown.classList.add('hidden');
     }
@@ -242,6 +244,4 @@ export class Navbar {
     `;
   }
 }
-
 export default Navbar;
-
