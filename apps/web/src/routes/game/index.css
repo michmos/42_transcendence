@@ -17,3 +17,7 @@ body {
   border-radius: 12px;
 }
 
+.pong-canvas {
+  border-radius: 12px;
+  background: #001100;
+}
