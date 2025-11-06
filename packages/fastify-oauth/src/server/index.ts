@@ -99,7 +99,7 @@ class OAuth {
       if (!request.url.startsWith('/auth')) {
         return;
       }
-      reply.redirect(`/error?error=${error.message}&code=${500}`);
+      reply.redirect(`/error?error=${encodeURIComponent(error.message)}&code=${500}`);
     });
 
     setupCallbackRoute(this.ctx);
