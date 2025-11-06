@@ -20,7 +20,7 @@ describe('POST /endpoint1', () => {
       },
     });
 
-    // compare the reponse to your expectations
+    // compare the response to your expectations
     expect(response.statusCode).toBe(201);
   });
 

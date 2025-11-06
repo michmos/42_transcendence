@@ -75,7 +75,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         );
       } catch {
         return reply.status(404).send({
-          error: `User not found: ${getUuid(request)}`,
+          error: `User not found: ${userUuid}`,
         });
       }
 
@@ -98,7 +98,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       preHandler: async (request, reply) => {
         if (!(await app.db.getTournament(request.params.uuid))) {
           return reply.status(404).send({
-            error: `Tournament with uuid: $(request.params.uuid) not found`,
+            error: `Tournament with uuid: ${request.params.uuid} not found`,
           });
         }
         if (!(await isParticipant(request, reply, app))) return;

@@ -376,7 +376,7 @@ paths:
               properties:
                 uuid:
                   type: string
-                  format: uiud
+                  format: uuid
 
       responses:
         '204':
