@@ -1,5 +1,6 @@
 import type { ClientRecord } from './app.js';
 import { resetGame } from './game.js';
+import WebSocket from 'ws';
 import {
   PING,
   PING_TIMEOUT,

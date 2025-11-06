@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
+import WebSocket from 'ws';
 
 const app = Fastify({ logger: { level: 'error' } });
 
