@@ -7,7 +7,11 @@ app.register(fastifyWebsocket);
 
 import { env } from './env.js';
 
-import { convertPlayer, attachClient, removeExpiredRoles } from './player.js';
+import {
+  convertPlayertoLocal,
+  attachClient,
+  removeExpiredRoles,
+} from './player.js';
 
 import { updateGame, resetGame } from './game.js';
 
@@ -57,9 +61,22 @@ export const gameState: GameState = {
   gameStartTime: null,
 };
 
+enum Action {
+  Up = 'up',
+  Down = 'down',
+  UpRight = 'up_r', // Only for local play, single keyboard input uses O&L for player2
+  DownRight = 'down_r', // Only for local play, single keyboard input uses O&L for player2
+  Pause = 'pause', // Pauses game on both sides
+  AI = 'ai', // Turns on "AI", opponent paddle tracks the ball automatically
+  Hidden = 'hidden', // Player switches tab or window, so no longer active in game
+  Visible = 'visible', // Player is active in game again
+  Reset = 'reset', // Resets all values back to default
+}
+
 export interface ClientRecord {
   clientId: string;
   role: 'local' | 'player1' | 'player2' | 'spectator';
+  // Spectator is just a placeholder, didn't want all connections to be able to control the paddles
   webSocket: WebSocket | null;
   connected: boolean;
   lastSeen: number;
@@ -69,50 +86,50 @@ export const clientRecords = new Map<string, ClientRecord>();
 export const socketToClientId = new Map<WebSocket, string>();
 
 function handleInput(
-  input: { type: string; action: string },
+  input: { type: string; action: Action },
   record: ClientRecord,
   socket: WebSocket
 ) {
   if (!gameState.gamePaused && !gameState.gameOver) {
     if (
-      input.action === 'up' &&
+      input.action === Action.Up &&
       (record.role === 'player1' || record.role === 'local') &&
       gameState.leftY > 0
     )
       gameState.leftY -= 5;
     if (
-      input.action === 'down' &&
+      input.action === Action.Down &&
       (record.role === 'player1' || record.role === 'local') &&
       gameState.leftY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.leftY += 5;
     if (
-      input.action === 'up' &&
+      input.action === Action.Up &&
       record.role === 'player2' &&
       gameState.rightY > 0
     )
       gameState.rightY -= 5;
     if (
-      input.action === 'down' &&
+      input.action === Action.Down &&
       record.role === 'player2' &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
     if (
-      input.action === 'up_r' &&
+      input.action === Action.UpRight &&
       record.role === 'local' &&
       gameState.rightY > 0
     )
       gameState.rightY -= 5;
     if (
-      input.action === 'down_r' &&
+      input.action === Action.DownRight &&
       record.role === 'local' &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
   }
   if (
-    input.action === 'pause' &&
+    input.action === Action.Pause &&
     (record.role === 'local' ||
       record.role === 'player1' ||
       record.role === 'player2')
@@ -128,19 +145,19 @@ function handleInput(
     }
     console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`);
   }
-  if (input.action === 'ai' && record.role === 'local') {
+  if (input.action === Action.AI && record.role === 'local') {
     gameState.aiEnabled = !gameState.aiEnabled;
     console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`);
   }
-  if (input.action === 'hidden') {
+  if (input.action === Action.Hidden) {
     console.log(`Client-${record.clientId} has hidden the game`);
     record.connected = false;
   }
-  if (input.action === 'visible') {
+  if (input.action === Action.Visible) {
     attachClient(record.clientId, socket);
   }
   if (
-    input.action === 'reset' &&
+    input.action === Action.Reset &&
     (record.role === 'local' ||
       record.role === 'player1' ||
       record.role === 'player2')
@@ -244,10 +261,10 @@ app.register(async function (fastify) {
             );
           // If player2 disconnected, convert player1 back to local
           if (wasPlayer2) {
-            convertPlayer(1);
+            convertPlayertoLocal(1);
           }
           if (wasPlayer1) {
-            convertPlayer(2);
+            convertPlayertoLocal(2);
           }
         }
         socketToClientId.delete(socket);

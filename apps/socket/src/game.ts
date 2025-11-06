@@ -65,6 +65,7 @@ function getVector(
   paddleY: number,
   isLeftPaddle: boolean
 ): { x: number; y: number } {
+  // Playtested numbers to throw curveballs if a round takes too long
   if (bounceCount === 17 || bounceCount === 20 || bounceCount === 23) {
     if (isLeftPaddle) {
       if (gameState.leftY < CANVAS_HEIGHT / 2 - gameState.paddleHeight / 2)

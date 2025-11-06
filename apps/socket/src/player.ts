@@ -30,9 +30,9 @@ export function removeExpiredRoles() {
           `Client-${clientId} role "${record.role}" expired and available`
         );
         if (record.role === 'player1') {
-          convertPlayer(2);
+          convertPlayertoLocal(2);
         } else if (record.role === 'player2') {
-          convertPlayer(1);
+          convertPlayertoLocal(1);
         }
       } else if (record.role === 'local') {
         console.log(`Client-${clientId} has left the game`);
@@ -69,7 +69,7 @@ function assignRole(): 'local' | 'player1' | 'player2' | 'spectator' {
   return 'spectator';
 }
 
-export function convertLocal() {
+export function convertLocaltoPlayer() {
   // Find the first local player and convert them to player1
   for (const [clientId, record] of clientRecords.entries()) {
     if (record.connected && record.role === 'local') {
@@ -92,7 +92,7 @@ export function convertLocal() {
   }
 }
 
-export function convertPlayer(player: number) {
+export function convertPlayertoLocal(player: number) {
   // Find player1 and convert them back to local
   for (const [clientId, record] of clientRecords.entries()) {
     if (record.connected && record.role === `player${player}`) {
@@ -146,7 +146,7 @@ export function attachClient(
       console.log('AI disabled');
       gameState.aiEnabled = false;
     }
-    convertLocal();
+    convertLocaltoPlayer();
   }
 
   clientRecords.set(clientId, record);

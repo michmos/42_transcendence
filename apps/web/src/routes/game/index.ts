@@ -1,7 +1,7 @@
 import { draw } from './draw';
 
 import {
-  canvas,
+  getCanvas,
   clientId,
   lastServerUpdate,
   ballVelocity,
@@ -24,7 +24,8 @@ import {
   setNetworkBlocked,
 } from './state';
 
-// const ws = new WebSocket("ws://10.11.4.4:3001/"); // Hardcoded network IP
+const canvas = getCanvas();
+
 function createWebSocket() {
   if (ws) {
     ws.close();
@@ -33,23 +34,18 @@ function createWebSocket() {
   // If network is blocked, immediately fail
   if (networkBlocked) {
     console.log('🧪 Network blocked - connection attempt failed');
-    // connectionState = 'disconnected';
     setConnectionState('disconnected');
 
     attemptReconnection();
     return;
   }
 
-  // connectionState = 'connecting';
   setConnectionState('connecting');
-  // ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`);
-  setWebSocket(
-    new WebSocket(
-      `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`
-    )
+  const socket = new WebSocket(
+    `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`
   );
 
-  ws.onopen = () => {
+  socket.onopen = () => {
     // connectionState = 'connected';
     setConnectionState('connected');
     // reconnectAttempts = 0;
@@ -59,7 +55,7 @@ function createWebSocket() {
     sendMessage({ type: 'connect', clientId });
   };
 
-  ws.onclose = (event) => {
+  socket.onclose = (event) => {
     // connectionState = 'disconnected';
     setConnectionState('disconnected');
     console.log('🔌 Disconnected from server:', event.code, event.reason);
@@ -67,11 +63,11 @@ function createWebSocket() {
     attemptReconnection();
   };
 
-  ws.onerror = (error) => {
+  socket.onerror = (error) => {
     console.error('WebSocket error:', error);
   };
 
-  ws.onmessage = (event) => {
+  socket.onmessage = (event) => {
     const message = JSON.parse(event.data);
 
     // Only update serverState
@@ -86,32 +82,28 @@ function createWebSocket() {
           (message.ballY - serverState.ballY) / (deltaTime / 1000);
       }
 
-      // serverState = message;
       setServerState(message);
-      // lastServerUpdate = now;
       setLastServerUpdate(now);
 
       if (connectionState === 'connected') {
         localPaddles.leftY = serverState.leftY;
         localPaddles.rightY = serverState.rightY;
       }
-      // draw();
     }
 
     // Handle other message types if needed
     if (message.type === 'role') {
-      // role = message.role;
       setRole(message.role);
       console.log(
         `🎮 Received role "${message.role}" for client ID: ${message.clientId}`
       );
     }
   };
+  setWebSocket(socket);
 }
 
 function attemptReconnection() {
   if (reconnectAttempts >= maxReconnectAttempts) {
-    // connectionState = 'disconnected';
     setConnectionState('disconnected');
     console.log(
       '⛔ Max reconnection attempts reached. Please refresh the page.'
@@ -119,17 +111,12 @@ function attemptReconnection() {
     return;
   }
 
-  // connectionState = 'reconnecting';
   setConnectionState('reconnecting');
-  // reconnectAttempts++;
   setReconnectAttempts(reconnectAttempts + 1);
 
   const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 16000);
   console.log(`🔁 Reconnection attempt ${reconnectAttempts} in ${delay}ms`);
 
-  // reconnectTimeout = setTimeout(() => {
-  // 	createWebSocket(); // Create entirely new connection
-  // }, delay);
   setReconnectTimeout(
     setTimeout(() => {
       createWebSocket(); // Create entirely new connection
@@ -137,7 +124,11 @@ function attemptReconnection() {
   );
 }
 
-createWebSocket();
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', createWebSocket);
+} else {
+  createWebSocket();
+}
 
 type GameMessage =
   | { type: 'connect'; clientId: string | null }
@@ -152,7 +143,7 @@ type GameMessage =
         | 'reset'
         | 'ai'
         | 'hidden';
-    }; // add other game actions if needed
+    };
 
 const inputBuffer: GameMessage[] = [];
 
@@ -179,22 +170,18 @@ const keys: Record<string, boolean> = {};
 document.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === 'p') {
-    // ws.send(JSON.stringify({ game: "pause"}));
     sendMessage({ type: 'game', action: 'pause' });
   }
   if (e.key === 'r') {
-    // ws.send(JSON.stringify({ game: "reset"}));
     sendMessage({ type: 'game', action: 'reset' });
   }
   if (e.key === '.') {
-    // ws.send(JSON.stringify({ game: "ai"}));
     sendMessage({ type: 'game', action: 'ai' });
   }
   if (e.key === 'x') {
     if (!networkBlocked) {
       // Simulate network outage
       console.log('🧪 Simulating connection loss');
-      // networkBlocked = true;
       setNetworkBlocked(true);
 
       if (reconnectTimeout) {
@@ -202,15 +189,13 @@ document.addEventListener('keydown', (e) => {
       }
 
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close(3000, 'Simulated network error'); // 1006 = abnormal closure
+        ws.close(3000, 'Simulated network error'); // 3000 = custom application-specific close code
       }
 
-      // connectionState = 'disconnected';
       setConnectionState('disconnected');
     } else {
       // Restore network
       console.log('🧪 Network connection restored');
-      // networkBlocked = false;
       setNetworkBlocked(false);
 
       if (reconnectTimeout) {
@@ -218,7 +203,6 @@ document.addEventListener('keydown', (e) => {
       }
 
       // Reset reconnection attempts
-      // reconnectAttempts = 0;
       setReconnectAttempts(0);
       createWebSocket();
     }
@@ -232,11 +216,9 @@ document.addEventListener('keyup', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     console.log('🕶️ Page hidden');
-    // ws.send(JSON.stringify({ game: "hidden"}));
     sendMessage({ type: 'game', action: 'hidden' });
   } else {
     console.log('👓 Page visible');
-    // ws.send(JSON.stringify({ type: "connect", clientId }));
     sendMessage({ type: 'connect', clientId });
   }
 });
@@ -253,7 +235,6 @@ setInterval(() => {
     !serverState.gameOver
   ) {
     if (keys.w) {
-      // ws.send(JSON.stringify({ type: "move", action: "up"}));
       if (role === 'player2' && localPaddles.rightY > 0) {
         localPaddles.rightY -= 5;
       } else if (localPaddles.leftY > 0) {
@@ -262,7 +243,6 @@ setInterval(() => {
       sendMessage({ type: 'game', action: 'up' });
     }
     if (keys.s) {
-      // ws.send(JSON.stringify({ type: "move", action: "down"}));
       if (
         role === 'player2' &&
         localPaddles.rightY < canvas.height - serverState.paddleHeight
@@ -277,14 +257,12 @@ setInterval(() => {
       sendMessage({ type: 'game', action: 'down' });
     }
     if (keys.o) {
-      // ws.send(JSON.stringify({ type: "move", right: "up"}));
       if (role === 'local' && localPaddles.rightY > 0) {
         localPaddles.rightY -= 5;
       }
       sendMessage({ type: 'game', action: 'up_r' });
     }
     if (keys.l) {
-      // ws.send(JSON.stringify({ type: "move", right: "down"}));
       if (
         role === 'local' &&
         localPaddles.rightY < canvas.height - serverState.paddleHeight
@@ -297,91 +275,3 @@ setInterval(() => {
 }, 1000 / 60);
 
 gameLoop();
-
-// import {
-//   PageContainer,
-//   Card,
-//   KeyValueList,
-//   Button,
-//   HeaderBar,
-// } from '../../components/index.js';
-
-// export default function initRoute() {
-//   const pageRoot = document.querySelector('.game-page') as HTMLElement | null;
-//   if (!pageRoot) return;
-//   pageRoot.innerHTML = '';
-//   const container = new PageContainer(pageRoot, {
-//     maxWidth: 'xl',
-//     padding: 'lg',
-//   });
-
-//   const header = document.createElement('div');
-//   container.getContentElement()?.appendChild(header);
-//   new HeaderBar(header, {
-//     title: 'Game',
-//     links: [
-//       { label: 'Dashboard', href: '/dashboard' },
-//       { label: 'Tournaments', href: '/tournaments' },
-//     ],
-//     onNavigate: (href) =>
-//       window.navigateToRoute && window.navigateToRoute(href),
-//   });
-
-//   const lobby = document.createElement('div');
-//   container.getContentElement()?.appendChild(lobby);
-//   const lobbyCard = new Card(lobby, { variant: 'default', title: 'Lobby' });
-//   const lobbyBody = lobbyCard.getBodyElement();
-//   if (lobbyBody) {
-//     lobbyBody.classList.add('flex', 'gap-3');
-//     const b1 = document.createElement('div');
-//     new Button(b1, {
-//       text: 'Ready',
-//       variant: 'primary',
-//       onClick: () => {
-//         console.log('Ready clicked');
-//       },
-//     });
-//     lobbyBody.appendChild(b1);
-//     const b2 = document.createElement('div');
-//     new Button(b2, {
-//       text: 'Invite Friends',
-//       variant: 'ghost',
-//       onClick: () => {
-//         console.log('Invite clicked');
-//       },
-//     });
-//     lobbyBody.appendChild(b2);
-//   }
-
-//   const canvasWrap = document.createElement('div');
-//   container.getContentElement()?.appendChild(canvasWrap);
-//   const canvasCard = new Card(canvasWrap, { title: 'Game' });
-//   const canvasBody = canvasCard.getBodyElement();
-//   if (canvasBody) {
-//     const ph = document.createElement('div');
-//     ph.className = 'canvas-placeholder';
-//     canvasBody.appendChild(ph);
-//   }
-
-//   const hudWrap = document.createElement('div');
-//   container.getContentElement()?.appendChild(hudWrap);
-//   const hudCard = new Card(hudWrap, { title: 'HUD' });
-//   const hudBody = hudCard.getBodyElement();
-//   if (hudBody) {
-//     const kvHost = document.createElement('div');
-//     new KeyValueList(kvHost, {
-//       items: [
-//         { key: 'Score', value: '0 - 0' },
-//         { key: 'Timer', value: '—' },
-//         { key: 'Players', value: 'You vs Opponent' },
-//       ],
-//     });
-//     hudBody.appendChild(kvHost);
-//   }
-
-//   // Back to Home link for reviewers
-//   const back = document.createElement('nav');
-//   back.className = 'mt-6';
-//   back.innerHTML = '<a href="/" data-link>← Back to Home</a>';
-//   container.getContentElement()?.appendChild(back);
-// }

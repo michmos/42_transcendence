@@ -1,7 +1,5 @@
-export const canvas = document.getElementById(
-  'gameCanvas'
-) as HTMLCanvasElement;
-export const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+const ctx = canvas.getContext('2d');
 
 export let clientId = localStorage.getItem('transcendenceClientId');
 if (!clientId) {
@@ -61,7 +59,7 @@ export let role = 'spectator';
 export let connectionState = 'connecting';
 export let reconnectAttempts = 0;
 export const maxReconnectAttempts = 3;
-export let reconnectTimeout: NodeJS.Timeout;
+export let reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
 export let ws: WebSocket;
 export let networkBlocked = false;
 
@@ -93,9 +91,11 @@ export function setNetworkBlocked(blocked: boolean) {
 
 // === Getters ===
 export function getCanvas() {
+  if (!canvas) throw new Error('Canvas not found — DOM not ready?');
   return canvas;
 }
 export function getCtx() {
+  if (!ctx) throw new Error('Failed to get 2D context');
   return ctx;
 }
 export function getClientId() {

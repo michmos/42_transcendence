@@ -1,8 +1,14 @@
 import { drawScore, drawTime } from './score';
 
+const green = '#00ff00ff';
+const yellow = '#ffff00ff';
+const orange = '#ff5c00ff';
+const red = '#ff0000ff';
+const grey = '#9E9E9E';
+
 import {
-  canvas,
-  ctx,
+  getCanvas,
+  getCtx,
   serverState,
   localPaddles,
   ballVelocity,
@@ -15,7 +21,13 @@ import {
   padding,
 } from './state';
 
+const canvas = getCanvas();
+const ctx = getCtx();
+
 export function predictBallPosition(deltaTimeMs: number) {
+  // Continues ball on client side during (simulated) network outage so game doesn't freeze
+  // on reconnect, the server's gamestate is resumed. Server's gamestate takes president
+  // no points can be scored during simulation on client side.
   if ((!ballVelocity.x && !ballVelocity.y) || deltaTimeMs <= 0) {
     return { x: serverState.ballX, y: serverState.ballY };
   }
@@ -49,15 +61,15 @@ export function predictBallPosition(deltaTimeMs: number) {
 function getConnectionColor(): string {
   switch (connectionState) {
     case 'connected':
-      return '#00ff00ff'; // Green
+      return green;
     case 'connecting':
-      return '#ffff00ff'; // Yellow
+      return yellow;
     case 'reconnecting':
-      return '#ff5c00ff'; // Orange
+      return orange;
     case 'disconnected':
-      return '#ff0000ff'; // Red
+      return red;
     default:
-      return '#9E9E9E'; // Gray
+      return grey;
   }
 }
 

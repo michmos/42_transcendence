@@ -1,7 +1,7 @@
-// const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
-// const ctx = canvas.getContext("2d")!;
+import { getCanvas, getCtx } from './state';
 
-import { canvas, ctx } from './state';
+const canvas = getCanvas();
+const ctx = getCtx();
 
 // Custom bitmap font for authentic arcade look
 function drawDigit(digit: number, x: number, y: number, size = 4) {
@@ -176,8 +176,6 @@ export function drawScore(score: number, x: number, y: number, size: number) {
     .split('')
     .map((d) => parseInt(d));
   const digitWidth = 5 * size + 20; // 5 pixels wide + 2 pixel spacing
-  // for (let i = 0; i < digits.length; i++)
-  // 	drawDigit(digits[i], x + i * digitWidth, y, size);
 
   // Draw digits from right to left (right-aligned)
   for (let i = 0; i < digits.length; i++) {
@@ -186,7 +184,6 @@ export function drawScore(score: number, x: number, y: number, size: number) {
     if (digit !== undefined) {
       drawDigit(digit, x - (i + 1) * digitWidth, y, size);
     }
-    // drawDigit(digits[digitIndex]!, x - (i + 1) * digitWidth, y, size);
   }
 }
 
@@ -218,7 +215,6 @@ export function drawTime(
     if (digit !== undefined) {
       drawDigit(digit, x - (i + 1) * digitWidth, y, size);
     }
-    // drawDigit(digitsMin[digitIndex]!, x - (i + 1) * digitWidth, y, size);
   }
 
   drawDigit(10, x - 1 * digitWidth + size * 2, y, size);
@@ -228,6 +224,5 @@ export function drawTime(
     if (digit !== undefined) {
       drawDigit(digit, x + i * digitWidth + size, y, size);
     }
-    // drawDigit(digitsSec[i]!, x + i * digitWidth + size, y, size);
   }
 }
