@@ -98,7 +98,7 @@ export async function createTournamentRound(
   return await Database.$transaction(async (tx) => {
     // check if tournament exists
     if (!(await tx.tournament.findUnique({ where: { uuid: tournamentId } }))) {
-      throw new Error('tournamendId not found');
+      throw new Error('tournamentId not found');
     }
 
     // createTournamentRound first to get uuid
