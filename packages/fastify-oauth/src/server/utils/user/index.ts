@@ -51,7 +51,14 @@ async function getOauthUser(
 
   const uuid = provider.name + getOauthUserUUID(user);
   const fullName = getOauthUserName(user);
-  const email = 'email' in user ? (user['email'] as string) : null;
+  if (
+    !('email' in user) ||
+    typeof user['email'] !== 'string' ||
+    !user['email']
+  ) {
+    throw new Error('User email is missing');
+  }
+  const email = user['email'] as string;
   const avatar = 'avatar' in user ? (user['avatar'] as string) : null;
 
   return {

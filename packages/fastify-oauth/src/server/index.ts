@@ -96,10 +96,11 @@ class OAuth {
     // TODO: Make this more standard someday!
     this.ctx.app.setErrorHandler(async (error, request, reply) => {
       // Check url to so it only responds to auth routes
-      if (!request.url.startsWith('/auth')) {
-        return;
+      if (request.url.startsWith('/auth')) {
+        reply.redirect(
+          `/error?error=${encodeURIComponent(error.message)}&code=${500}`
+        );
       }
-      reply.redirect(`/error?error=${encodeURIComponent(error.message)}&code=${500}`);
     });
 
     setupCallbackRoute(this.ctx);
@@ -155,7 +156,7 @@ class OAuth {
 
     // Fetch the user object from the database using the provided callback
     const userRole = (await getUserRoleCallback(session.uuid)) as string | null;
-    console.log('Fetched user role for UUID', session.uuid, ':', userRole);
+    console.info('Fetched user role for UUID', session.uuid, ':', userRole);
     if (!userRole)
       return reply.status(401).send({ error: 'User not found in database' });
     request.user = {

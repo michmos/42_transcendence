@@ -41,52 +41,48 @@ function setupCallbackRoute(ctx: OAuthContext) {
 
     console.log(`Handling callback for provider: ${provider.name}`);
 
-    try {
-      // Exchange the authorization code for an access token
-      const accessToken = await provider.oauth2Client.getToken({
-        code,
-        redirect_uri: ctx.redirectUri,
-        scope: provider.scopes,
-      });
+    // Exchange the authorization code for an access token
+    const accessToken = await provider.oauth2Client.getToken({
+      code,
+      redirect_uri: ctx.redirectUri,
+      scope: provider.scopes,
+    });
 
-      // Check if access token is present
-      if (!accessToken) {
-        throw new Error('Failed to obtain access token from provider');
-      }
-
-      const oAuthUser = await getOauthUser(provider, accessToken);
-
-      if (!oAuthUser) {
-        throw new Error('Failed to fetch user info');
-      }
-
-      // Create session object to be stored in JWT
-      const session = {
-        providerName: oAuthUser.providerName,
-        name: oAuthUser.fullName,
-        uuid: oAuthUser.uuid,
-        refreshToken: accessToken.token.refresh_token as string,
-        expiresAt: Date.parse(accessToken.token.expires_at as string),
-      };
-
-      const sessionJWT = jwt.sign(session, ctx.jwtSecret);
-
-      // Trigger userUpdate callback if registered
-      if (ctx.callbacks['login']) {
-        ctx.callbacks['login'](oAuthUser);
-      }
-
-      // Set JWT in HTTP-only cookie
-      reply.setCookie('session', sessionJWT, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-      });
-
-      reply.redirect(ctx.successRedirectUrl || '/');
-    } catch {
-      throw new Error('Error during OAuth callback processing');
+    // Check if access token is present
+    if (!accessToken) {
+      throw new Error('Failed to obtain access token from provider');
     }
+
+    const oAuthUser = await getOauthUser(provider, accessToken);
+
+    if (!oAuthUser) {
+      throw new Error('Failed to fetch user info');
+    }
+
+    // Create session object to be stored in JWT
+    const session = {
+      providerName: oAuthUser.providerName,
+      name: oAuthUser.fullName,
+      uuid: oAuthUser.uuid,
+      refreshToken: accessToken.token.refresh_token as string,
+      expiresAt: Date.parse(accessToken.token.expires_at as string),
+    };
+
+    const sessionJWT = jwt.sign(session, ctx.jwtSecret);
+
+    // Trigger userUpdate callback if registered
+    if (ctx.callbacks['login']) {
+      ctx.callbacks['login'](oAuthUser);
+    }
+
+    // Set JWT in HTTP-only cookie
+    reply.setCookie('session', sessionJWT, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    });
+
+    reply.redirect(ctx.successRedirectUrl || '/');
   });
 }
 
