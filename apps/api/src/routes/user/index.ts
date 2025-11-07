@@ -12,7 +12,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       if (!isAdmin(request, reply)) return;
 
       const users = await app.db.getUsers();
-      console.log('Fetched users:', users);
+      console.warn('Fetched users:', users);
       return reply.status(200).send(users);
     } catch (error) {
       return reply.code(500).send({ Error: `${error}` });
