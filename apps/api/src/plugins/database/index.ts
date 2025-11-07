@@ -1,11 +1,22 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
-import { UserDatabase } from './user.js';
+import * as MatchDatabase from './match.js';
+import * as UserDatabase from './user.js';
+import * as TournamentDatabase from './tournaments.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: typeof UserDatabase;
+    db: typeof MatchDatabase &
+      typeof UserDatabase &
+      typeof TournamentDatabase & { clearAllData: () => Promise<void> };
   }
+}
+
+async function clearAllData() {
+  // order important due to cascading of deletion
+  await TournamentDatabase.removeAllTournaments();
+  await MatchDatabase.removeAllMatches();
+  await UserDatabase.removeAllUsers();
 }
 
 export default fp(
@@ -13,7 +24,10 @@ export default fp(
     console.info('🗄️  Loading database plugin...');
 
     app.decorate('db', {
+      ...MatchDatabase,
       ...UserDatabase,
+      ...TournamentDatabase,
+      clearAllData: clearAllData,
     });
   },
   {
@@ -21,4 +35,4 @@ export default fp(
   }
 );
 
-export { UserDatabase } from './user.js';
+// export { UserDatabase } from './user.js';

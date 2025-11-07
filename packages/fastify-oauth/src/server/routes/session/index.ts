@@ -1,9 +1,10 @@
 import type { OAuthContext } from '../../index.js';
 import TokenUtility, { type SessionCookie } from '../../utils/token/index.js';
 import ProviderUtility from '../providers/index.js';
-import { getOauthUser, getUserUUID } from '../../utils/user/index.js';
+import { getOauthUser } from '../../utils/user/index.js';
 import type { FastifyReply } from 'fastify';
 
+// TODO: @jensbouma make sure the cookie gets deleted on error and throw the default errors instead of returning reply directly
 class SessionManager {
   private ctx!: OAuthContext;
 
@@ -42,10 +43,11 @@ class SessionManager {
   // Endpoint to get the current session data
   private async initializeSessionRoute() {
     this.ctx.app.get('/auth/session', async (request, reply) => {
-      const { session: sessionCookieValue } = request.cookies;
-
       // Verify and decode the JWT token from the session cookie
-      const sessionCookie = TokenUtility.verifySessionToken(sessionCookieValue);
+      const sessionCookie = TokenUtility.verifySessionToken(
+        request.cookies['session']
+      );
+
       if (!sessionCookie) return this.logoutUser(reply);
 
       // Get provider from session data
@@ -82,7 +84,9 @@ class SessionManager {
         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
       };
 
+      // Store the state to validate later
       this.ctx.state.push(state);
+
       // Create an access token object using the refresh token
       const accessToken = provider.oauth2Client.createToken({
         refresh_token: sessionCookie.refreshToken,
@@ -132,52 +136,37 @@ class SessionManager {
             'No access token available after refresh for provider:',
             provider.name
           );
-          reply.clearCookie('session', { path: '/' });
-          return reply.status(200).send({ session: null });
+          return reply
+            .clearCookie('session', { path: '/' })
+            .status(200)
+            .send({ session: null });
         }
 
         // Fetch the user info from the provider via the fetchUserData callback
-        const user = await getOauthUser(
+        const oAuthUser = await getOauthUser(
           provider,
           accessToken,
           sessionCookie.name
         );
-        if (!user) {
+        if (!oAuthUser) {
           return reply.status(400).send({ error: 'Failed to fetch user info' });
         }
 
-        // Generate a new JWT token with updated info
-        const sessionJWT = TokenUtility.generateSessionToken({
-          providerName: provider.name,
-          name: sessionCookie.name,
-          uuid: getUserUUID(user) || sessionCookie.uuid,
+        const newSession = {
+          name: oAuthUser.fullName,
+          uuid: oAuthUser.uuid,
+          providerName: oAuthUser.providerName,
           refreshToken: accessToken.token.refresh_token as string,
           eat: Date.parse(accessToken.token.expires_at as string),
-        });
+        } as SessionCookie;
 
-        // Extract a unique user identifier
-        const uuid = getUserUUID(user);
-
-        if (!uuid) {
-          return this.ctx.error(new Error('Failed to get user UUID'));
-        }
+        // Generate a new JWT token with updated info
+        const sessionJWT = TokenUtility.generateSessionToken(newSession);
 
         // Trigger userUpdate callback if registered
         if (this.ctx.callbacks['login']) {
-          this.ctx.callbacks['login']({
-            uuid,
-            providerName: provider.name,
-            user,
-          });
+          this.ctx.callbacks['login'](oAuthUser);
         }
-
-        const newSession = {
-          provider: provider.name,
-          user: user,
-          uuid: uuid,
-          accessToken: accessToken.token.access_token as string,
-          expiresAt: Date.parse(accessToken.token.expires_at as string),
-        };
 
         // Set JWT in HTTP-only cookie
         reply.setCookie('session', sessionJWT, {

@@ -37,7 +37,7 @@ export default function initRoute() {
       userDetailsContainer.innerHTML = `
         <h2>User Details</h2>
         <p><strong>UUID:</strong> ${user.uuid}</p>
-        <p><strong>Username:</strong> ${user.username}</p>
+        <p><strong>NickName:</strong> ${user.nickname}</p>
         <p><strong>Email:</strong> ${user.email}</p>
         <button id="deleteUserBtn">Delete User</button>
       `;

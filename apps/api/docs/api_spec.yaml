@@ -59,6 +59,7 @@ components:
 
     Group:
       type: object
+      description: all times in minutes
       required:
         - uuid
         - name
@@ -82,13 +83,22 @@ components:
       description: |
         uuid only exposed to yourself
       required:
-        - username
+        - email
       properties:
         uuid:
           description: Unique encrypted user ID
-          type: integer #TODO: @jensbouma why integer - its uuid, so string no?
+          type: string
           example: 42
-        username:
+        providerName:
+          type: string
+          example: '42'
+        providerUUID:
+          type: string
+          example: 'player42-uuid'
+        fullName:
+          type: string
+          example: 'Rob Jetten'
+        nickname:
           type: string
           example: 'player42'
         avatar:
@@ -108,6 +118,9 @@ components:
         email:
           type: string
           example: 'example@example.com'
+        email_verified:
+          type: boolean
+          example: true
 
     Provider:
       type: object
@@ -180,7 +193,7 @@ components:
           example: 0
         numberOfRounds:
           type: integer
-          example: 4 #can be calculated based on amount of player
+          example: 4
 
     TournamentRound:
       type: object
@@ -362,8 +375,21 @@ paths:
       summary: Add user to tournament
       description: |
         JWT required to authenticate and identify user
+
+        Admin users can put a uuid in the body to add this user instead
       security:
         - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+
       responses:
         '204':
           description: User added successfully

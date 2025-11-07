@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 
-import { type User, userRole } from 'db/generated/client/index.js';
+import { userRole } from 'db/generated/client/index.js';
 
 /**
  *
@@ -12,7 +12,8 @@ export function isAdmin(
   request: Fastify.FastifyRequest,
   reply: Fastify.FastifyReply
 ): boolean {
-  const user = request.user as User | undefined;
+  const user = request.user as { uuid: string; role: string } | undefined;
+  console.log('Checking admin for user:', user);
   if (!user) {
     reply.status(401).send({ error: 'Unauthorized. Please log in.' });
     console.warn(
@@ -27,13 +28,19 @@ export function isAdmin(
     reply.status(403).send({ error: 'Forbidden. ADMIN role required.' });
     console.warn(
       'Unauthorized admin access attempt from ip address:',
-      request.ip,
-      'with user:',
-      user?.email || 'unknown'
+      request.ip
     );
     return false;
   }
   return true;
+}
+
+export function getUuid(request: Fastify.FastifyRequest): string {
+  const uuid = request.user?.uuid;
+  if (!uuid) {
+    throw new Error('Invalid invocation of getUuid: no user in request');
+  }
+  return uuid;
 }
 
 /**
@@ -48,7 +55,7 @@ export function isSameUUID(
   reply: Fastify.FastifyReply,
   resourceOwnerUuid: string
 ): boolean {
-  const user = request.user as User | undefined;
+  const user = request.user as { uuid: string; role: string } | undefined;
   if (!user) {
     reply.status(401).send({ error: 'Unauthorized. Please log in.' });
     console.warn(
@@ -64,8 +71,8 @@ export function isSameUUID(
       .status(403)
       .send({ error: 'Forbidden. You do not own this resource.' });
     console.warn(
-      'Forbidden access attempt from user:',
-      user.email,
+      'Forbidden access attempt from user with uuid:',
+      user.uuid,
       'to resource owned by user with uuid:',
       resourceOwnerUuid
     );

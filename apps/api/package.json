@@ -10,7 +10,8 @@
     "preview": "node dist/app.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "echo 'No tests specified' && exit 0"
+    "test": "NODE_OPTIONS='--import tsx' vitest run --no-file-parallelism",
+    "test:watch": "NODE_OPTIONS='--import tsx' vitest --no-file-parallelism"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +24,7 @@
     "@fastify/swagger": "^9.5.2",
     "@fastify/swagger-ui": "^5.2.3",
     "@fastify/websocket": "^11.2.0",
+    "@sinclair/typebox": "^0.34.41",
     "@t3-oss/env-core": "^0.13.8",
     "db": "../../packages/database",
     "fastify": "^5.5.0",
@@ -37,7 +39,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.3.0",
     "@types/simple-oauth2": "^5.0.7",
+    "@vitest/ui": "^3.2.4",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

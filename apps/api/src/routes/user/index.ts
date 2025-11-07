@@ -6,7 +6,6 @@ export default async function (app: FastifyInstance): Promise<void> {
     if (!isAdmin(request, reply)) return;
 
     const users = await app.db.getUsers();
-    console.log('Fetched users:', users);
     return reply.status(200).send(users);
   });
 
@@ -16,6 +15,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     if (!isAdmin(request, reply) && !isSameUUID(request, reply, uuid)) {
       return;
     }
+
     return await app.db.getUser(uuid);
   });
 
@@ -27,11 +27,8 @@ export default async function (app: FastifyInstance): Promise<void> {
     if (!email) {
       return new Error('Email is required');
     }
-
-    return await app.db.addUser(
-      email,
-      email.split('@')[0] || 'user' + Math.floor(Math.random() * 1000)
-    );
+    const nickname = await app.db.generateUniqueNickName();
+    return await app.db.addUser(email, nickname);
   });
 
   app.delete('/', async function (request, reply) {
