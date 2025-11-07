@@ -10,8 +10,9 @@ export function navigateTo(path: string): void {
   } else if (window.router) {
     window.router.navigate(path);
   } else {
-    console.warn('No navigation method available. Falling back to window.location.');
+    console.warn(
+      'No navigation method available. Falling back to window.location.'
+    );
     window.location.href = path;
   }
 }
-

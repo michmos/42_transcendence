@@ -56,7 +56,7 @@ export const quickActionIconMap: Record<string, string> = {
  * @param fallbackSize - The size class for the fallback span (default: 'text-xl')
  * @returns The SVG string or fallback span element
  */
-export function getIcon(emoji: string, fallbackSize: string = 'text-xl'): string {
+export function getIcon(emoji: string, fallbackSize = 'text-xl'): string {
   return iconMap[emoji] || `<span class="${fallbackSize}">${emoji}</span>`;
 }
 
@@ -69,4 +69,3 @@ export function getIcon(emoji: string, fallbackSize: string = 'text-xl'): string
 export function getQuickActionIcon(emoji: string): string {
   return quickActionIconMap[emoji] || `<span class="text-lg">${emoji}</span>`;
 }
-

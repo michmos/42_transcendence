@@ -244,9 +244,7 @@ export default function initRoute() {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      navigateTo(
-        tournamentId ? `/tournament/${tournamentId}` : '/tournaments'
-      );
+      navigateTo(tournamentId ? `/tournament/${tournamentId}` : '/tournaments');
     });
   }
   backButtonContainer.appendChild(backButton);
