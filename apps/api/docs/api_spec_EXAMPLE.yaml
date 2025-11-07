@@ -39,12 +39,12 @@ components:
       type: object
       required: #mandatory properties
         - id
-        - username
+        - nickname
       properties:
         id:
           type: integer
           example: 42
-        username:
+        nickname:
           type: string
           example: 'player42'
         email:
@@ -123,10 +123,10 @@ paths:
             schema:
               type: object
               required:
-                - username
+                - nickname
                 - email
               properties:
-                username:
+                nickname:
                   type: string
                   example: 'newplayer'
                 email:
@@ -188,7 +188,7 @@ paths:
             schema:
               type: object
               properties:
-                username:
+                nickname:
                   type: string
                   example: 'updatedplayer'
                 status:

@@ -18,13 +18,13 @@ function hideError() {
 
 function createUserRow(user: {
   uuid: string;
-  username: string;
+  nickname: string | null;
   email: string;
 }) {
   const row = document.createElement('tr');
   row.innerHTML = `
     <td>${user.uuid}</td>
-    <td>${user.username}</td>
+    <td>${user.nickname}</td>
     <td>${user.email}</td>
     <td>
       <a href="/user/${user.uuid}" data-link>Details</a>
@@ -71,7 +71,7 @@ function userTableLogic() {
     .then((users) => {
       console.log('✅ Users fetched:', users.length, 'users');
       users.forEach((user, index) => {
-        console.log(`➕ Adding user ${index + 1}:`, user.username);
+        console.log(`➕ Adding user ${index + 1}:`, user.nickname);
         const row = createUserRow(user);
         tbody.appendChild(row);
       });

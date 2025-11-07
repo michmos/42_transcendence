@@ -1,36 +1,52 @@
-import { env } from './env.js';
-
 import Fastify from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
+import AutoLoad from '@fastify/autoload';
+import path from 'path';
+import { env } from './env.js';
 
-const app = Fastify({ logger: { level: 'error' } });
-
-app.register(fastifyWebsocket);
-
-app.register(async function (fastify) {
-  fastify.get('/', { websocket: true }, (socket) => {
-    console.log('Client connected');
-    socket.on('message', (message: Buffer) => {
-      console.log('message from client:', message.toString());
-    });
-
-    // Send message every 1 second
-    const interval = setInterval(() => {
-      const data = JSON.stringify({ type: 'ping', timestamp: Date.now() });
-      socket.send(data);
-    }, 1000);
-
-    socket.on('close', () => {
-      clearInterval(interval);
-    });
-  });
+const app = Fastify({
+  logger: {
+    level: 'error',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname',
+      },
+    },
+  },
 });
 
-await app.listen({ port: env.SOCKET_PORT, host: '0.0.0.0' });
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-console.info(
-  '🌐 Socket server started on port',
-  env.SOCKET_PORT,
-  'with cors url',
-  env.SOCKET_URL
-);
+const start = async () => {
+  try {
+    app.register(fastifyWebsocket);
+
+    console.info('⚙️  Auto-loading web socket channels...');
+
+    // Load all channels
+    await app.register(AutoLoad, {
+      dir: path.join(__dirname, 'channels'),
+      dirNameRoutePrefix: false,
+      ignoreFilter: (path) => path.includes('cli'),
+    });
+
+    console.info('✅ web socket channels loaded');
+
+    await app.listen({ port: env.SOCKET_PORT, host: '0.0.0.0' });
+
+    console.info(
+      '🌐 Socket server started on port',
+      env.SOCKET_PORT,
+      'with cors url',
+      env.SOCKET_URL
+    );
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();

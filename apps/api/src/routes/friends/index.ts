@@ -4,7 +4,7 @@ import { friendshipState } from 'db/generated/client/client.js';
 import {
   findFriendRecord,
   modifyFriendsState,
-} from '../../plugins/database/friends.js';
+} from '../../plugins/database/friendship.js';
 import * as schemas from './friendshipValidationSchemas.js';
 
 export default async function (app: FastifyInstance): Promise<void> {

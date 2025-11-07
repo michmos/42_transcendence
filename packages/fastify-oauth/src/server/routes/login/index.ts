@@ -22,9 +22,7 @@ async function generateAuthUrl(
   // Limit the number of concurrent states per IP to prevent abuse
   const maxStatesPerIP = 5;
   if (countStatesWithIP(ctx, ipNumber) >= maxStatesPerIP) {
-    throw ctx.error(
-      new Error('Too many concurrent authentication attempts from this IP')
-    );
+    throw new Error('Too many concurrent authentication attempts from this IP');
   }
 
   // Generate a unique state parameter for CSRF protection
@@ -39,7 +37,7 @@ async function generateAuthUrl(
   ctx.state.push(state);
 
   if (!provider.oauth2Client) {
-    throw ctx.error(new Error('OAuth2 client not initialized for provider'));
+    throw new Error('OAuth2 client not initialized for provider');
   }
 
   return provider.oauth2Client.authorizeURL({
@@ -64,10 +62,7 @@ function setupLoginRoute(ctx: OAuthContext) {
     request.log.info(`Generating ${provider.name} OAuth URL`);
 
     if (!provider.scopes || provider.scopes.length === 0) {
-      return ctx.error(
-        new Error('No scopes defined for provider:' + provider.name),
-        reply
-      );
+      throw new Error('No scopes defined for provider:' + provider.name);
     }
 
     // Generate the authorization URL

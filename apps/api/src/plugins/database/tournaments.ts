@@ -29,10 +29,33 @@ export async function createTournament(data: {
 export async function updateTournament(
   tournament: Partial<Tournament> & { uuid: string }
 ): Promise<Tournament> {
-  return Database.tournament.upsert({
+  return Database.tournament.update({
     where: { uuid: tournament.uuid },
-    update: tournament,
-    create: tournament as Tournament,
+    data: tournament,
+  });
+}
+
+export async function addUserToTournament(
+  userId: string,
+  tournamentId: string
+): Promise<Tournament> {
+  return Database.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({
+      where: {
+        uuid: userId,
+        tournaments: { some: { uuid: tournamentId } },
+      },
+    });
+    const incrementValue = user ? 0 : 1;
+    return tx.tournament.update({
+      where: { uuid: tournamentId },
+      data: {
+        playerCount: { increment: incrementValue },
+        participants: {
+          connect: { uuid: userId },
+        },
+      },
+    });
   });
 }
 
@@ -51,14 +74,19 @@ export async function getTournamentsByStatus(
 }
 
 // delete a tournament including all tournament rounds (not including the matches)
-export async function deleteTournament(uuid: string): Promise<Tournament> {
-  return await Database.tournament.delete({
+export async function removeTournament(uuid: string): Promise<Tournament> {
+  const tournament = await Database.tournament.delete({
     where: { uuid },
     include: { rounds: true },
   });
+  return tournament;
   // tournament rounds are deleted automatically through 'onDelete: cascade' setting
   // in relation in schema
-  // match.tournamentRoundId is updated automatically thorugh 'onDelete: SetNull'
+  // match.tournamentRoundId is updated automatically through 'onDelete: SetNull'
+}
+
+export async function removeAllTournaments(): Promise<void> {
+  await Database.tournament.deleteMany();
 }
 
 export async function createTournamentRound(
@@ -68,21 +96,37 @@ export async function createTournamentRound(
 ): Promise<TournamentRound | null> {
   // needs to be transaction for operations to be atomic
   return await Database.$transaction(async (tx) => {
-    if (!tx.tournament.findUnique({ where: { uuid: tournamentId } }))
-      throw new Error('tournamendId not found');
+    // check if tournament exists
+    if (!(await tx.tournament.findUnique({ where: { uuid: tournamentId } }))) {
+      throw new Error('tournamentId not found');
+    }
 
+    // createTournamentRound first to get uuid
     const tournamentRound = await tx.tournamentRound.create({
-      data: { tournamentId, index },
-      include: { matches: true },
+      data: {
+        tournament: {
+          connect: { uuid: tournamentId },
+        },
+        index,
+      },
     });
 
-    const matchesWithTournamentId = matches.map((match) => {
-      return { ...match, tournamentRoundId: tournamentRound.uuid };
+    // create matches
+    await tx.match.createMany({
+      data: matches.map((match) => ({
+        ...match,
+        tournamentRoundId: tournamentRound.uuid, // createMany doesn't support 'connect'
+      })),
     });
 
-    tx.match.createManyAndReturn({
-      data: matchesWithTournamentId,
+    // increment numberOfRounds in tournament
+    // TODO: select just round and return it here instead of querying again
+    await tx.tournament.update({
+      where: { uuid: tournamentId },
+      data: { numberOfRounds: { increment: 1 } },
     });
+
+    // return update tournamentRound
     return tx.tournamentRound.findUnique({
       where: { uuid: tournamentRound.uuid },
       include: { matches: true },

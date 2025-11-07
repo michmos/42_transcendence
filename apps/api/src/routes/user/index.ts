@@ -137,11 +137,8 @@ export default async function (app: FastifyInstance): Promise<void> {
     if (!email) {
       return new Error('Email is required');
     }
-
-    return await app.db.addUser(
-      email,
-      email.split('@')[0] || 'user' + Math.floor(Math.random() * 1000)
-    );
+    const nickname = await app.db.generateUniqueNickName();
+    return await app.db.addUser(email, nickname);
   });
 
   // First deletes user's Friends records, and then deletes own User record
