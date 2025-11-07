@@ -27,7 +27,7 @@ enum status {
 enum friendshipState {
 	REQUESTED
 	ACCEPTED
-	DENIED
+	REJECTED
 }
 
 
@@ -55,8 +55,8 @@ model User {
   updatedAt         DateTime    @updatedAt
 
   // Authentication
-  nickname          String      @unique @db.VarChar(40)
-  email             String      @unique @db.VarChar(80)
+  nickname          String      @unique
+  email             String      @unique
   oAuthProviders    oAuthProvider[]
 
   // Profile
@@ -78,11 +78,11 @@ model User {
   tournamentsWon    Int @default(0)
 
   // Relations / Friendships
-  friendsA		    Friends[]	@relation(name: "friendsA")
-  friendsB		   	Friends[]	@relation(name: "friendsB")
+  friendsA		    Friendship[]	@relation(name: "friendsA")
+  friendsB		   	Friendship[]	@relation(name: "friendsB")
 }
 
-model Friends {
+model Friendship {
 	// Meta
 	uuid			  String			@id @default(uuid())
 	createdAt		DateTime		@default(now())

@@ -46,7 +46,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
   // USER SETTINGS
   app.patch<{ Body: schemas.PatchUserMeSetNicknameType }>(
-    '/user/me/setNickname',
+    '/user/me/nickname',
     {
       schema: schemas.PatchUserMeSetNickname,
     },
@@ -75,7 +75,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   // - changing image to 1:1 and appropriate size if possible, to save storage
   // - image name changing
   // - fixing path to where image is saved, e.g. /public/profile-images/user12345
-  app.post('/user/me/setAvatar', async function (request, reply) {
+  app.post('/user/me/avatar', async function (request, reply) {
     try {
       // Getting the file and file data from request.file() and checking if file
       const file: fastifyMultipart.MultipartFile | undefined =
@@ -110,19 +110,23 @@ export default async function (app: FastifyInstance): Promise<void> {
   });
 
   // OTHER USER
-  app.get('/user/:nickname', async function (request, reply) {
-    try {
-      const { nickname } = request.params as { nickname: string };
-      const user = await app.db.getUser(nickname);
+  app.get<{ Params: schemas.GetOtherUserProfileType }>(
+    '/user/:nickname',
+    { schema: schemas.GetOtherUserProfile },
+    async function (request, reply) {
+      try {
+        const { nickname } = request.params;
+        const user = await app.db.getUser(nickname);
 
-      if (!user) return reply.code(404).send({ Error: 'user not found' });
+        if (!user) return reply.code(404).send({ Error: 'user not found' });
 
-      const cleanedUser = cleanOtherUserData(user);
-      return reply.code(200).send(cleanedUser);
-    } catch (error) {
-      return reply.code(500).send({ Error: `${error}` });
+        const cleanedUser = cleanOtherUserData(user);
+        return reply.code(200).send(cleanedUser);
+      } catch (error) {
+        return reply.code(500).send({ Error: `${error}` });
+      }
     }
-  });
+  );
 
   // ----------- ADD / DELETE USERS
   app.post('/', async function (request, reply) {

@@ -6,6 +6,7 @@ export const PatchUserMeSetNickname = {
     {
       newNickname: Type.String({
         maxLength: 30,
+        minLength: 3,
         pattern: '^[a-zA-Z0-9_-]+$',
       }),
     },
@@ -29,18 +30,19 @@ export type PatchUserMeSetNicknameType = Static<
 // export type PatchUserMeSetAvatarType = Static<typeof PatchUserMeSetAvatar.body>;
 
 // GET other user's profile through /user/:nickname
-export const getOtherUserProfile = {
+export const GetOtherUserProfile = {
   params: Type.Object(
     {
       nickname: Type.String({
         maxLength: 30,
+        minLength: 3,
         pattern: '^[a-zA-Z0-9_-]+$',
       }),
     },
     { additionalProperties: false }
   ),
 } as const;
-export type getOtherUserProfileType = Static<typeof getOtherUserProfile.params>;
+export type GetOtherUserProfileType = Static<typeof GetOtherUserProfile.params>;
 
 // Not sure if needed to validate this or not
 // Validate whether the request contains user.uuid

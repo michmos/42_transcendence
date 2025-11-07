@@ -1,11 +1,11 @@
-import type { Friends, friendshipState } from 'db/generated/client/index.js';
+import type { Friendship, friendshipState } from 'db/generated/client/index.js';
 import Database from 'db';
 
 export async function findFriendRecord(
   uuidSelf: string,
   uuidOther: string
-): Promise<Friends | null> {
-  return Database.friends.findFirst({
+): Promise<Friendship | null> {
+  return Database.friendship.findFirst({
     where: {
       OR: [
         {
@@ -24,8 +24,8 @@ export async function findFriendRecord(
 export async function addFriend(
   uuidSelf: string,
   uuidOther: string
-): Promise<Friends> {
-  return Database.friends.create({
+): Promise<Friendship> {
+  return Database.friendship.create({
     data: {
       friendAId: uuidSelf,
       friendBId: uuidOther,
@@ -36,15 +36,15 @@ export async function addFriend(
 export async function modifyFriendsState(
   uuid: string,
   newState: friendshipState
-): Promise<Friends> {
-  return Database.friends.update({
+): Promise<Friendship> {
+  return Database.friendship.update({
     where: { uuid },
     data: { state: newState },
   });
 }
 
 export async function getFriends(uuid: string): Promise<object[]> {
-  const foundRelations = await Database.friends.findMany({
+  const foundRelations = await Database.friendship.findMany({
     where: {
       AND: [
         {
@@ -72,21 +72,21 @@ export async function getFriends(uuid: string): Promise<object[]> {
   return friendsList;
 }
 
-export async function deleteFriend(uuid: string): Promise<Friends> {
-  return Database.friends.delete({
+export async function deleteFriend(uuid: string): Promise<Friendship> {
+  return Database.friendship.delete({
     where: { uuid },
   });
 }
 
 // This function is mainly for when a user's account gets deleted
 export async function deleteMultipleFriends(uuid: string) {
-  return Database.friends.deleteMany({
+  return Database.friendship.deleteMany({
     where: {
       OR: [{ friendAId: uuid }, { friendBId: uuid }],
     },
   });
 }
 
-export async function getAllFriendRecords(): Promise<Friends[]> {
-  return Database.friends.findMany();
+export async function getAllFriendRecords(): Promise<Friendship[]> {
+  return Database.friendship.findMany();
 }

@@ -712,12 +712,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '404':
           description: user not found
           content:
@@ -726,66 +720,6 @@ paths:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Conflict - Already a record in the database, no matter if the state is REQUESTED, ACCEPTED or DENIED
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /user/friendRequestResponse:
-    patch:
-      summary: Accepting or denying a friendship request by another user
-      description: |
-          Accepting or denying a friendship request by another user somewhere on the dashboard through a checkmark or a red cross.
-
-          - Pressing the (green) checkmark, TRUE will be sent to the endpoint, resulting in a ACCEPTED state between 2 users.
-          - Pressing the (red) cross, FALSE will be sent to the endpoint, resulting in a DENIED state between 2 users.
-      tags:
-        - User
-      security:
-        - bearerAuth: []
-      requestBody:
-        description: A boolean for TRUE or FALSE to accepting the friendship request.
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                fromUser:
-                  type: string
-                  example: 'Billy'
-                requestResponse:
-                  type: boolean
-                  description: true = accept, false = deny
-                  example: true
-              required:
-                - fromUser
-                - requestResponse
-      responses:
-        '200':
-          description: Friend request response succesful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Friendship request accepted
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
           content:
             application/json:
               schema:
@@ -814,7 +748,7 @@ paths:
                 nickname:
                   type: string
                   minLength: 3 # Min and max length could be bigger or smaller
-                  maxLength: 15
+                  maxLength: 30
               required:
                 - nickname
       responses:
@@ -834,12 +768,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
           content:
@@ -848,7 +776,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /user/me/avatar: # NOTE: we should change file name, and process/optimize file. Should also be able to remove avatar and use base avatar image
-    patch:
+    post:
       summary: Set a different avatar
       tags:
         - user
@@ -882,12 +810,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '415':
           description: Unsupported Media Type
           content:
@@ -916,6 +838,10 @@ paths:
           description: User's unique nickname
           schema:
             type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
       responses:
         '200':
           description: Succesfully got user data
@@ -925,12 +851,6 @@ paths:
                 $ref: '#/components/schemas/OtherUser'
         '400':
           description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
           content:
             application/json:
               schema:
@@ -949,7 +869,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
 
-  /friends:
+  /friends/:nickname:
     post: # Maybe make this a separate API link
       summary: Add other user as a friend
       description: If a logged-in user is on another user's profile, they need to be able to add that person as a friend if there is not already a friendship state between their accounts
@@ -957,19 +877,17 @@ paths:
         - User
       security:
         - bearerAuth: []
-      requestBody:
-        description: Needs the nickname of the other user
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                nickname:
-                  type: string
-                  example: Billy
-              required:
-                - nickname
+      parameters:
+        - in: path
+          name: nickname
+          required: true
+          description: The nickname of the other user whose request you're accepting or rejecting
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
       responses:
         '200':
           description: User has been requested to be friends
@@ -983,12 +901,6 @@ paths:
                     example: Friendship requested
         '400':
           description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
           content:
             application/json:
               schema:
@@ -1019,6 +931,17 @@ paths:
         - User
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: nickname
+          required: true
+          description: The nickname of the other user whose request you're accepting or rejecting
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
       requestBody:
         description: Needs the nickname of the other user to modify the friendship state in the Friends table.
         required: true
@@ -1054,12 +977,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized access
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '404':
           description: User not found
           content:
@@ -1080,19 +997,17 @@ paths:
         - User
       security:
         - bearerAuth: []
-      requestBody:
-        description: Needs the nickname of the other user
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                nickname:
-                  type: string
-                  example: Billy
-              required:
-                - nickname
+      parameters:
+        - in: path
+          name: nickname
+          required: true
+          description: The nickname of the other user whose request you're accepting or rejecting
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
       responses:
         '200':
           description: Friendship record has been deleted
@@ -1112,12 +1027,6 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Conflict - Friendship or pending request already exists
           content:
             application/json:
               schema:

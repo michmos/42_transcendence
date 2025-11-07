@@ -60,7 +60,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function getUser(nickname: string): Promise<User | null> {
-  return Database.user.findUniqueOrThrow({ where: { nickname } });
+  return Database.user.findUnique({ where: { nickname } });
 }
 
 // ----------------   PAGE: User profile
