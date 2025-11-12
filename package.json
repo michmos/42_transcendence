@@ -9,6 +9,7 @@
     "prebuild": "turbo run dep:build",
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "cli": "cd utils/cli && pnpm cli",
     "preview": "turbo run preview",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
