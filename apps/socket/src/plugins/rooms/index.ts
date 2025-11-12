@@ -12,7 +12,7 @@ const SocketMetadata = new WeakMap<WebSocket, any>();
  * Schema for incoming socket messages
  */
 const SocketMessage = z.object({
-  type: z.enum(['join-room', 'leave-room', 'message']),
+  type: z.enum(['join-room', 'leave-room', 'message', 'connect']),
   room: z.string().regex(/^[a-zA-Z0-9]+(:[a-zA-Z0-9_-]+)?$/),
   data: z.any().optional(),
 });

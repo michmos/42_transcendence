@@ -8,7 +8,7 @@ Each receiving socket message should have the following structure:
 
 ```json
 {
-  "type": "join-room" | 'leave-room' | 'message'    // The message type
+  "type": "join-room" | 'leave-room' | 'message' | 'connect'    // The message type
   "room": "string",                                 // The room identifier
   "data"?: {                                       // The payload data
     // event-specific data
@@ -86,5 +86,7 @@ The RoomManager is a singleton that should be used to all room-related operation
 
 - integrate existing game logic
   - extract common logic
+
+* unify client identification
 
 * error management
