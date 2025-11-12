@@ -150,4 +150,4 @@ async function initializeLoginButtons() {
 }
 
 export default initializeLoginButtons;
-export { fetchSessionData };
+export { fetchSessionData, getAuthProviders };

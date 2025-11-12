@@ -226,6 +226,7 @@ export interface State {
   state: string;
   ipNumber: string;
   provider: OAuthProvider;
+  cli: boolean;
   createdAt: Date;
   expiresAt: Date;
 }

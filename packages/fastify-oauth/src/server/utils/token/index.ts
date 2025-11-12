@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 export interface SessionCookie {
-  name: string;
+  fullName: string;
   uuid: string;
   providerName: string;
   refreshToken: string;
@@ -49,7 +49,7 @@ class TokenUtility {
 
     if (
       !sessionCookie ||
-      !sessionCookie.name ||
+      !sessionCookie.fullName ||
       !sessionCookie.uuid ||
       !sessionCookie.refreshToken
     ) {

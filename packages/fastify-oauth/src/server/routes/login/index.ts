@@ -17,7 +17,8 @@ function countStatesWithIP(ctx: OAuthContext, ipNumber: string): number {
 async function generateAuthUrl(
   ctx: OAuthContext,
   provider: OAuthProvider,
-  ipNumber: string
+  ipNumber: string,
+  cli: string | undefined
 ): Promise<string> {
   // Limit the number of concurrent states per IP to prevent abuse
   const maxStatesPerIP = 5;
@@ -30,6 +31,7 @@ async function generateAuthUrl(
     state: Math.random().toString(36).substring(2, 15),
     ipNumber: ipNumber,
     provider: provider,
+    cli: cli === 'true',
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
   };
@@ -51,7 +53,11 @@ async function generateAuthUrl(
 
 function setupLoginRoute(ctx: OAuthContext) {
   ctx.app.get(`/auth/login`, async (request, reply) => {
-    const { provider: providerName } = request.query as { provider: string };
+    const { provider: providerName, cli: cli } = request.query as {
+      provider: string;
+      cli?: string;
+    };
+
     const provider = ProviderUtility.get(providerName);
     const ipNumber = request.ip;
 
@@ -66,7 +72,7 @@ function setupLoginRoute(ctx: OAuthContext) {
     }
 
     // Generate the authorization URL
-    const url = await generateAuthUrl(ctx, provider, ipNumber);
+    const url = await generateAuthUrl(ctx, provider, ipNumber, cli);
     return reply.status(302).redirect(url);
   });
 }

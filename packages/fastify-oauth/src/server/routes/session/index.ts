@@ -80,6 +80,7 @@ class SessionManager {
         state: Math.random().toString(36).substring(2, 15),
         ipNumber: request.ip,
         provider: provider,
+        cli: false,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
       };
@@ -146,14 +147,14 @@ class SessionManager {
         const oAuthUser = await getOauthUser(
           provider,
           accessToken,
-          sessionCookie.name
+          sessionCookie.fullName
         );
         if (!oAuthUser) {
           return reply.status(400).send({ error: 'Failed to fetch user info' });
         }
 
         const newSession = {
-          name: oAuthUser.fullName,
+          fullName: oAuthUser.fullName,
           uuid: oAuthUser.uuid,
           providerName: oAuthUser.providerName,
           refreshToken: accessToken.token.refresh_token as string,

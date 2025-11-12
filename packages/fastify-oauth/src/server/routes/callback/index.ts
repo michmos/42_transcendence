@@ -1,4 +1,5 @@
 import type { OAuthContext } from '../../index.js';
+import type { SessionCookie } from '../../utils/token/index.js';
 import { getOauthUser } from '../../utils/user/index.js';
 
 import jwt from 'jsonwebtoken';
@@ -25,6 +26,8 @@ function setupCallbackRoute(ctx: OAuthContext) {
     }
 
     const provider = removedState.provider;
+    const cli = removedState.cli;
+
     if (!provider) {
       throw new Error('Unknown provider:' + state);
     }
@@ -62,13 +65,18 @@ function setupCallbackRoute(ctx: OAuthContext) {
     // Create session object to be stored in JWT
     const session = {
       providerName: oAuthUser.providerName,
-      name: oAuthUser.fullName,
+      fullName: oAuthUser.fullName,
       uuid: oAuthUser.uuid,
       refreshToken: accessToken.token.refresh_token as string,
-      expiresAt: Date.parse(accessToken.token.expires_at as string),
-    };
+      eat: Date.parse(accessToken.token.expires_at as string),
+    } as SessionCookie;
 
     const sessionJWT = jwt.sign(session, ctx.jwtSecret);
+
+    if (cli) {
+      // For CLI, return the JWT directly in the response
+      return reply.send(sessionJWT);
+    }
 
     // Trigger userUpdate callback if registered
     if (ctx.callbacks['login']) {
