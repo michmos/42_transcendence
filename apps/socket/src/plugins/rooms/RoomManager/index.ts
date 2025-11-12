@@ -44,6 +44,10 @@ class RoomManager {
       }
     });
   }
+
+  public get(roomName: string): Room | undefined {
+    return Rooms.get(roomName);
+  }
 }
 
 class Room {
