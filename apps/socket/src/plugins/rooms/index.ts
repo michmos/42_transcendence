@@ -76,7 +76,7 @@ async function roomPlugin(app: FastifyInstance) {
       // socketMetadata garbage collected since WEAKmap
     });
 
-    socket.on('message', (input: Buffer) => {
+    socket.on('message', async (input: Buffer) => {
       const parsedMessage = SocketMessage.safeParse(input.toString());
       if (!parsedMessage.success) {
         throw new Error('Invalid message format');
@@ -88,7 +88,15 @@ async function roomPlugin(app: FastifyInstance) {
       if (!handler) {
         throw new Error(`Invalid room namespace provided: ${roomNamespace}`);
       }
-      handler(socket, message);
+      try {
+        await handler(socket, message);
+      } catch (error) {
+        console.error(
+          `Error handling message in room ${roomNamespace}:`,
+          error
+        );
+        // TODO: handle error
+      }
     });
   });
 }
