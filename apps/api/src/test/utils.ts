@@ -1,3 +1,7 @@
+import { type FastifyInstance } from 'fastify';
+import { assert } from 'vitest';
+import { type Tournament } from 'db/generated/client/index.js';
+
 export const normalUser = {
   uuid: '',
   email: 'normalMail@mail.com',
@@ -20,4 +24,28 @@ export function setUserTo(userRole: 'ADMIN' | 'MEMBER') {
   } else {
     testUser = normalUser;
   }
+}
+
+export const validTournamentBody = {
+  tournamentName: 'TestTournament',
+  maxPlayers: 4,
+  minPlayers: 2,
+  lockTime: 1,
+  gameTime: 1,
+};
+
+export async function createValidTournament(
+  app: FastifyInstance,
+  overrides?: Partial<typeof validTournamentBody>
+) {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/tournaments',
+    body: {
+      ...validTournamentBody,
+      ...overrides,
+    },
+  });
+  assert(response.statusCode === 201);
+  return (await JSON.parse(response.payload)) as Tournament;
 }
