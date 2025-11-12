@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { type FastifyInstance } from 'fastify';
+import { type SocketMessage } from '../../plugins/rooms/index.js';
 
 import {
   convertPlayertoLocal,
@@ -185,84 +185,82 @@ setInterval(() => {
   }
 }, 1000 / 60);
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default async function (
+  socket: WebSocket,
+  message: SocketMessage
+): Promise<void> {
   // Check roles on ping interval
   setInterval(removeExpiredRoles, PING);
 
-  app.get('/', { websocket: true }, (socket) => {
-    // console.log('Client connected');
+  // handle incoming message
+  try {
+    const input = JSON.parse(message.toString());
+    // console.log(input);
 
-    socket.on('message', (message: Buffer) => {
-      //   console.log('message from client:', message.toString());
-      try {
-        const input = JSON.parse(message.toString());
-        // console.log(input);
+    if (input.type === 'connect') {
+      const clientId =
+        input.clientId || `anon-${Math.random().toString(36).slice(2, 10)}`;
+      const record = attachClient(clientId, socket);
+      socket.send(
+        JSON.stringify({
+          type: 'role',
+          role: record.role,
+          clientId: record.clientId,
+        })
+      );
+      console.log(
+        `Client-${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`
+      );
+    }
 
-        if (input.type === 'connect') {
-          const clientId =
-            input.clientId || `anon-${Math.random().toString(36).slice(2, 10)}`;
-          const record = attachClient(clientId, socket);
-          socket.send(
-            JSON.stringify({
-              type: 'role',
-              role: record.role,
-              clientId: record.clientId,
-            })
-          );
-          console.log(
-            `Client-${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`
-          );
+    const clientId = socketToClientId.get(socket);
+    if (clientId) {
+      const record = clientRecords.get(clientId);
+      if (record) {
+        record.lastSeen = Date.now();
+        if (!record.connected) {
+          record.connected = true;
+          record.webSocket = socket;
+          console.log(`Client-${record.clientId} reconnected`);
         }
+      } else return;
 
-        const clientId = socketToClientId.get(socket);
-        if (clientId) {
-          const record = clientRecords.get(clientId);
-          if (record) {
-            record.lastSeen = Date.now();
-            if (!record.connected) {
-              record.connected = true;
-              record.webSocket = socket;
-              console.log(`Client-${record.clientId} reconnected`);
-            }
-          } else return;
+      handleInput(input, record, socket);
+    }
+  } catch (err) {
+    console.error('Error handling client message: ', err);
+  }
 
-          handleInput(input, record, socket);
-        }
-      } catch (err) {
-        console.error('Error handling client message: ', err);
-      }
-    });
-
-    socket.on('close', () => {
-      // Clean up client from maps when socket closes
-      const clientId = socketToClientId.get(socket);
-      if (clientId) {
-        const record = clientRecords.get(clientId);
-        if (record) {
-          const wasPlayer1 = record.role === 'player1'; // Track if this was player1
-          const wasPlayer2 = record.role === 'player2'; // Track if this was player2
-
-          record.webSocket = null;
-          record.connected = false;
-          record.lastSeen = Date.now();
-          clientRecords.set(clientId, record);
-          if (record.role === 'spectator') {
-            console.log(`Client-${clientId} disconnected`);
-            clientRecords.delete(clientId);
-          } else
-            console.log(
-              `Client-${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
-            );
-          // If player2 disconnected, convert player1 back to local
-          if (wasPlayer2) {
-            convertPlayertoLocal(1);
-          }
-          if (wasPlayer1) {
-            convertPlayertoLocal(2);
-          }
-        }
-        socketToClientId.delete(socket);
-      }
-    });
-  });
+  // TODO: this logic is general (not game specific) and needs to be externalized
+  // socket.on('close', () => {
+  //   // Clean up client from maps when socket closes
+  //   const clientId = socketToClientId.get(socket);
+  //   if (clientId) {
+  //     const record = clientRecords.get(clientId);
+  //     if (record) {
+  //       const wasPlayer1 = record.role === 'player1'; // Track if this was player1
+  //       const wasPlayer2 = record.role === 'player2'; // Track if this was player2
+  //
+  //       record.webSocket = null;
+  //       record.connected = false;
+  //       record.lastSeen = Date.now();
+  //       clientRecords.set(clientId, record);
+  //       if (record.role === 'spectator') {
+  //         console.log(`Client-${clientId} disconnected`);
+  //         clientRecords.delete(clientId);
+  //       } else
+  //         console.log(
+  //           `Client-${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
+  //         );
+  //       // If player2 disconnected, convert player1 back to local
+  //       if (wasPlayer2) {
+  //         convertPlayertoLocal(1);
+  //       }
+  //       if (wasPlayer1) {
+  //         convertPlayertoLocal(2);
+  //       }
+  //     }
+  //     socketToClientId.delete(socket);
+  //   }
+  // });
 }
