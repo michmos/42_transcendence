@@ -37,7 +37,7 @@ describe('GET /user/me/tournaments', () => {
     const testStatus = async (status: statusEnum) => {
       const tournament = await createValidTournament(app);
       await app.db.updateTournament({ uuid: tournament.uuid, status });
-      let response = await app.inject({
+      const response = await app.inject({
         method: 'GET',
         url: '/user/me/tournaments',
         query: { status },
