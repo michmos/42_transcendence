@@ -13,7 +13,6 @@ export function isAdmin(
   reply: Fastify.FastifyReply
 ): boolean {
   const user = request.user as { uuid: string; role: string } | undefined;
-  console.log('Checking admin for user:', user);
   if (!user) {
     reply.status(401).send({ error: 'Unauthorized. Please log in.' });
     console.warn(
