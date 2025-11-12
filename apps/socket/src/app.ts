@@ -24,16 +24,15 @@ const start = async () => {
   try {
     app.register(fastifyWebsocket);
 
-    console.info('⚙️  Auto-loading web socket channels...');
+    console.info('⚙️  Auto-loading plugins and api routes...');
 
-    // Load all channels
+    // Load all plugins FIRST (especially auth plugin)
     await app.register(AutoLoad, {
-      dir: path.join(__dirname, 'channels'),
+      dir: path.join(__dirname, 'plugins'),
       dirNameRoutePrefix: false,
-      ignoreFilter: (path) => path.includes('cli'),
     });
 
-    console.info('✅ web socket channels loaded');
+    console.info('✅ Plugins loaded');
 
     await app.listen({ port: env.SOCKET_PORT, host: '0.0.0.0' });
 

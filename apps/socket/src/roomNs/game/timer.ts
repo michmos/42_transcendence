@@ -1,4 +1,4 @@
-import { gameState, GAME_TIME } from './app.js';
+import { gameState, GAME_TIME } from './index.js';
 
 export function startGameTimer() {
   if (!gameState.gameStartTime) {
