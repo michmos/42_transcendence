@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, gameState } from './app.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, gameState } from './index.js';
 
 import { resetTimer, updateTimer, startGameTimer } from './timer.js';
 
