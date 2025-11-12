@@ -27,9 +27,11 @@ export default async function initRoute() {
     }).then(() => {
       user = null;
       userTableLogic(); // Refresh user table
-      logoutBtn.textContent = 'Login';
-      logoutBtn.removeEventListener('click', handleLogoutClick);
-      logoutBtn.addEventListener('click', handleLoginClick);
+      if (logoutBtn) {
+        logoutBtn.textContent = 'Login';
+        logoutBtn.removeEventListener('click', handleLogoutClick);
+        logoutBtn.addEventListener('click', handleLoginClick);
+      }
     });
   }
   function handleLoginClick() {
