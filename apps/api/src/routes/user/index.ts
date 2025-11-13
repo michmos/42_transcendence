@@ -8,12 +8,10 @@ import fastifyMultipart from '@fastify/multipart';
 import { getTournaments } from '../tournaments/validationSchemas.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
-  app.get('/user', async function (request, reply) {
+  app.get('/', async function (request, reply) {
     try {
       if (!isAdmin(request, reply)) return;
-
       const users = await app.db.getUsers();
-      console.warn('Fetched users:', users);
       return reply.status(200).send(users);
     } catch (error) {
       return reply.code(500).send({ Error: `${error}` });
@@ -24,7 +22,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   // First getting the user data from the User table
   // Second getting all ACCEPTED friends and friend REQUESTS from other users
   // Returning an object with user and friends data
-  app.get('/user/me', async function (request, reply) {
+  app.get('/me', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;
 

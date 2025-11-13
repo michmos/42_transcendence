@@ -5,10 +5,14 @@ import {
   type Tournament,
   status as statusEnum,
 } from 'db/generated/client/index.js';
+import { type User } from 'db/generated/client/index.js';
 
 // use a describe block for each api route
 describe('GET /user', () => {
   test('Admin getting all users - valid', async () => {
+    for (let i = 0; i < 10; ++i) {
+      await app.db.addUser(`user${i}@mail.com`, `nickName${i}`);
+    }
     setUserTo('ADMIN');
 
     // perform the request
@@ -18,8 +22,9 @@ describe('GET /user', () => {
     });
 
     // compare the response to your expectations
-    console.warn(`reponse: `, JSON.stringify(response));
     expect(response.statusCode).toBe(200);
+    const users = JSON.parse(response.payload) as User[];
+    expect(users).toHaveLength(12);
   });
 
   test('Member getting all users - invalid', async () => {
