@@ -27,6 +27,7 @@ export function decorateSocketInstance(socket: WebSocket) {
   socket.leaveAll = () => RoomManager.leaveAllRooms(socket);
   socket.setData = (data: any) => SocketMetadata.set(socket, data);
   socket.getData = () => SocketMetadata.get(socket);
+  socket.isIn = (name: string) => RoomManager.get(name)?.has(socket) === true;
 }
 
 /**

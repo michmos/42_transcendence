@@ -7,5 +7,6 @@ declare module 'ws' {
     leaveAll(): void;
     setData(data: any): void;
     getData(): any;
+    isIn(roomName: string): boolean;
   }
 }
