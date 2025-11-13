@@ -1,10 +1,11 @@
 import { type FastifyInstance } from 'fastify';
-import { isAdmin, isSameUUID } from '../../plugins/auth/utils.js';
+import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
 import type { User } from 'db/generated/client/client.js';
 import fs from 'fs';
 import path from 'path';
 import * as schemas from './userValidationSchemas.js';
 import fastifyMultipart from '@fastify/multipart';
+import { getTournaments } from '../tournaments/validationSchemas.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.get('/user', async function (request, reply) {
@@ -108,6 +109,18 @@ export default async function (app: FastifyInstance): Promise<void> {
       return reply.code(500).send({ Error: `${error}` });
     }
   });
+
+  app.get<{ Querystring: getTournaments }>(
+    '/me/tournaments',
+    { schema: getTournaments },
+    async function (request, reply) {
+      const tournaments = await app.db.getTournamentsByParticipant(
+        getUuid(request),
+        request.query.status
+      );
+      return reply.status(200).send(tournaments);
+    }
+  );
 
   // OTHER USER
   app.get<{ Params: schemas.GetOtherUserProfileType }>(
