@@ -6,7 +6,12 @@ import getHandler from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
 
-const SocketMetadata = new WeakMap<WebSocket, any>();
+const SocketToData = new WeakMap<WebSocket, SocketMetaData>();
+type SocketMetaData = {
+  uuid?: string;
+  lastSeen?: Date;
+  connected?: boolean;
+};
 
 /**
  * Decorates the WebSocket instance with room management methods
@@ -15,8 +20,10 @@ export function decorateSocketInstance(socket: WebSocket) {
   socket.join = (name: string) => RoomManager.joinRoom(socket, name);
   socket.leave = (name: string) => RoomManager.leaveRoom(socket, name);
   socket.leaveAll = () => RoomManager.leaveAllRooms(socket);
-  socket.setData = (data: any) => SocketMetadata.set(socket, data);
-  socket.getData = () => SocketMetadata.get(socket);
+  socket.setData = (data: Partial<SocketMetaData>) => {
+    SocketToData.set(socket, data);
+  };
+  socket.getData = () => SocketToData.get(socket);
   socket.isIn = (name: string) => RoomManager.get(name)?.has(socket) === true;
 }
 
