@@ -45,9 +45,9 @@ async function loadRoomHandlers() {
     try {
       const module = await import(`${roomsDir}/${roomName}/index.js`);
       roomHandlers[roomName] = module.default;
-      console.info(`☑️ Handler: ${roomName} loaded`);
+      console.info(`☑️  Handler: ${roomName} loaded`);
     } catch (error) {
-      console.warn(`❌ Handler: ${roomName} couldn't be loaded: `, error);
+      console.warn(`❌  Handler: ${roomName} couldn't be loaded: `, error);
     }
   }
   return roomHandlers;
@@ -72,12 +72,22 @@ async function roomPlugin(app: FastifyInstance) {
     });
 
     socket.on('close', () => {
-      socket.leaveAll();
+      // socket.leaveAll();
       // socketMetadata garbage collected since WEAKmap
     });
 
     socket.on('message', async (input: Buffer) => {
-      const parsedMessage = SocketMessage.safeParse(input.toString());
+      
+      let json;
+      try {
+        json = JSON.parse(input.toString());
+      } catch {
+        console.warn("Invalid JSON string received:", input.toString());
+        return;
+      }
+
+      const parsedMessage = SocketMessage.safeParse(json);
+      // const parsedMessage = SocketMessage.safeParse(input.toString());
       if (!parsedMessage.success) {
         throw new Error('Invalid message format');
       }

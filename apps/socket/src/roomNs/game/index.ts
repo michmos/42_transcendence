@@ -80,50 +80,50 @@ export const clientRecords = new Map<string, ClientRecord>();
 export const socketToClientId = new Map<WebSocket, string>();
 
 function handleInput(
-  input: { type: string; action: Action },
+  input: SocketMessage,
   record: ClientRecord,
   socket: WebSocket
 ) {
   if (!gameState.gamePaused && !gameState.gameOver) {
     if (
-      input.action === Action.Up &&
+      input.data.action === Action.Up &&
       (record.role === 'player1' || record.role === 'local') &&
       gameState.leftY > 0
     )
       gameState.leftY -= 5;
     if (
-      input.action === Action.Down &&
+      input.data.action === Action.Down &&
       (record.role === 'player1' || record.role === 'local') &&
       gameState.leftY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.leftY += 5;
     if (
-      input.action === Action.Up &&
+      input.data.action === Action.Up &&
       record.role === 'player2' &&
       gameState.rightY > 0
     )
       gameState.rightY -= 5;
     if (
-      input.action === Action.Down &&
+      input.data.action === Action.Down &&
       record.role === 'player2' &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
     if (
-      input.action === Action.UpRight &&
+      input.data.action === Action.UpRight &&
       record.role === 'local' &&
       gameState.rightY > 0
     )
       gameState.rightY -= 5;
     if (
-      input.action === Action.DownRight &&
+      input.data.action === Action.DownRight &&
       record.role === 'local' &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
   }
   if (
-    input.action === Action.Pause &&
+    input.data.action === Action.Pause &&
     (record.role === 'local' ||
       record.role === 'player1' ||
       record.role === 'player2')
@@ -139,19 +139,19 @@ function handleInput(
     }
     console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`);
   }
-  if (input.action === Action.AI && record.role === 'local') {
+  if (input.data.action === Action.AI && record.role === 'local') {
     gameState.aiEnabled = !gameState.aiEnabled;
     console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`);
   }
-  if (input.action === Action.Hidden) {
+  if (input.data.action === Action.Hidden) {
     console.log(`Client-${record.clientId} has hidden the game`);
     record.connected = false;
   }
-  if (input.action === Action.Visible) {
+  if (input.data.action === Action.Visible) {
     attachClient(record.clientId, socket);
   }
   if (
-    input.action === Action.Reset &&
+    input.data.action === Action.Reset &&
     (record.role === 'local' ||
       record.role === 'player1' ||
       record.role === 'player2')
@@ -164,9 +164,13 @@ function handleInput(
 setInterval(() => {
   updateGame();
   const data = JSON.stringify({
-    type: 'state',
-    timestamp: Date.now(),
-    ...gameState,
+    type: 'message',
+    room: 'game:testRoom',
+    data: {
+      subtype: 'state',
+      timestamp: Date.now(),
+      serverState: gameState,
+	  },
   });
 
   // Send to all connected clients
@@ -185,27 +189,31 @@ setInterval(() => {
   }
 }, 1000 / 60);
 
+// Check roles on ping interval
+setInterval(removeExpiredRoles, PING);
+
 export default async function (
   socket: WebSocket,
   message: SocketMessage
 ): Promise<void> {
-  // Check roles on ping interval
-  setInterval(removeExpiredRoles, PING);
 
   // handle incoming message
   try {
-    const input = JSON.parse(message.toString());
-    // console.log(input);
+    // console.log(message);
 
-    if (input.type === 'connect') {
+    if (message.type === 'connect') {
       const clientId =
-        input.clientId || `anon-${Math.random().toString(36).slice(2, 10)}`;
+        message.data.clientId || `anon-${Math.random().toString(36).slice(2, 10)}`;
       const record = attachClient(clientId, socket);
       socket.send(
         JSON.stringify({
-          type: 'role',
-          role: record.role,
-          clientId: record.clientId,
+          type: 'message',
+          room: 'game:testRoom',
+          data: {
+            subtype: 'role',
+            role: record.role,
+            clientId: record.clientId,
+          }
         })
       );
       console.log(
@@ -225,42 +233,42 @@ export default async function (
         }
       } else return;
 
-      handleInput(input, record, socket);
+      handleInput(message, record, socket);
     }
   } catch (err) {
     console.error('Error handling client message: ', err);
   }
 
   // TODO: this logic is general (not game specific) and needs to be externalized
-  // socket.on('close', () => {
-  //   // Clean up client from maps when socket closes
-  //   const clientId = socketToClientId.get(socket);
-  //   if (clientId) {
-  //     const record = clientRecords.get(clientId);
-  //     if (record) {
-  //       const wasPlayer1 = record.role === 'player1'; // Track if this was player1
-  //       const wasPlayer2 = record.role === 'player2'; // Track if this was player2
-  //
-  //       record.webSocket = null;
-  //       record.connected = false;
-  //       record.lastSeen = Date.now();
-  //       clientRecords.set(clientId, record);
-  //       if (record.role === 'spectator') {
-  //         console.log(`Client-${clientId} disconnected`);
-  //         clientRecords.delete(clientId);
-  //       } else
-  //         console.log(
-  //           `Client-${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
-  //         );
-  //       // If player2 disconnected, convert player1 back to local
-  //       if (wasPlayer2) {
-  //         convertPlayertoLocal(1);
-  //       }
-  //       if (wasPlayer1) {
-  //         convertPlayertoLocal(2);
-  //       }
-  //     }
-  //     socketToClientId.delete(socket);
-  //   }
-  // });
+  socket.on('close', () => {
+    // Clean up client from maps when socket closes
+    const clientId = socketToClientId.get(socket);
+    if (clientId) {
+      const record = clientRecords.get(clientId);
+      if (record) {
+        const wasPlayer1 = record.role === 'player1'; // Track if this was player1
+        const wasPlayer2 = record.role === 'player2'; // Track if this was player2
+  
+        record.webSocket = null;
+        record.connected = false;
+        record.lastSeen = Date.now();
+        clientRecords.set(clientId, record);
+        if (record.role === 'spectator') {
+          console.log(`Client-${clientId} disconnected`);
+          clientRecords.delete(clientId);
+        } else
+          console.log(
+            `Client-${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
+          );
+        // If player2 disconnected, convert player1 back to local
+        if (wasPlayer2) {
+          convertPlayertoLocal(1);
+        }
+        if (wasPlayer1) {
+          convertPlayertoLocal(2);
+        }
+      }
+      socketToClientId.delete(socket);
+    }
+  });
 }

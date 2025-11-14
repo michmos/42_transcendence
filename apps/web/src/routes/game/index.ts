@@ -24,7 +24,27 @@ import {
   setNetworkBlocked,
 } from './state';
 
+type GameMessage =
+  | { type: 'connect'; data: { clientId: string | null } }
+  | {
+      type: 'message';
+      data: {
+        action:
+          | 'up'
+          | 'down'
+          | 'up_r'
+          | 'down_r'
+          | 'pause'
+          | 'reset'
+          | 'ai'
+          | 'hidden';
+      }
+    };
+
+const inputBuffer: GameMessage[] = [];
+
 const canvas = getCanvas();
+const TEST_ROOM = "game:testRoom";
 
 function createWebSocket() {
   if (ws) {
@@ -51,8 +71,21 @@ function createWebSocket() {
     // reconnectAttempts = 0;
     setReconnectAttempts(0);
     console.log('🏓 Connected to game server');
-    // ws.send(JSON.stringify({ type: "connect", clientId }));
-    sendMessage({ type: 'connect', clientId });
+    // ws.send(JSON.stringify({ type: "connect", room: TEST_ROOM, data: { clientId }}));
+    sendMessage({ type: 'connect', data: { clientId } });
+    // Flush buffered messages
+    while (inputBuffer.length > 0) {
+      const bufferedMessage = inputBuffer.shift();
+      if (bufferedMessage) {
+        const bufferedStructured = {
+          type: bufferedMessage.type,
+          room: TEST_ROOM,
+          data: bufferedMessage.data,
+        };
+        console.log("Sending buffered message:", bufferedStructured);
+        ws.send(JSON.stringify(bufferedStructured));
+      }
+    }
   };
 
   socket.onclose = (event) => {
@@ -71,31 +104,33 @@ function createWebSocket() {
     const message = JSON.parse(event.data);
 
     // Only update serverState
-    if (message.type === 'state') {
+    if (message.type === 'message' && message.data.subtype === 'state') {
       const now = performance.now();
       const deltaTime = now - lastServerUpdate;
 
+      const newState = message.data.serverState;
+
       if (lastServerUpdate > 0 && deltaTime > 0) {
         ballVelocity.x =
-          (message.ballX - serverState.ballX) / (deltaTime / 1000);
+          (newState.ballX - serverState.ballX) / (deltaTime / 1000);
         ballVelocity.y =
-          (message.ballY - serverState.ballY) / (deltaTime / 1000);
+          (newState.ballY - serverState.ballY) / (deltaTime / 1000);
       }
 
-      setServerState(message);
+      setServerState(newState);
       setLastServerUpdate(now);
 
       if (connectionState === 'connected') {
-        localPaddles.leftY = serverState.leftY;
-        localPaddles.rightY = serverState.rightY;
+        localPaddles.leftY = newState.leftY;
+        localPaddles.rightY = newState.rightY;
       }
     }
 
     // Handle other message types if needed
-    if (message.type === 'role') {
-      setRole(message.role);
+    if (message.type === 'message' && message.data.subtype === 'role') {
+      setRole(message.data.role);
       console.log(
-        `🎮 Received role "${message.role}" for client ID: ${message.clientId}`
+        `🎮 Received role "${message.data.role}" for client ID: ${message.data.clientId}`
       );
     }
   };
@@ -130,38 +165,36 @@ if (document.readyState === 'loading') {
   createWebSocket();
 }
 
-type GameMessage =
-  | { type: 'connect'; clientId: string | null }
-  | {
-      type: 'game';
-      action:
-        | 'up'
-        | 'down'
-        | 'up_r'
-        | 'down_r'
-        | 'pause'
-        | 'reset'
-        | 'ai'
-        | 'hidden';
-    };
+export function sendMessage(msg: GameMessage) {
+  
+	const structuredMessage = {
+		type: msg.type,
+		room: TEST_ROOM,
+		data: msg.data,
+	};
 
-const inputBuffer: GameMessage[] = [];
-
-export function sendMessage(data: GameMessage) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(data));
+	if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(structuredMessage));
 
     // Send any buffered messages
     while (inputBuffer.length > 0) {
       const bufferedMessage = inputBuffer.shift();
-      ws.send(JSON.stringify(bufferedMessage));
+      if (bufferedMessage) {
+        const bufferedStructured = {
+          type: bufferedMessage.type,
+          room: TEST_ROOM,
+          data: bufferedMessage.data,
+        };
+        console.log("bufferedmessage: ", bufferedStructured);
+        ws.send(JSON.stringify(bufferedStructured));
+      }
     }
   } else if (connectionState === 'reconnecting') {
     // Buffer the message for when connection is restored
-    inputBuffer.push(data);
-    console.log('Buffering message during reconnection:', data);
+    inputBuffer.push(msg);
+    console.log('Buffering message during reconnection:', msg);
   } else {
-    console.warn('WebSocket not connected, message not sent:', data);
+    console.warn('WebSocket not connected, message not sent:', msg);
   }
 }
 
@@ -170,13 +203,13 @@ const keys: Record<string, boolean> = {};
 document.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === 'p') {
-    sendMessage({ type: 'game', action: 'pause' });
+    sendMessage({ type: 'message', data: { action: 'pause' }});
   }
   if (e.key === 'r') {
-    sendMessage({ type: 'game', action: 'reset' });
+    sendMessage({ type: 'message', data: { action: 'reset' }});
   }
   if (e.key === '.') {
-    sendMessage({ type: 'game', action: 'ai' });
+    sendMessage({ type: 'message', data: { action: 'ai' }});
   }
   if (e.key === 'x') {
     if (!networkBlocked) {
@@ -216,10 +249,10 @@ document.addEventListener('keyup', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     console.log('🕶️ Page hidden');
-    sendMessage({ type: 'game', action: 'hidden' });
+    sendMessage({ type: 'message', data: { action: 'hidden' }});
   } else {
     console.log('👓 Page visible');
-    sendMessage({ type: 'connect', clientId });
+    sendMessage({ type: 'connect', data: { clientId }});
   }
 });
 
@@ -240,7 +273,7 @@ setInterval(() => {
       } else if (localPaddles.leftY > 0) {
         localPaddles.leftY -= 5;
       }
-      sendMessage({ type: 'game', action: 'up' });
+      sendMessage({ type: 'message', data: { action: 'up' }});
     }
     if (keys.s) {
       if (
@@ -254,13 +287,13 @@ setInterval(() => {
       ) {
         localPaddles.leftY += 5;
       }
-      sendMessage({ type: 'game', action: 'down' });
+      sendMessage({ type: 'message', data: { action: 'down' }});
     }
     if (keys.o) {
       if (role === 'local' && localPaddles.rightY > 0) {
         localPaddles.rightY -= 5;
       }
-      sendMessage({ type: 'game', action: 'up_r' });
+      sendMessage({ type: 'message', data: { action: 'up_r' }});
     }
     if (keys.l) {
       if (
@@ -269,7 +302,7 @@ setInterval(() => {
       ) {
         localPaddles.rightY += 5;
       }
-      sendMessage({ type: 'game', action: 'down_r' });
+      sendMessage({ type: 'message', data: { action: 'down_r' }});
     }
   }
 }, 1000 / 60);
