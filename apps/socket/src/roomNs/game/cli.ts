@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import readline from 'readline';
+import { execSync } from "child_process";
 
 interface ServerState {
   paddleWidth: number;
@@ -50,18 +51,6 @@ ws.on('message', (msg: WebSocket.RawData) => {
     console.log(`Score: ${message.data.serverState.leftScore} - ${message.data.serverState.rightScore}`);
 	console.log(`Time: ${formatTime(gameState.timeRemaining)} ⏱`);
   }
-//   if (message.type === 'state') {
-//     gameState = message;
-
-//     console.clear();
-//     console.log(
-//       `Ball: (${message.ballX.toFixed(2)}, ${message.ballY.toFixed(2)})`
-//     );
-//     console.log(`Paddles: left ${message.leftY}, right ${message.rightY}`);
-//     displayBoard();
-//     console.log(`Time: ${formatTime(gameState.timeRemaining)} ⏱`);
-//     console.log(`Score: ${message.leftScore} - ${message.rightScore}`);
-//   }
 });
 
 function formatTime(ms: number): string {
@@ -71,6 +60,56 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+// let oldRate: string | null = null;
+
+// function restoreRepeatRate() {
+//   if (!oldRate) return;
+
+//   const match = oldRate.match(/delay:\s*(\d+)\s+repeat:\s*(\d+)/);
+//   if (match) {
+//     const delay = match[1];
+//     const rate = match[2];
+//     execSync(`xset r rate ${delay} ${rate}`);
+//   }
+// }
+
+// function saveOriginalRepeatRate() {
+//   try {
+//     oldRate = execSync("xset q | grep 'repeat delay'").toString().trim();
+//   } catch {
+//     console.error("Could not read repeat rate");
+//   }
+// }
+
+// hard code repeat rate
+function restoreRepeatRate() {
+  execSync(`xset r rate 500 33`);
+}
+
+function setGameRepeatRate() {
+  execSync("xset r rate 100 33");
+}
+
+function enableExitHandlers() {
+  process.stdin.resume(); // important for receiving SIGHUP
+
+  const cleanup = () => {
+    restoreRepeatRate();
+    process.exit();
+  };
+
+  process.on("exit", restoreRepeatRate);
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+  process.on("SIGHUP", cleanup);
+}
+
+// saveOriginalRepeatRate();
+setGameRepeatRate();
+enableExitHandlers();
+
+const keys: Record<string, boolean> = {};
+
 function enableKeyboardInput() {
   readline.emitKeypressEvents(process.stdin);
   process.stdin.setRawMode(true);
@@ -79,19 +118,42 @@ function enableKeyboardInput() {
     if (!key) return;
 
     if (key.ctrl && key.name === 'c') {
+      restoreRepeatRate();
       process.exit();
     }
 
-	if (key.name === 'w') {
-      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'up' }}));
-    } else if (key.name === 's') {
-      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'down' }}));
-    } else if (key.name === 'p') {
+    const keyName  = key.name.toLowerCase();
+
+    keys[keyName] = true;
+
+    clearTimeout((keys as any)[`${keyName}_timeout`]);
+    (keys as any)[`${keyName}_timeout`] = setTimeout(() => {
+        keys[keyName] = false;
+    }, 50);
+	});
+
+  setInterval(() => {
+    if (keys.w) ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'up' }}));
+    if (keys.s) ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'down' }}));
+    if (keys.p) {
       ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'pause' }}));
-    } else if (key.name === 'r') {
-      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'reset' }}));
+      keys.p = false;
     }
-  });
+    if (keys.r) {
+      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'reset' }}));
+      keys.r = false;
+    }
+  }, 1000 / 60);
+	// if (key.name === 'w') {
+  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'up' }}));
+  //   } else if (key.name === 's') {
+  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'down' }}));
+  //   } else if (key.name === 'p') {
+  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'pause' }}));
+  //   } else if (key.name === 'r') {
+  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'reset' }}));
+  //   }
+  // });
 }
 
 function displayBoard() {
