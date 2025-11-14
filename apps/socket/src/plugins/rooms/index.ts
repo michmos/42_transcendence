@@ -5,6 +5,7 @@ import RoomManager from './RoomManager/index.js';
 import getHandler from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
+import { authenticateWithToken } from './authentication.js';
 
 const SocketToData = new WeakMap<WebSocket, SocketMetaData>();
 type SocketMetaData = {
@@ -50,8 +51,13 @@ async function roomPlugin(app: FastifyInstance) {
     socket.on('message', async (input: Buffer) => {
       try {
         const message = getValidMessage(input, socket);
-        const handler = await getHandler(message.room);
-        await handler(socket, message);
+        if (message.type === 'identify') {
+          const uuid = await authenticateWithToken(message.JWT, 'localhost'); // TODO: hostname shouldnt be hardcoded
+          upsertSocketData(socket, uuid);
+        } else {
+          const handler = await getHandler(message.room);
+          await handler(socket, message);
+        }
       } catch (error) {
         console.error(`socket.on message error: ${error}`);
         socket.send(JSON.stringify(error));
