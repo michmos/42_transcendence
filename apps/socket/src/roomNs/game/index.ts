@@ -199,7 +199,7 @@ export default async function (
 
   // handle incoming message
   try {
-    // console.log(message);
+    console.log(message);
 
     if (message.type === 'connect') {
       const clientId =

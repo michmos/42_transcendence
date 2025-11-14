@@ -32,28 +32,36 @@ const ws = new WebSocket(url);
 
 // Force terminal window size
 // process.stdout.write('\x1b[8;50;91t');
-process.stdout.write(`\x1b[8;${WINDOW_HEIGHT + 10};${WINDOW_WIDTH}t`);
+process.stdout.write(`\x1b[8;${WINDOW_HEIGHT + 6};${WINDOW_WIDTH}t`);
 
 ws.on('open', () => {
   console.log('Connected to server');
-  ws.send(JSON.stringify({ type: 'connect', clientId }));
+  ws.send(JSON.stringify({ type: "connect", room: "game:testRoom", data: { clientId }}));
+//   ws.send(JSON.stringify({ type: 'connect', clientId }));
   enableKeyboardInput();
 });
 
 ws.on('message', (msg: WebSocket.RawData) => {
   const message = JSON.parse(msg.toString());
-  if (message.type === 'state') {
-    gameState = message;
-
-    console.clear();
-    console.log(
-      `Ball: (${message.ballX.toFixed(2)}, ${message.ballY.toFixed(2)})`
-    );
-    console.log(`Paddles: left ${message.leftY}, right ${message.rightY}`);
-    displayBoard();
-    console.log(`Time: ${formatTime(gameState.timeRemaining)} ⏱`);
-    console.log(`Score: ${message.leftScore} - ${message.rightScore}`);
+  if (message.type === 'message' && message.data.subtype === 'state') {
+	gameState = message.data.serverState;
+	console.clear();
+	displayBoard();
+    console.log(`Score: ${message.data.serverState.leftScore} - ${message.data.serverState.rightScore}`);
+	console.log(`Time: ${formatTime(gameState.timeRemaining)} ⏱`);
   }
+//   if (message.type === 'state') {
+//     gameState = message;
+
+//     console.clear();
+//     console.log(
+//       `Ball: (${message.ballX.toFixed(2)}, ${message.ballY.toFixed(2)})`
+//     );
+//     console.log(`Paddles: left ${message.leftY}, right ${message.rightY}`);
+//     displayBoard();
+//     console.log(`Time: ${formatTime(gameState.timeRemaining)} ⏱`);
+//     console.log(`Score: ${message.leftScore} - ${message.rightScore}`);
+//   }
 });
 
 function formatTime(ms: number): string {
@@ -74,14 +82,14 @@ function enableKeyboardInput() {
       process.exit();
     }
 
-    if (key.name === 'w') {
-      ws.send(JSON.stringify({ type: 'game', action: 'up' }));
+	if (key.name === 'w') {
+      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'up' }}));
     } else if (key.name === 's') {
-      ws.send(JSON.stringify({ type: 'game', action: 'down' }));
+      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'down' }}));
     } else if (key.name === 'p') {
-      ws.send(JSON.stringify({ type: 'game', action: 'pause' }));
+      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'pause' }}));
     } else if (key.name === 'r') {
-      ws.send(JSON.stringify({ type: 'game', action: 'reset' }));
+      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'reset' }}));
     }
   });
 }
