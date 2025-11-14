@@ -62,11 +62,10 @@ async function roomPlugin(app: FastifyInstance) {
   app.get('/', { websocket: true }, (unextendedSocket) => {
     const socket = unextendedSocket as WebSocket;
 
-    socket.on('open', () => {
-      decorateSocketInstance(socket);
-      socket.upsertData({ connected: true });
-      socket.join('all');
-    });
+    decorateSocketInstance(socket);
+    console.log(`new client connected`);
+    socket.upsertData({ connected: true });
+    socket.join('all');
 
     socket.on('close', () => {
       socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
