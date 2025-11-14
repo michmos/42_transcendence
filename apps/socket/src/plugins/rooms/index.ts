@@ -7,8 +7,10 @@ import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
 import { authenticateWithToken } from './authentication.js';
 
-const SocketToData = new WeakMap<WebSocket, SocketMetaData>();
-type SocketMetaData = {
+const UuidToSocket = new Map<string, WebSocket>();
+const SocketToData = new Map<WebSocket, SocketMetaData>();
+
+export type SocketMetaData = {
   uuid?: string;
   lastSeen?: Date;
   connected?: boolean;
@@ -21,18 +23,40 @@ export function decorateSocketInstance(socket: WebSocket) {
   socket.join = (name: string) => RoomManager.joinRoom(socket, name);
   socket.leave = (name: string) => RoomManager.leaveRoom(socket, name);
   socket.leaveAll = () => RoomManager.leaveAllRooms(socket);
-  socket.setData = (data: Partial<SocketMetaData>) => {
-    SocketToData.set(socket, data);
+  socket.upsertData = (overrides: Partial<SocketMetaData>) => {
+    const data = SocketToData.get(socket);
+    SocketToData.set(socket, { ...data, ...overrides });
   };
   socket.getData = () => SocketToData.get(socket);
   socket.isIn = (name: string) => RoomManager.get(name)?.has(socket) === true;
+  socket.isOnline = () => socket.getData()?.connected === true;
+}
+
+/**
+ * Relates the new socket to old connections of the same client
+ */
+function upsertSocketData(newSocket: WebSocket, uuid: string) {
+  // update uuid to socket
+  UuidToSocket.delete(uuid);
+  UuidToSocket.set(uuid, newSocket);
+
+  // add uuid
+  newSocket.upsertData({ uuid });
+
+  // remove old socket
+  const oldSocket = UuidToSocket.get(uuid);
+  if (oldSocket) {
+    SocketToData.delete(oldSocket);
+
+    // update socket in room manager
+    RoomManager.updateSocket(oldSocket, newSocket);
+  }
 }
 
 /**
  * Main room plugin; handles incoming messages and
  * routes them to the appropriate room handlers
  * @param app Fastify instance
- *
  */
 async function roomPlugin(app: FastifyInstance) {
   app.get('/', { websocket: true }, (unextendedSocket) => {
@@ -40,12 +64,12 @@ async function roomPlugin(app: FastifyInstance) {
 
     socket.on('open', () => {
       decorateSocketInstance(socket);
+      socket.upsertData({ connected: true });
       socket.join('all');
     });
 
     socket.on('close', () => {
-      socket.leaveAll();
-      // socketMetadata garbage collected since WEAKmap
+      socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
     });
 
     socket.on('message', async (input: Buffer) => {
