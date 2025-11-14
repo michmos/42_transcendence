@@ -1,4 +1,4 @@
-const SocketToRooms = new WeakMap<WebSocket, Set<Room>>();
+const SocketToRooms = new Map<WebSocket, Set<Room>>();
 const Rooms = new Map<string, Room>();
 import { type WebSocket } from 'ws';
 
@@ -48,6 +48,19 @@ class RoomManager {
   public get(roomName: string): Room | undefined {
     return Rooms.get(roomName);
   }
+
+  /**
+   * Updates the socket references in all rooms
+   */
+  public updateSocket(oldSocket: WebSocket, newSocket: WebSocket) {
+    const rooms = SocketToRooms.get(oldSocket);
+    if (!rooms) {
+      return;
+    }
+    rooms.forEach((room) => {
+      room.updateSocket(oldSocket, newSocket);
+    });
+  }
 }
 
 class Room {
@@ -65,6 +78,13 @@ class Room {
 
   public setData(data: any) {
     this.data = data;
+  }
+
+  public updateSocket(oldSocket: WebSocket, newSocket: WebSocket) {
+    if (this.clients.has(oldSocket)) {
+      this.clients.delete(oldSocket);
+      this.clients.add(newSocket);
+    }
   }
 
   /**
@@ -105,7 +125,11 @@ class Room {
   }
 
   public broadcast(message: string) {
-    this.clients.forEach((socket) => socket.send(message));
+    this.clients.forEach((socket) => {
+      if (socket.isOnline()) {
+        socket.send(message);
+      }
+    });
   }
 
   public size() {
