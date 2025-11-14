@@ -24,7 +24,7 @@ const start = async () => {
   try {
     app.register(fastifyWebsocket);
 
-    console.info('⚙️  Auto-loading plugins and api routes...');
+    console.info('⚙️  Auto-loading plugins...');
 
     // Load all plugins FIRST (especially auth plugin)
     await app.register(AutoLoad, {
