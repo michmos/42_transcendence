@@ -12,8 +12,10 @@ const SocketMessage = z.object({
 export type SocketMessage = z.infer<typeof SocketMessage>;
 
 export function getValidMessage(input: Buffer, socket: WebSocket) {
+  // parse to object
+  const json = JSON.parse(input.toString()) as SocketMessage;
   // validate against schema
-  const parsedMessage = SocketMessage.safeParse(input.toString());
+  const parsedMessage = SocketMessage.safeParse(json);
   if (!parsedMessage.success) {
     throw new Error('Invalid message format');
   }
