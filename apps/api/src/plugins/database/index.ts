@@ -10,14 +10,17 @@ declare module 'fastify' {
     db: typeof UserDatabase &
       typeof FriendshipDatabase &
       typeof MatchDatabase &
-      typeof TournamentDatabase;
+      typeof TournamentDatabase & {
+        clearAllData: () => Promise<void>;
+      };
   }
 }
 
-async function clearAllData() {
+export async function clearAllData() {
   // order important due to cascading of deletion
   await TournamentDatabase.removeAllTournaments();
   await MatchDatabase.removeAllMatches();
+  await FriendshipDatabase.deleteAllFriendRelations();
   await UserDatabase.removeAllUsers();
 }
 

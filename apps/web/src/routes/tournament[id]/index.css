@@ -1,11 +1,6 @@
-body {
-  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%) !important;
+/* Tournament page - purple gradient background only */
+/* .tournament-page {
   min-height: 100vh;
-}
-
-.tournament-page {
-  min-height: 100vh;
-  padding: 24px;
   color: white;
 }
 
@@ -15,5 +10,4 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border: 2px dashed rgba(255, 255, 255, 0.3);
   border-radius: 12px;
-}
-
+} */

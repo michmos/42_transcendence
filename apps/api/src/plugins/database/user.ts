@@ -39,7 +39,9 @@ export async function setUserMeAvatar(
 
 // ---------------- OTHER STUFF
 export async function addUser(email: string, nickname: string): Promise<User> {
-  return Database.user.create({ data: { email, nickname } });
+  return Database.user.create({
+    data: { email, nickname, email_verified: true }, // ADDED email_verified FOR TESTING APIs ONLY, SHOULD BE REMOVED FOR PRODUCTION
+  });
 }
 
 export async function getUserRole(uuid: string): Promise<string | null> {
@@ -53,7 +55,6 @@ export async function generateUniqueNickName(): Promise<string> {
     nickname = generateNickName();
   } while (await Database.user.findUnique({ where: { nickname } }));
   return nickname;
-
 }
 
 export async function upsertUser(

@@ -37,7 +37,7 @@ model User {
 
   // Authentication
   email             String      @unique
-  email_verified    Boolean?
+  email_verified    Boolean     @default(false)
   
   // Profile
   avatar            String?

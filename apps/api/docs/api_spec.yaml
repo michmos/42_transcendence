@@ -63,8 +63,7 @@ components:
 
     User:
       type: object
-      description: |
-        uuid only exposed to yourself
+      description: Full user data
       required:
         - nickname
       properties:
@@ -72,22 +71,72 @@ components:
           description: Unique encrypted user ID
           type: string
           example: 42
-        nickname:
+        createdAt:
           type: string
-          example: 'Billy'
-        avatar:
+          example: '2025-11-13T12:49:12.981Z'
+        updatedAt:
           type: string
-          example: 'https://avatar.example.com/player42.png'
-        role:
-          type: string
-          enum: [MEMBER, ADMIN]
-          example: 'MEMBER'
+          example: '2025-11-13T12:49:12.981Z'
         email:
           type: string
           example: 'example@example.com'
         email_verified:
           type: boolean
           example: true
+        avatar:
+          type: string
+          example: 'https://avatar.example.com/player42.png'
+        fullName:
+          type: string
+          example: 'Billy bibbob'
+        nickname:
+          type: string
+          example: 'Billzor'
+        role:
+          type: string
+          enum: [MEMBER, ADMIN]
+          example: 'MEMBER'
+        gamesPlayed:
+          type: integer
+          example: 10
+        gamesWon:
+          type: integer
+          example: 5
+        tournamentsPlayed:
+          type: integer
+          example: 2
+        tournamentsWon:
+          type: integer
+          example: 1
+
+    CleanedUser:
+      type: object
+      description: User's own data without unnecessary data
+      required:
+        - nickname
+      properties:
+        createdAt:
+          type: string
+          example: '2025-11-13T12:49:12.981Z'
+        email:
+          type: string
+          example: 'example@example.com'
+        email_verified:
+          type: boolean
+          example: true
+        avatar:
+          type: string
+          example: 'https://avatar.example.com/player42.png'
+        fullName:
+          type: string
+          example: 'Billy bibbob'
+        nickname:
+          type: string
+          example: 'Billzor'
+        role:
+          type: string
+          enum: [MEMBER, ADMIN]
+          example: 'MEMBER'
         gamesPlayed:
           type: integer
           example: 10
@@ -126,7 +175,7 @@ components:
           type: integer
           example: 1
 
-    FriendSummary:
+    Friend:
       type: object
       description: Schema used for looking up friends
       properties:
@@ -671,7 +720,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  CleanedUser:
+                    $ref: '#/components/schemas/CleanedUser'
+                  userFriends:
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/Friend'
+                required:
+                  - CleanedUser
+                  - userFriends
+
         '400':
           description: Bad request
           content:

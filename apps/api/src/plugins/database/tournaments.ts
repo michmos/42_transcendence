@@ -73,6 +73,20 @@ export async function getTournamentsByStatus(
   return Database.tournament.findMany({ where: { status } });
 }
 
+export async function getTournamentsByParticipant(
+  uuid: string,
+  status?: status
+): Promise<Tournament[]> {
+  return Database.tournament.findMany({
+    where: {
+      participants: {
+        some: { uuid },
+      },
+      ...(status && { status }),
+    },
+  });
+}
+
 // delete a tournament including all tournament rounds (not including the matches)
 export async function removeTournament(uuid: string): Promise<Tournament> {
   const tournament = await Database.tournament.delete({

@@ -18,7 +18,7 @@
  *
  */
 
-import { type FastifyInstance } from 'fastify';
+import { type FastifyError, type FastifyInstance } from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 
 import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
@@ -94,14 +94,16 @@ class OAuth {
     setInterval(() => this.removeExpiredStates(), 1 * 60 * 1000); // Every 1 minutes
 
     // TODO: Make this more standard someday!
-    this.ctx.app.setErrorHandler(async (error, request, reply) => {
-      // Check url to so it only responds to auth routes
-      if (request.url.startsWith('/auth')) {
-        reply.redirect(
-          `/error?error=${encodeURIComponent(error.message)}&code=${500}`
-        );
+    this.ctx.app.setErrorHandler(
+      async (error: FastifyError, request, reply) => {
+        // Check url to so it only responds to auth routes
+        if (request.url.startsWith('/auth')) {
+          reply.redirect(
+            `/error?error=${encodeURIComponent(error.message)}&code=${500}`
+          );
+        }
       }
-    });
+    );
 
     setupCallbackRoute(this.ctx);
     setupLoginRoute(this.ctx);

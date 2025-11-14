@@ -90,3 +90,7 @@ export async function deleteMultipleFriends(uuid: string) {
 export async function getAllFriendRecords(): Promise<Friendship[]> {
   return Database.friendship.findMany();
 }
+
+export async function deleteAllFriendRelations() {
+  await Database.friendship.deleteMany();
+}

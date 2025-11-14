@@ -5,11 +5,6 @@ export const routes = {
     css: () => import('./routes/index.css?inline'),
     script: () => import('./routes/index.js'),
   },
-  '/landing': {
-    html: () => import('./routes/landing/index.html?raw'),
-    css: () => import('./routes/landing/index.css?inline'),
-    script: () => import('./routes/landing/index.js'),
-  },
   '/socket': {
     html: () => import('./routes/socket/index.html?raw'),
     css: () => import('./routes/socket/index.css?inline'),
@@ -19,11 +14,6 @@ export const routes = {
     html: () => import('./routes/login/index.html?raw'),
     css: () => import('./routes/login/index.css?inline'),
     script: () => import('./routes/login/index.js'),
-  },
-  '/dashboard': {
-    html: () => import('./routes/dashboard/index.html?raw'),
-    css: () => import('./routes/dashboard/index.css?inline'),
-    script: () => import('./routes/dashboard/index.js'),
   },
   '/game': {
     html: () => import('./routes/game/index.html?raw'),
@@ -70,5 +60,11 @@ export const dynamicRoutes = [
     html: () => import('./routes/tournament[id]/index.html?raw'),
     css: () => import('./routes/tournament[id]/index.css?inline'),
     script: () => import('./routes/tournament[id]/index.js'),
+  },
+  {
+    pattern: /^\/round\/(?<roundId>[^/]+)$/,
+    html: () => import('./routes/round[roundId]/index.html?raw'),
+    css: () => import('./routes/round[roundId]/index.css?inline'),
+    script: () => import('./routes/round[roundId]/index.js'),
   },
 ];

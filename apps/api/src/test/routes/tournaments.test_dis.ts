@@ -1,39 +1,22 @@
 import { describe, test, expect, assert } from 'vitest';
-import { setUserTo, normalUser, adminUser } from '../utils.js';
+import {
+  setUserTo,
+  normalUser,
+  adminUser,
+  createValidTournament,
+  validTournamentBody,
+} from '../utils.js';
 import { app } from '../setup.js';
 import {
   status as statusEnum,
   type Tournament,
 } from 'db/generated/client/index.js';
 
-const validTournamentBody = {
-  tournamentName: 'TestTournament',
-  maxPlayers: 4,
-  minPlayers: 2,
-  lockTime: 1,
-  gameTime: 1,
-};
-
-async function createValidTournament(
-  overrides?: Partial<typeof validTournamentBody>
-) {
-  const response = await app.inject({
-    method: 'POST',
-    url: '/tournaments',
-    body: {
-      ...validTournamentBody,
-      ...overrides,
-    },
-  });
-  assert(response.statusCode === 201);
-  return (await JSON.parse(response.payload)) as Tournament;
-}
-
 describe('POST /tournaments', () => {
   setUserTo('MEMBER');
 
   test('valid settings -> 201', async () => {
-    await createValidTournament();
+    await createValidTournament(app);
   });
 
   test('valid settings: required fields only -> 201', async () => {
@@ -145,7 +128,7 @@ describe('GET /tournaments', async () => {
     // Create multiple tournaments in this test
     const createdTournaments: Tournament[] = [];
     for (let i = 0; i < 3; i++) {
-      const tournament = await createValidTournament({
+      const tournament = await createValidTournament(app, {
         tournamentName: `tournament${i}`,
       });
       createdTournaments.push(tournament);
@@ -180,7 +163,7 @@ describe('GET /tournaments', async () => {
     };
 
     // Create a tournament
-    const createdTournament = await createValidTournament();
+    const createdTournament = await createValidTournament(app);
 
     for (const [, value] of Object.entries(statusEnum)) {
       await testStatus(value);
@@ -197,7 +180,7 @@ describe('GET /tournaments', async () => {
 
   test('valid: Get tournaments with empty result for non-matching status', async () => {
     // Create a tournament (which will have status 'outstanding')
-    await createValidTournament();
+    await createValidTournament(app);
 
     // Query for 'finished' tournaments should return empty array
     const response = await app.inject({
@@ -226,7 +209,7 @@ describe('GET /tournaments/{uuid}', () => {
   setUserTo('MEMBER');
 
   test('valid: Get tournament by uuid -> 200', async () => {
-    const createdTournament = await createValidTournament();
+    const createdTournament = await createValidTournament(app);
 
     const response = await app.inject({
       method: 'GET',
@@ -245,7 +228,7 @@ describe('GET /tournaments/{uuid}', () => {
   });
 
   test('invalid: Get tournament with non-existent uuid -> 404', async () => {
-    await createValidTournament();
+    await createValidTournament(app);
 
     const response = await app.inject({
       method: 'GET',
@@ -262,7 +245,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     // user to create tournament
     setUserTo('MEMBER');
 
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     // user to request to join the tournament -- should be other user since creator is added on creation
     setUserTo('ADMIN');
@@ -293,7 +276,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     // user to create tournament
     setUserTo('MEMBER');
 
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     const response = await app.inject({
       method: 'POST',
@@ -319,7 +302,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     const maxPlayers = 4;
 
     // create tournament
-    const tournament = await createValidTournament({ maxPlayers });
+    const tournament = await createValidTournament(app, { maxPlayers });
 
     // add players up to maxPlayers - 1
     for (let i = tournament.playerCount; i < maxPlayers - 1; i++) {
@@ -355,7 +338,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     // user to create tournament
     setUserTo('MEMBER');
 
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
     // update tournament to non-outstanding
     await app.db.updateTournament({
       uuid: tournament.uuid,
@@ -375,7 +358,7 @@ describe('POST /tournaments/{uuid}/users', () => {
 
   test('valid: Admin adds specific user to tournament -> 204', async () => {
     setUserTo('ADMIN');
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     const response = await app.inject({
       method: 'POST',
@@ -389,7 +372,7 @@ describe('POST /tournaments/{uuid}/users', () => {
 
   test('invalid: Admin adds specific user to ongoing tournament -> 422', async () => {
     setUserTo('ADMIN');
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
     await app.db.updateTournament({
       uuid: tournament.uuid,
       status: statusEnum.ongoing,
@@ -407,7 +390,7 @@ describe('POST /tournaments/{uuid}/users', () => {
 
   test('invalid: Admin adds non-existent user to tournament -> 404', async () => {
     setUserTo('ADMIN');
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     const randomUserUuid = '12345678-1234-1234-1234-123456789012';
     const response = await app.inject({
@@ -422,7 +405,7 @@ describe('POST /tournaments/{uuid}/users', () => {
 
   test('invalid: non-admin adds specific user to tournament -> 403', async () => {
     setUserTo('MEMBER');
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     const response = await app.inject({
       method: 'POST',
@@ -448,7 +431,7 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
 
   test('valid: Get tournament round data as participant -> 200', async () => {
     // Create tournament and add a round
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     // Create a tournament round using the database function
     const roundData = await app.db.createTournamentRound(
@@ -472,7 +455,7 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
 
   test('valid: Get tournament round data as admin -> 200', async () => {
     setUserTo('ADMIN');
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     // Create a tournament round
     await app.db.createTournamentRound(tournament.uuid, 0, []);
@@ -496,7 +479,7 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
   });
 
   test('invalid: Get non-existent round -> 404', async () => {
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     const response = await app.inject({
       method: 'GET',
@@ -507,7 +490,7 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
 
   test('invalid: Non-participant access -> 403', async () => {
     setUserTo('ADMIN'); // Create tournament as admin
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     // Create a tournament round
     await app.db.createTournamentRound(tournament.uuid, 0, []);

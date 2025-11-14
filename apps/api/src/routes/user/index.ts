@@ -31,9 +31,9 @@ export default async function (app: FastifyInstance): Promise<void> {
       const userFriends = await app.db.getFriends(uuidSelf);
 
       // For testing :
-      console.log('/user/me - userData:', userData);
-      console.log('/user/me - cleanedUserData:', cleanedUserData);
-      console.log('/user/me - userFriends:', userFriends);
+      // console.log('/user/me - userData:', userData);
+      // console.log('/user/me - cleanedUserData:', cleanedUserData);
+      // console.log('/user/me - userFriends:', userFriends);
       console.log('/user/me - userFriends:', { cleanedUserData, userFriends });
       // End of testing
 
@@ -45,7 +45,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
   // USER SETTINGS
   app.patch<{ Body: schemas.PatchUserMeSetNicknameType }>(
-    '/user/me/nickname',
+    '/me/nickname',
     {
       schema: schemas.PatchUserMeSetNickname,
     },
@@ -74,7 +74,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   // - changing image to 1:1 and appropriate size if possible, to save storage
   // - image name changing
   // - fixing path to where image is saved, e.g. /public/profile-images/user12345
-  app.post('/user/me/avatar', async function (request, reply) {
+  app.post('/me/avatar', async function (request, reply) {
     try {
       // Getting the file and file data from request.file() and checking if file
       const file: fastifyMultipart.MultipartFile | undefined =
@@ -122,7 +122,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
   // OTHER USER
   app.get<{ Params: schemas.GetOtherUserProfileType }>(
-    '/user/:nickname',
+    '/:nickname',
     { schema: schemas.GetOtherUserProfile },
     async function (request, reply) {
       try {
