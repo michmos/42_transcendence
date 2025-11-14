@@ -68,10 +68,12 @@ async function roomPlugin(app: FastifyInstance) {
     socket.join('all');
 
     socket.on('close', () => {
+      console.log(`[${socket.getData()?.uuid}]: connection closed`);
       socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
     });
 
     socket.on('message', async (input: Buffer) => {
+      console.log(`[${socket.getData()?.uuid}]: new message`);
       try {
         const message = getValidMessage(input, socket);
         if (message.type === 'identify') {
