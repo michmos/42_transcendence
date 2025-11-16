@@ -28,7 +28,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       const userData = await app.db.getUserMe(uuidSelf);
       const cleanedUserData = cleanSelfUserData(userData);
-      const userFriends = await app.db.getFriends(uuidSelf);
+      const userFriends = await app.db.getFriendsMe(uuidSelf);
 
       // For testing :
       // console.log('/user/me - userData:', userData);
@@ -54,6 +54,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         const uuidSelf: string = request.user.uuid;
 
         const { newNickname } = request.body as { newNickname: string };
+
         const existingUser = await app.db.getUser(newNickname);
         if (existingUser) {
           return reply.code(409).send({
@@ -132,6 +133,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         if (!user) return reply.code(404).send({ Error: 'user not found' });
 
         const cleanedUser = cleanOtherUserData(user);
+        console.log('Cleaned Other user data:', cleanedUser); // FOR TESTING ONLY
         return reply.code(200).send(cleanedUser);
       } catch (error) {
         return reply.code(500).send({ Error: `${error}` });

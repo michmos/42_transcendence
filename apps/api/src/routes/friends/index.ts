@@ -10,7 +10,7 @@ import * as schemas from './friendshipValidationSchemas.js';
 export default async function (app: FastifyInstance): Promise<void> {
   // Send friend request to another user
   app.post<{ Params: schemas.PostAddFriendType }>(
-    '/friends/:nickname',
+    '/:nickname',
     {
       schema: schemas.PostAddFriend,
     },
@@ -21,12 +21,18 @@ export default async function (app: FastifyInstance): Promise<void> {
         if (!uuidOther)
           return reply.code(404).send({ Error: 'user not found' });
 
-        const uuidSelf: string = request.user?.uuid as string;
+        const uuidSelf: string = request.user.uuid;
 
         const friendRecord = await app.db.findFriendRecord(uuidSelf, uuidOther);
-        if (friendRecord)
+        if (
+          friendRecord &&
+          friendRecord.friendBId === uuidSelf &&
+          friendRecord.state === friendshipState.REQUESTED
+        )
+          return reply.code(200).send({ message: 'Friend accepted' });
+        else if (friendRecord)
           return reply.code(409).send({
-            Error: 'Conflict - Friendship or pending request already exists',
+            Error: 'Friendship request already pending, accepted or rejected',
           });
 
         const result = await app.db.addFriend(uuidSelf, uuidOther);
@@ -45,7 +51,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     Params: schemas.PatchFriendRequestParams;
     Body: schemas.PatchFriendRequestBody;
   }>(
-    '/friends/:nickname',
+    '/:nickname',
     {
       schema: schemas.PatchFriendRequest,
     },
@@ -67,34 +73,43 @@ export default async function (app: FastifyInstance): Promise<void> {
             .code(404)
             .send({ Error: 'Friendship request not found' });
 
+        if (uuidSelf === friendRecord.friendAId)
+          return reply.code(409).send({
+            Error:
+              'Cannot accept or reject friendship request sent by yourself',
+          });
+
         if (
-          friendRecord &&
-          (friendRecord.state === friendshipState.ACCEPTED ||
-            friendRecord.state === friendshipState.REJECTED)
+          friendRecord.state === friendshipState.ACCEPTED ||
+          friendRecord.state === friendshipState.REJECTED
         )
           return reply
-            .code(400)
+            .code(409)
             .send({ Error: 'Friendship state already ACCEPTED or REJECTED' });
 
         const { accept } = request.body;
-        let result: Friendship;
+        let newFriendshipState: Friendship;
         if (accept === true)
-          result = await modifyFriendsState(
+          newFriendshipState = await modifyFriendsState(
             friendRecord.uuid,
             friendshipState.ACCEPTED
           );
         else
-          result = await modifyFriendsState(
+          newFriendshipState = await modifyFriendsState(
             friendRecord.uuid,
             friendshipState.REJECTED
           );
-        if (!result)
+        if (!newFriendshipState)
           throw new Error(`Failed resolving friend request from ${nickname}`);
 
         if (accept === true)
-          return reply.code(200).send({ message: 'Friend request accepted' });
+          return reply
+            .code(200)
+            .send({ message: 'Friendship request accepted' });
         else
-          return reply.code(200).send({ message: 'Friend request rejected' });
+          return reply
+            .code(200)
+            .send({ message: 'Friendship request rejected' });
       } catch (error) {
         return reply.code(500).send({ Error: `${error}` });
       }
@@ -103,7 +118,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
   // Delete a friend request, remove user from rejected friend request, remove friend
   app.delete<{ Params: schemas.DeleteFriendType }>(
-    '/friends/:nickname',
+    '/:nickname',
     { schema: schemas.DeleteFriend },
     async function (request, reply) {
       try {
@@ -119,12 +134,12 @@ export default async function (app: FastifyInstance): Promise<void> {
 
         const friendRecord = await findFriendRecord(uuidSelf, uuidOther);
         if (!friendRecord)
-          return reply.code(400).send({ Error: 'No relation with other user' });
+          return reply.code(404).send({ Error: 'No relation with other user' });
         else if (
           uuidSelf === friendRecord.friendAId &&
           friendRecord.state === friendshipState.REJECTED
         )
-          return reply.code(400).send({
+          return reply.code(409).send({
             Error: 'Cannot delete REJECTED friendship record as requester',
           });
 

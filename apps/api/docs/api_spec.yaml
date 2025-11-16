@@ -745,67 +745,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /user/me/addFriend:
-    post:
-      summary: On the dashboard look for a user by nickname and add as a friend via a text field
-      tags:
-        - user
-      security:
-        - bearerAuth: []
-      requestBody:
-        description: |
-          Need to send the name of the user we want to add as a friend with the request, so we can check if that user exists
+# PROBABLY NOT NEEDED ANYMORE BECAUSE 'POST /friend/:nickname' down below
+  # /user/me/addFriend:
+  #   post:
+  #     summary: On the dashboard look for a user by nickname and add as a friend via a text field
+  #     tags:
+  #       - user
+  #     security:
+  #       - bearerAuth: []
+  #     requestBody:
+  #       description: |
+  #         Need to send the name of the user we want to add as a friend with the request, so we can check if that user exists
 
-          We then check if we already have a record with them in the database, and then:
-            if not, then we create a record in the friends table with the requester UUID in friendA, and the requested user in friendB, with state REQUESTED
-            If yes, send code 409 (conflict)
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                nickname:
-                  type: string
-                  minLength: 3 # Min and max length could be bigger or smaller
-                  maxLength: 30
-              required:
-                - nickname
-      responses:
-        '200':
-          description: Requesting friend was succesful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  addedMessage:
-                    type: string
-                    example: User was added succesfully
-        '400':
-          description: Bad request - Invalid nickname or input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: user not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Conflict - Already a record in the database, no matter if the state is REQUESTED, ACCEPTED or DENIED
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+  #         We then check if we already have a record with them in the database, and then:
+  #           if not, then we create a record in the friends table with the requester UUID in friendA, and the requested user in friendB, with state REQUESTED
+  #           If yes, send code 409 (conflict)
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               nickname:
+  #                 type: string
+  #                 minLength: 3 # Min and max length could be bigger or smaller
+  #                 maxLength: 30
+  #             required:
+  #               - nickname
+  #     responses:
+  #       '200':
+  #         description: Requesting friend was succesful
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 addedMessage:
+  #                   type: string
+  #                   example: User was added succesfully
+  #       '400':
+  #         description: Bad request - Invalid nickname or input
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Error'
+  #       '404':
+  #         description: user not found
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Error'
+  #       '409':
+  #         description: Conflict - Already a record in the database, no matter if the state is REQUESTED, ACCEPTED or DENIED
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Error'
+  #       '500':
+  #         description: Internal server error
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Error'
 
   /user/me/nickname:
     patch:
@@ -944,6 +945,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  # Should probably add a /friends to get the full list of friendship relations
+  # /friends:
+  #   get:
+  #     summary: Get full friendship relations list (requested, accepted & rejected)
+
+    
 
   /friends/:nickname:
     post: # Maybe make this a separate API link
@@ -1026,9 +1033,6 @@ paths:
             schema:
               type: object
               properties:
-                nickname:
-                  type: string
-                  example: Billy
                 accept:
                   type: boolean
                   description: true = accept, false = deny

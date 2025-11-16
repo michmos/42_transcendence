@@ -43,16 +43,21 @@ export async function modifyFriendsState(
   });
 }
 
-export async function getFriends(uuid: string): Promise<object[]> {
+export async function getFriendsMe(uuid: string): Promise<object[]> {
   const foundRelations = await Database.friendship.findMany({
     where: {
-      AND: [
+      OR: [
         {
-          OR: [{ friendAId: uuid }, { friendBId: uuid }],
+          AND: [
+            {
+              OR: [{ friendAId: uuid }, { friendBId: uuid }],
+            },
+            {
+              OR: [{ state: 'ACCEPTED' }, { state: 'REQUESTED' }],
+            },
+          ],
         },
-        {
-          OR: [{ state: 'ACCEPTED' }, { state: 'REQUESTED' }],
-        },
+        { AND: [{ friendBId: uuid }, { state: 'REJECTED' }] },
       ],
     },
     select: {
@@ -65,8 +70,9 @@ export async function getFriends(uuid: string): Promise<object[]> {
   });
 
   const friendsList = foundRelations.map((f) => {
+    const isRequester = f.friendAId === uuid;
     const friend = f.friendAId === uuid ? f.friendB : f.friendA;
-    return { ...friend, state: f.state };
+    return { ...friend, state: f.state, isRequester };
   });
 
   return friendsList;
@@ -89,6 +95,14 @@ export async function deleteMultipleFriends(uuid: string) {
 
 export async function getAllFriendRecords(): Promise<Friendship[]> {
   return Database.friendship.findMany();
+}
+
+export async function getUserFriendRecords(
+  uuid: string
+): Promise<Friendship[]> {
+  return Database.friendship.findMany({
+    where: { OR: [{ friendAId: uuid }, { friendBId: uuid }] },
+  });
 }
 
 export async function deleteAllFriendRelations() {
