@@ -4,20 +4,11 @@ import { type WebSocket } from 'ws';
 /**
  * Schema for incoming socket messages
  */
-const SocketNormalMessage = z.object({
+export const SocketMessage = z.object({
   type: z.enum(['join-room', 'leave-room', 'message']),
   room: z.string().regex(/^[a-zA-Z0-9]+(:[a-zA-Z0-9_-]+)?$/),
   data: z.any().optional(),
 });
-const SocketIdentificationMessage = z.object({
-  type: z.literal('identify'),
-  JWT: z.string().regex(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/),
-});
-const SocketMessage = z.discriminatedUnion('type', [
-  SocketNormalMessage,
-  SocketIdentificationMessage,
-]);
-
 export type SocketMessage = z.infer<typeof SocketMessage>;
 
 export function getValidMessage(input: Buffer, socket: WebSocket) {
@@ -26,10 +17,12 @@ export function getValidMessage(input: Buffer, socket: WebSocket) {
   // validate against schema
   const parsedMessage = SocketMessage.safeParse(json);
   if (!parsedMessage.success) {
-    throw new Error('Invalid message format');
+    throw new Error(
+      'Invalid message format: ' + z.prettifyError(parsedMessage.error)
+    );
   }
   const message = parsedMessage.data;
-  if (message.type !== 'identify' && !socket.getData()?.uuid) {
+  if (!socket.getData()?.uuid) {
     throw new Error(
       'Unauthorized access attempt: socket is not identified yet'
     );

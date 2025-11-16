@@ -1,25 +1,42 @@
+function getSessionCookie(cookieString: string): string | null {
+  cookieString = `; ${cookieString}`;
+  const [, remainder] = cookieString.split('; session=');
+  if (!remainder) {
+    return null;
+  }
+  return remainder.split(';')[0] ?? null;
+}
+
 /**
  * authenticate token
- * @token: jwt token
+ * @cookieString: cookie string
  * @hostname: hostname
  *
  * @return: uuid of user
  * @throw on invalid token provided
  */
-export async function authenticateWithToken(
-  token: string,
+export async function authenticateClient(
+  cookieString: string,
   hostname: string
 ): Promise<string> {
-  const data = await fetch(`http://${hostname}/api/auth/session`, {
+  console.log(`Authenticating client...`);
+  const sessionCookie = getSessionCookie(cookieString);
+  if (!sessionCookie) {
+    throw new Error(`Authentication failed: No session cookie`);
+  }
+  const response = await fetch(`http://${hostname}/api/auth/session`, {
     method: 'GET',
     headers: {
-      Cookie: `session=${token}`,
+      Cookie: `session=${sessionCookie}`,
       credentials: 'include',
     },
   });
-  const user = await data.json();
-  if (!user || !user.uuid) {
-    throw new Error('Authentication failed: No user data received');
+  if (!response.ok) {
+    throw new Error(
+      `Authentication failed: ${response.status} ${response.statusText}`
+    );
   }
+  const user = await response.json();
+  console.log(`User authenticated: ${user.uuid}`);
   return user.uuid;
 }

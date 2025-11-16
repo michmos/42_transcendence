@@ -1,11 +1,12 @@
 import { type WebSocket } from 'ws';
+import { type FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { type FastifyInstance } from 'fastify';
 import RoomManager from './RoomManager/index.js';
 import getHandler from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
-import { authenticateWithToken } from './authentication.js';
+import { authenticateClient } from './authentication.js';
 
 const UuidToSocket = new Map<string, WebSocket>();
 const SocketToData = new Map<WebSocket, SocketMetaData>();
@@ -35,14 +36,7 @@ export function decorateSocketInstance(socket: WebSocket) {
 /**
  * Relates the new socket to old connections of the same client
  */
-function upsertSocketData(newSocket: WebSocket, uuid: string) {
-  // update uuid to socket
-  UuidToSocket.delete(uuid);
-  UuidToSocket.set(uuid, newSocket);
-
-  // add uuid
-  newSocket.upsertData({ uuid });
-
+function upsertClientConnectionData(newSocket: WebSocket, uuid: string) {
   // remove old socket
   const oldSocket = UuidToSocket.get(uuid);
   if (oldSocket) {
@@ -51,6 +45,12 @@ function upsertSocketData(newSocket: WebSocket, uuid: string) {
     // update socket in room manager
     RoomManager.updateSocket(oldSocket, newSocket);
   }
+
+  // update UuidToSocket
+  UuidToSocket.set(uuid, newSocket);
+
+  // add uuid
+  newSocket.upsertData({ uuid });
 }
 
 /**
@@ -59,36 +59,52 @@ function upsertSocketData(newSocket: WebSocket, uuid: string) {
  * @param app Fastify instance
  */
 async function roomPlugin(app: FastifyInstance) {
-  app.get('/', { websocket: true }, (unextendedSocket) => {
-    const socket = unextendedSocket as WebSocket;
+  app.get(
+    '/',
+    { websocket: true },
+    async (unextendedSocket, request: FastifyRequest) => {
+      const socket = unextendedSocket as WebSocket;
 
-    decorateSocketInstance(socket);
-    console.log(`new client connected`);
-    socket.upsertData({ connected: true });
-    socket.join('all');
+      // on open
+      console.log(`new client connected`);
+      decorateSocketInstance(socket);
+      socket.upsertData({ connected: true });
+      socket.join('all');
 
-    socket.on('close', () => {
-      console.log(`[${socket.getData()?.uuid}]: connection closed`);
-      socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
-    });
+      socket.on('close', () => {
+        console.log(`[${socket.getData()?.uuid}]: connection closed`);
+        socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
+      });
 
-    socket.on('message', async (input: Buffer) => {
-      console.log(`[${socket.getData()?.uuid}]: new message`);
-      try {
-        const message = getValidMessage(input, socket);
-        if (message.type === 'identify') {
-          const uuid = await authenticateWithToken(message.JWT, 'localhost'); // TODO: hostname shouldnt be hardcoded
-          upsertSocketData(socket, uuid);
-        } else {
+      socket.on('message', async (input: Buffer) => {
+        console.log(`[${socket.getData()?.uuid}]: new message`);
+        try {
+          const message = getValidMessage(input, socket);
           const handler = await getHandler(message.room);
           await handler(socket, message);
+        } catch (error) {
+          console.error(
+            `[${socket.getData()?.uuid}]: error on message: ${error}`
+          );
+          socket.send(JSON.stringify(error));
         }
-      } catch (error) {
-        console.error(`socket.on message error: ${error}`);
-        socket.send(JSON.stringify(error));
+      });
+
+      // perform async work after registering event handlers
+      // to not drop messages
+      if (request.headers.cookie) {
+        try {
+          const uuid = await authenticateClient(
+            request.headers.cookie,
+            'localhost:5173' // TODO: hardcoded - should be app.hostname or sth
+          );
+          upsertClientConnectionData(socket, uuid);
+        } catch (error) {
+          console.error(`Authentication error: ${error}`);
+        }
       }
-    });
-  });
+    }
+  );
 }
 
 export default fp(roomPlugin, {
