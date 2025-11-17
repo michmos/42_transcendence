@@ -463,8 +463,12 @@ paths:
                   format: uuid
 
       responses:
-        '204':
+        '200':
           description: User added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
         '401':
           description: Missing or invalid auth
           content:
