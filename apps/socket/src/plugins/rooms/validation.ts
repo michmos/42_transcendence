@@ -22,11 +22,6 @@ export function getValidMessage(input: Buffer, socket: WebSocket) {
     );
   }
   const message = parsedMessage.data;
-  if (!socket.getData()?.uuid) {
-    throw new Error(
-      'Unauthorized access attempt: socket is not identified yet'
-    );
-  }
   if (
     (message.type === 'message' || message.type === 'leave-room') &&
     !socket.isInRoom(message.room)

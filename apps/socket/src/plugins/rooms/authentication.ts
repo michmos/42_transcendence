@@ -1,3 +1,5 @@
+import WebSocket from 'ws';
+
 function getSessionCookie(cookieString: string): string | null {
   cookieString = `; ${cookieString}`;
   const [, remainder] = cookieString.split('; session=');
@@ -5,6 +7,14 @@ function getSessionCookie(cookieString: string): string | null {
     return null;
   }
   return remainder.split(';')[0] ?? null;
+}
+
+export function checkAuthentication(socket: WebSocket) {
+  if (!socket.getData()?.uuid) {
+    throw new Error(
+      'Unauthorized access attempt: socket is not identified yet'
+    );
+  }
 }
 
 /**
