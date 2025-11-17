@@ -29,7 +29,7 @@ export function getValidMessage(input: Buffer, socket: WebSocket) {
   }
   if (
     (message.type === 'message' || message.type === 'leave-room') &&
-    !socket.isIn(message.room)
+    !socket.isInRoom(message.room)
   ) {
     throw new Error(
       `Unauthorized access attempt: type \'${message.type}\' can only be performed in rooms the user is part of`

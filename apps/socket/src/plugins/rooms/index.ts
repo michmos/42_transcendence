@@ -29,7 +29,8 @@ export function decorateSocketInstance(socket: WebSocket) {
     SocketToData.set(socket, { ...data, ...overrides });
   };
   socket.getData = () => SocketToData.get(socket);
-  socket.isIn = (name: string) => RoomManager.get(name)?.has(socket) === true;
+  socket.isInRoom = (name: string) =>
+    RoomManager.get(name)?.has(socket) === true;
   socket.isOnline = () => socket.getData()?.connected === true;
 }
 

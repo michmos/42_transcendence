@@ -9,7 +9,7 @@ declare module 'ws' {
     leaveAll(): void;
     upsertData(overrides: Partial<SocketMetaData>): void;
     getData(): SocketMetaData | undefined;
-    isIn(roomName: string): boolean;
+    isInRoom(roomName: string): boolean;
     isOnline(): boolean;
   }
 }
