@@ -426,6 +426,79 @@ describe('POST /tournaments/{uuid}/users', () => {
   });
 });
 
+describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
+  test('valid: remove yourself from tournament -> 200', async () => {
+    const tournament = await createValidTournament();
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+    });
+    expect(response.statusCode).toBe(200);
+  });
+  test('valid: remove sb else from tournament as Admin -> 200', async () => {
+    const tournament = await createValidTournament();
+
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+    });
+    expect(response.statusCode).toBe(200);
+  });
+  test('invalid: remove yourself from ongoing tournament as Member -> 422', async () => {
+    const tournament = await createValidTournament();
+    await app.db.updateTournament({ uuid: tournament.uuid, status: 'ongoing' });
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+    });
+    expect(response.statusCode).toBe(422);
+  });
+  test('invalid: remove sb else from ongoing tournament as Admin -> 422', async () => {
+    const tournament = await createValidTournament();
+    await app.db.updateTournament({ uuid: tournament.uuid, status: 'ongoing' });
+
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+    });
+    expect(response.statusCode).toBe(422);
+  });
+  test('invalid: remove sb else from tournament as Member -> 403', async () => {
+    setUserTo('ADMIN');
+    const tournament = await createValidTournament();
+
+    setUserTo('MEMBER');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/tournaments/${tournament.uuid}/users/${adminUser.uuid}`,
+    });
+    expect(response.statusCode).toBe(403);
+  });
+  test('invalid: remove yourself from non-existent tournament -> 404', async () => {
+    await createValidTournament();
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/tournaments/invalid-uuid/users/${normalUser.uuid}`,
+    });
+    expect(response.statusCode).toBe(404);
+  });
+  test('invalid: remove non-existent user from tournament as Admin -> 404', async () => {
+    const tournament = await createValidTournament();
+
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/tournaments/${tournament.uuid}/users/invalid-user-uuid`,
+    });
+    expect(response.statusCode).toBe(404);
+  });
+});
+
 describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
   setUserTo('MEMBER');
 
