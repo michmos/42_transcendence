@@ -60,11 +60,12 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.addUser,
       preHandler: async (request, reply) => {
-        if (!(await isOpenTournament(request.params.uuid, app, reply))) return;
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
       },
     },
     async function (request, reply) {
+      if (!(await isOpenTournament(request.params.uuid, app, reply))) return;
+
       const userUuid = request.body.uuid || getUuid(request);
       // add user
       let tournamentWithUser;
@@ -88,6 +89,45 @@ export default async function (app: FastifyInstance): Promise<void> {
         });
       }
       return reply.status(200).send(tournamentWithUser);
+    }
+  );
+
+  app.delete<{ Params: schemas.removeUserParams }>(
+    '/:tournamentUuid/users/:userUuid',
+    {
+      schema: schemas.removeUser,
+      preHandler: async (request, reply) => {
+        if (
+          request.params.userUuid !== getUuid(request) &&
+          !isAdmin(request, reply)
+        )
+          return;
+      },
+    },
+    async function (request, reply) {
+      if (!(await isOpenTournament(request.params.tournamentUuid, app, reply)))
+        return;
+
+      if (!(await app.db.getUser(request.params.userUuid))) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+
+      if (
+        !(await app.db.participatesInTournament(
+          request.params.userUuid,
+          request.params.tournamentUuid
+        ))
+      ) {
+        return reply
+          .status(404)
+          .send({ error: 'User does not participate in tournament' });
+      }
+
+      const tournament = await app.db.removeUserFromTournament(
+        request.params.userUuid,
+        request.params.tournamentUuid
+      );
+      return reply.status(200).send(tournament);
     }
   );
 

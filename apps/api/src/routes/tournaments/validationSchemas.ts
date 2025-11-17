@@ -50,6 +50,15 @@ export const addUser = {
 export type addUserParams = Static<typeof addUser.params>;
 export type addUserBody = Static<typeof addUser.body>;
 
+// DELETE /tournaments/:tournamentId/users/:userId
+export const removeUser = {
+  params: Type.Object({
+    tournamentUuid: Type.String(),
+    userUuid: Type.String(),
+  }),
+};
+export type removeUserParams = Static<typeof removeUser.params>;
+
 // GET /tournaments/:uuid/rounds/:roundIndex
 export const getTournamentRound = {
   params: Type.Object({

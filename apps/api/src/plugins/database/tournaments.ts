@@ -59,6 +59,30 @@ export async function addUserToTournament(
   });
 }
 
+export async function removeUserFromTournament(
+  userId: string,
+  tournamentId: string
+): Promise<Tournament> {
+  return Database.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({
+      where: {
+        uuid: userId,
+        tournaments: { some: { uuid: tournamentId } },
+      },
+    });
+    const decrementValue = user ? 1 : 0;
+    return tx.tournament.update({
+      where: { uuid: tournamentId },
+      data: {
+        playerCount: { decrement: decrementValue },
+        participants: {
+          disconnect: { uuid: userId },
+        },
+      },
+    });
+  });
+}
+
 export async function getAllTournaments(): Promise<Tournament[]> {
   return Database.tournament.findMany();
 }
