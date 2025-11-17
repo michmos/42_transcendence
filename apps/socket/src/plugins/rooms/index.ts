@@ -34,6 +34,9 @@ export function decorateSocketInstance(socket: WebSocket) {
   socket.isInRoom = (name: string) =>
     RoomManager.get(name)?.has(socket) === true;
   socket.isOnline = () => socket.getData()?.connected === true;
+  socket.sendSuccess = () => socket.send(JSON.stringify({ status: 'success' }));
+  socket.sendError = (message: string = 'Error occurred') =>
+    socket.send(JSON.stringify({ status: 'error', message }));
 }
 
 /**

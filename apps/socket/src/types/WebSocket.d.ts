@@ -12,5 +12,7 @@ declare module 'ws' {
     getData(): SocketMetaData | undefined;
     isInRoom(roomName: string): boolean;
     isOnline(): boolean;
+    sendSuccess(): void;
+    sendError(message?: string): void;
   }
 }
