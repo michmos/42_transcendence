@@ -7,10 +7,11 @@
 Each receiving socket message should have the following structure:
 
 ```json
+// normal message
 {
   "type": "join-room" | 'leave-room' | 'message'    // The message type
   "room": "string",                                 // The room identifier
-  "data"?: {                                       // The payload data
+  "data"?: {                                      // The payload data
     // event-specific data
   }
 }
@@ -22,18 +23,24 @@ Incoming messages will be checked for that structure and rejected otherwise
 
 Rooms can have all sorts of names since we might want to create many (e.g. a separate room for each match)
 But somewhere the logic needs to be handled -> this is where room namespaces come into play
-A room namespace is a logical grouping of rooms that share the same handling logic.
+A room namespace is a logical group of rooms that share the same handling logic.
 
 So we will have a game namespace for all game-related rooms, a tournament namespace for all tournament-related rooms, etc.
-_The namespace is part of the room name, e.g. "game:<someGameUuid>" or "tournament:<someTournamentUuid>"_
+_The namespace is part of the room name, e.g. "game:<someGameUuid>" or "tournament:<someTournamentUuid>" (where game and tournament are the respective namespace)_
 
-When a new message is received, the namespace is extracted from the room name and the corresponding handler is invoked.
+When a new message is received, the namespace is extracted from the room name and the corresponding handler is invoked. (Namespace and handler is thus kind of interchangable)
+
 Each namespace handler is responsible for:
 
 - Validating if the room exists (and how to handle if not)
-- Validating if the user has access to the room (e.g. message to a room that the user is not part of)
   (see further down)
 - Handling the message according to its type
+
+What is already done preHandler:
+
+- Validate message
+  - against type (see defined above)
+  - messages of type 'leave-room' or 'message' are rejected if the socket is not part of the defined room
 
 ## Usage
 
@@ -62,6 +69,8 @@ To facilitate room management, the WebSocket object has been extended with the f
   socket.leaveAll(); // leave all rooms
   socket.setData(data: any) // attach metadata to the socket
   socket.getData(); // retrieve metadata from the socket
+  socket.isInRoom(name: string); boolean;
+  socket.isOnline(): boolean;
 
 ```
 
@@ -84,7 +93,4 @@ The RoomManager is a singleton that should be used to all room-related operation
 
 ## TODOs
 
-- integrate existing game logic
-  - extract common logic
-
-* error management
+- extract everything inside package maybe?
