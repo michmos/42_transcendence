@@ -87,7 +87,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           status: statusEnum.ongoing,
         });
       }
-      return reply.status(204).send(tournamentWithUser);
+      return reply.status(200).send(tournamentWithUser);
     }
   );
 

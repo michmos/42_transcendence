@@ -241,7 +241,7 @@ describe('GET /tournaments/{uuid}', () => {
 describe('POST /tournaments/{uuid}/users', () => {
   setUserTo('MEMBER');
 
-  test('valid: Add yourself to tournament -> 204', async () => {
+  test('valid: Add yourself to tournament -> 200', async () => {
     // user to create tournament
     setUserTo('MEMBER');
 
@@ -255,7 +255,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {},
     });
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(200);
 
     // Verify the user was actually added by checking
     // the tournament's player count and participants list
@@ -272,7 +272,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     expect(isParticipant).toBe(true);
   });
 
-  test('valid: Add yourself to tournament that you created (again) -> 204', async () => {
+  test('valid: Add yourself to tournament that you created (again) -> 200', async () => {
     // user to create tournament
     setUserTo('MEMBER');
 
@@ -283,7 +283,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {},
     });
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(200);
 
     // Verify the no further user was added
     const getTournamentResponse = await app.inject({
@@ -323,7 +323,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {},
     });
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(200);
 
     // Verify that tournament status changed and matchmaking was done
     const updatedTournament = await app.db.getTournament(tournament.uuid);
@@ -334,7 +334,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     expect(updatedTournament.numberOfRounds).toBe(tournament.maxPlayers - 1);
   });
 
-  test('invalid: join non-outstanding tournament -> 204', async () => {
+  test('invalid: join non-outstanding tournament -> 422', async () => {
     // user to create tournament
     setUserTo('MEMBER');
 
@@ -356,7 +356,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     expect(response.statusCode).toBe(422);
   });
 
-  test('valid: Admin adds specific user to tournament -> 204', async () => {
+  test('valid: Admin adds specific user to tournament -> 200', async () => {
     setUserTo('ADMIN');
     const tournament = await createValidTournament(app);
 
@@ -367,7 +367,7 @@ describe('POST /tournaments/{uuid}/users', () => {
         uuid: normalUser.uuid,
       },
     });
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(200);
   });
 
   test('invalid: Admin adds specific user to ongoing tournament -> 422', async () => {
