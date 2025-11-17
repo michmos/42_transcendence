@@ -7,7 +7,7 @@ import path from 'path';
  */
 async function loadRoomHandlers() {
   const __dirname = path.dirname(new URL(import.meta.url).pathname);
-  const roomsDir = path.resolve(__dirname, '../../roomNs');
+  const roomsDir = path.resolve(__dirname, '../../roomHandlers/');
   const rooms = fs.readdirSync(roomsDir);
   const roomHandlers: Record<string, Function> = {};
 
@@ -32,12 +32,12 @@ export default async function getHandler(room: string) {
     roomHandlers = await loadRoomHandlers();
   }
 
-  // roomNamespace can't be undefined since zod validation ensures it matches the regex
-  const roomNamespace = room.split(':')[0] as string;
-  const handler = roomHandlers[roomNamespace];
+  // handlerName can't be undefined since zod validation ensures it matches the regex
+  const handlerName = room.split(':')[0] as string;
+  const handler = roomHandlers[handlerName];
   if (!handler) {
     throw new Error(
-      `getHandler: Invalid room namespace provided \'${roomNamespace}\': no handler found for this namespace`
+      `getHandler: Invalid handler name provided: \'${handlerName}\': not found`
     );
   }
   return handler;
