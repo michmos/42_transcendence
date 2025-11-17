@@ -6,7 +6,7 @@ import RoomManager from './RoomManager/index.js';
 import getHandler from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
-import { authenticateClient } from './authentication.js';
+import { authenticateClient, checkAuthentication } from './authentication.js';
 
 const UuidToSocket = new Map<string, WebSocket>();
 const SocketToData = new Map<WebSocket, SocketMetaData>();
@@ -85,6 +85,7 @@ async function roomPlugin(app: FastifyInstance) {
       socket.on('message', async (input: Buffer) => {
         console.log(`[${socket.getData()?.uuid}]: new message`);
         try {
+          checkAuthentication(socket);
           const message = getValidMessage(input, socket);
           const handler = await getHandler(message.room);
           await handler(socket, message);
@@ -92,7 +93,7 @@ async function roomPlugin(app: FastifyInstance) {
           console.error(
             `[${socket.getData()?.uuid}]: error on message: ${error}`
           );
-          socket.send(JSON.stringify(error));
+          socket.sendError(JSON.stringify(error));
         }
       });
 
