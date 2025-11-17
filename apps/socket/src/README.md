@@ -22,15 +22,24 @@ Incoming messages will be checked for that structure and rejected otherwise
 ### Room structure
 
 Rooms can have all sorts of names since we might want to create many (e.g. a separate room for each match)
-But somewhere the logic needs to be handled -> this is where room namespaces come into play
-A room namespace is a logical group of rooms that share the same handling logic.
+But somewhere the logic needs to be handled -> this is where handlers come into play
+Each room name needs to follow the following structure:
 
-So we will have a game namespace for all game-related rooms, a tournament namespace for all tournament-related rooms, etc.
-_The namespace is part of the room name, e.g. "game:<someGameUuid>" or "tournament:<someTournamentUuid>" (where game and tournament are the respective namespace)_
+```
+room: <handlerName>:<extension>
 
-When a new message is received, the namespace is extracted from the room name and the corresponding handler is invoked. (Namespace and handler is thus kind of interchangable)
+//e.g.
+room: tournament:main
+room: tournament:c75f7c66-e858-47d6-bb82-7ea5547c800c
+room: match:main
+room: match:d13f7c68-e858-27d1-bb82-7333444c8003
+```
 
-Each namespace handler is responsible for:
+So the room name specifies the handler!
+
+When a new message is received, the handler name is extracted from the room name and the corresponding handler is invoked.
+
+Each handler is responsible for:
 
 - Validating if the room exists (and how to handle if not)
   (see further down)
@@ -44,9 +53,10 @@ What is already done preHandler:
 
 ## Usage
 
-### Creating a new namespace
+### Creating a new handler
 
-1. add a directory under `src/sockets/roomNs/` with the namespace name
+1. add a directory under `src/sockets/roomHandlers/` with the handler name
+   _! ATTENTION: this is the name that will be used to map the handler_
 2. add your logic
    _important_: there must be an `index.ts` file with a default export of the following type:
    ```ts
@@ -55,9 +65,9 @@ What is already done preHandler:
      message: SocketMessage
    ): Promise<void> {
    ```
-   this function will be called for every message in that namespace and will be given the socket and the message
+   this function will be called for every message that specifies that handler and will be given the socket and the message
 
-That's all you need to do! The system will automatically pick up the new namespace and route messages accordingly.
+That's all you need to do! The system will automatically pick up the new handler and route messages accordingly.
 
 ### extended socket API
 
