@@ -24,9 +24,11 @@ export function decorateSocketInstance(socket: WebSocket) {
   socket.join = (name: string) => RoomManager.joinRoom(socket, name);
   socket.leave = (name: string) => RoomManager.leaveRoom(socket, name);
   socket.leaveAll = () => RoomManager.leaveAllRooms(socket);
-  socket.upsertData = (overrides: Partial<SocketMetaData>) => {
+  socket.upsertData = (overrides: Partial<SocketMetaData>): SocketMetaData => {
     const data = SocketToData.get(socket);
-    SocketToData.set(socket, { ...data, ...overrides });
+    const newData = { ...data, ...overrides };
+    SocketToData.set(socket, newData);
+    return newData;
   };
   socket.getData = () => SocketToData.get(socket);
   socket.isInRoom = (name: string) =>

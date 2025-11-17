@@ -13,10 +13,11 @@ class RoomManager {
   public joinRoom(socket: WebSocket, roomName: string) {
     let room = Rooms.get(roomName);
     if (!room) {
-      Rooms.set(roomName, new Room(roomName));
-      room = Rooms.get(roomName);
+      room = new Room(roomName);
+      Rooms.set(roomName, room);
     }
-    room!.join(socket);
+    room.join(socket);
+    return room;
   }
 
   /**
@@ -35,6 +36,7 @@ class RoomManager {
     if (room.size() === 0) {
       room.close();
     }
+    return room;
   }
 
   public leaveAllRooms(socket: WebSocket) {
@@ -116,7 +118,7 @@ class Room {
     rooms.delete(this);
   }
 
-  // remove room from all clients, so that it can be garbage collected
+  // remove room
   public close() {
     this.clients.forEach((socket) => {
       this.leave(socket);
