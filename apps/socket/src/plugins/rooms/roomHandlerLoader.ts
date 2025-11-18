@@ -2,10 +2,10 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Registers all room Handlers, i.e.
+ * Registers all room Handlers and return them, i.e.
  * stores their default export as a callback mapped to their directory name
  */
-async function loadRoomHandlers() {
+export async function loadRoomHandlers() {
   const __dirname = path.dirname(new URL(import.meta.url).pathname);
   const roomsDir = path.resolve(__dirname, '../../roomHandlers/');
   const rooms = fs.readdirSync(roomsDir);
@@ -25,16 +25,13 @@ async function loadRoomHandlers() {
   return roomHandlers;
 }
 
-let roomHandlers: Record<string, Function> | null = null;
-
-export default async function getHandler(room: string) {
-  if (!roomHandlers) {
-    roomHandlers = await loadRoomHandlers();
-  }
-
+export function getRoomHandler(
+  room: string,
+  handlers: Record<string, Function>
+) {
   // handlerName can't be undefined since zod validation ensures it matches the regex
   const handlerName = room.split(':')[0] as string;
-  const handler = roomHandlers[handlerName];
+  const handler = handlers[handlerName];
   if (!handler) {
     throw new Error(
       `getHandler: Invalid handler name provided: \'${handlerName}\': not found`

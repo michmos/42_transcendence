@@ -3,7 +3,7 @@ import { type FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { type FastifyInstance } from 'fastify';
 import RoomManager from './RoomManager/index.js';
-import getHandler from './roomHandlerLoader.js';
+import { loadRoomHandlers, getRoomHandler } from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
 import { authenticateClient, checkAuthentication } from './authentication.js';
@@ -65,6 +65,8 @@ function upsertClientConnectionData(newSocket: WebSocket, uuid: string) {
  * @param app Fastify instance
  */
 async function roomPlugin(app: FastifyInstance) {
+  const handlers = await loadRoomHandlers();
+
   app.get(
     '/',
     { websocket: true },
@@ -87,7 +89,7 @@ async function roomPlugin(app: FastifyInstance) {
         try {
           checkAuthentication(socket);
           const message = getValidMessage(input, socket);
-          const handler = await getHandler(message.room);
+          const handler = getRoomHandler(message.room, handlers);
           await handler(socket, message);
         } catch (error) {
           console.error(
