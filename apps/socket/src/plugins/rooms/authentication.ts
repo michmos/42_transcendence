@@ -1,7 +1,13 @@
 import WebSocket from 'ws';
+import { type FastifyRequest } from 'fastify';
+import type { User } from 'db/generated/client/index.js';
 
-function getSessionCookie(cookieString: string): string | null {
-  cookieString = `; ${cookieString}`;
+function getSessionCookie(request: FastifyRequest): string | null {
+  if (!request.headers.cookie) {
+    return null;
+  }
+
+  const cookieString = `; ${request.headers.cookie}`;
   const [, remainder] = cookieString.split('; session=');
   if (!remainder) {
     return null;
@@ -9,32 +15,9 @@ function getSessionCookie(cookieString: string): string | null {
   return remainder.split(';')[0] ?? null;
 }
 
-export function checkAuthentication(socket: WebSocket) {
-  if (!socket.getData()?.uuid) {
-    throw new Error(
-      'Unauthorized access attempt: socket is not identified yet'
-    );
-  }
-}
-
-/**
- * authenticate token
- * @cookieString: cookie string
- * @hostname: hostname
- *
- * @return: uuid of user
- * @throw on invalid token provided
- */
-export async function authenticateClient(
-  cookieString: string,
-  hostname: string
-): Promise<string> {
-  console.log(`Authenticating client...`);
-  const sessionCookie = getSessionCookie(cookieString);
-  if (!sessionCookie) {
-    throw new Error(`Authentication failed: No session cookie`);
-  }
-  const response = await fetch(`http://${hostname}/api/auth/session`, {
+async function fetchUser(sessionCookie: string): Promise<User> {
+  const response = await fetch(`http://localhost:5173/api/auth/session`, {
+    // TODO: hardcoded localhost
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
@@ -47,6 +30,50 @@ export async function authenticateClient(
     );
   }
   const user = await response.json();
+  if (!user || !user.uuid) {
+    throw new Error(`Authentication failed: Invalid user data`);
+  }
+  return user;
+}
+
+/**
+ * authenticate client by fetching user through session cookie
+ * @request: Fastify request
+ *
+ * @return: object with user uuid and jwt
+ * @throw on invalid or non existent jwt
+ */
+async function authenticateClient(request: FastifyRequest) {
+  console.log(`Authenticating client...`);
+
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
+    throw new Error(`Authentication failed: No session cookie`);
+  }
+
+  const user = await fetchUser(sessionCookie);
   console.log(`User authenticated: ${user.uuid}`);
-  return user.uuid;
+
+  return {
+    uuid: user.uuid,
+    jwt: sessionCookie,
+  };
+}
+
+/**
+ * authenticate client through session cookie
+ * and update connection
+ * @socket: socket to authenticate
+ * @request: Fastify request
+ *
+ * @throw on failed authentication (missing or invalid session cookie)
+ */
+export default async function processClientAuthentication(
+  socket: WebSocket,
+  request: FastifyRequest
+) {
+  if (request.headers.cookie) {
+    const identifiers = await authenticateClient(request);
+    socket.updateConnection(identifiers.uuid, identifiers.jwt);
+  }
 }

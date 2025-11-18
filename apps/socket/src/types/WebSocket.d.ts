@@ -14,5 +14,6 @@ declare module 'ws' {
     isOnline(): boolean;
     sendSuccess(): void;
     sendError(message?: string): void;
+    updateConnection(uuid: string, jwt: string);
   }
 }
