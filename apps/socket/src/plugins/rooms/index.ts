@@ -2,62 +2,11 @@ import { type WebSocket } from 'ws';
 import { type FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { type FastifyInstance } from 'fastify';
-import RoomManager from './RoomManager/index.js';
 import { loadRoomHandlers, getRoomHandler } from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
-import { authenticateClient, checkAuthentication } from './authentication.js';
-
-const UuidToSocket = new Map<string, WebSocket>();
-const SocketToData = new Map<WebSocket, SocketMetaData>();
-
-export type SocketMetaData = {
-  uuid?: string;
-  lastSeen?: Date;
-  connected?: boolean;
-};
-
-/**
- * Decorates the WebSocket instance with room management methods
- */
-export function decorateSocketInstance(socket: WebSocket) {
-  socket.join = (name: string) => RoomManager.joinRoom(socket, name);
-  socket.leave = (name: string) => RoomManager.leaveRoom(socket, name);
-  socket.leaveAll = () => RoomManager.leaveAllRooms(socket);
-  socket.upsertData = (overrides: Partial<SocketMetaData>): SocketMetaData => {
-    const data = SocketToData.get(socket);
-    const newData = { ...data, ...overrides };
-    SocketToData.set(socket, newData);
-    return newData;
-  };
-  socket.getData = () => SocketToData.get(socket);
-  socket.isInRoom = (name: string) =>
-    RoomManager.get(name)?.has(socket) === true;
-  socket.isOnline = () => socket.getData()?.connected === true;
-  socket.sendSuccess = () => socket.send(JSON.stringify({ status: 'success' }));
-  socket.sendError = (message: string = 'Error occurred') =>
-    socket.send(JSON.stringify({ status: 'error', message }));
-}
-
-/**
- * Relates the new socket to old connections of the same client
- */
-function upsertClientConnectionData(newSocket: WebSocket, uuid: string) {
-  // remove old socket
-  const oldSocket = UuidToSocket.get(uuid);
-  if (oldSocket) {
-    SocketToData.delete(oldSocket);
-
-    // update socket in room manager
-    RoomManager.updateSocket(oldSocket, newSocket);
-  }
-
-  // update UuidToSocket
-  UuidToSocket.set(uuid, newSocket);
-
-  // add uuid
-  newSocket.upsertData({ uuid });
-}
+import processClientAuthentication from './authentication.js';
+import { decorateSocketInstance } from './socket.js';
 
 /**
  * Main room plugin; handles incoming messages and
@@ -87,7 +36,9 @@ async function roomPlugin(app: FastifyInstance) {
       socket.on('message', async (input: Buffer) => {
         console.log(`[${socket.getData()?.uuid}]: new message`);
         try {
-          checkAuthentication(socket);
+          if (!socket.getData()?.uuid) {
+            await processClientAuthentication(socket, request);
+          }
           const message = getValidMessage(input, socket);
           const handler = getRoomHandler(message.room, handlers);
           await handler(socket, message);
@@ -101,17 +52,7 @@ async function roomPlugin(app: FastifyInstance) {
 
       // perform async work after registering event handlers
       // to not drop messages
-      if (request.headers.cookie) {
-        try {
-          const uuid = await authenticateClient(
-            request.headers.cookie,
-            'localhost:5173' // TODO: hardcoded - should be app.hostname or sth
-          );
-          upsertClientConnectionData(socket, uuid);
-        } catch (error) {
-          console.error(`Authentication error: ${error}`);
-        }
-      }
+      await processClientAuthentication(socket, request);
     }
   );
 }
