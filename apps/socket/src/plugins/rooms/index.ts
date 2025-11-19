@@ -26,7 +26,10 @@ async function roomPlugin(app: FastifyInstance) {
       console.log(`new client connected`);
       decorateSocketInstance(socket);
       socket.upsertData({ connected: true });
-      socket.join('all');
+      // join main rooms
+      for (const key of Object.keys(handlers)) {
+        socket.join(`${key}:main`);
+      }
 
       socket.on('close', () => {
         console.log(`[${socket.getData()?.uuid}]: connection closed`);

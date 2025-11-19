@@ -39,17 +39,19 @@ So the room name specifies the handler!
 
 When a new message is received, the handler name is extracted from the room name and the corresponding handler is invoked.
 
-Each handler is responsible for:
+**Each handler is responsible for:**
 
 - Validating if the room exists (and how to handle if not)
   (see further down)
 - Handling the message according to its type
 
-What is already done preHandler:
+**What is already done preHandler:**
 
 - Validate message
   - against type (see defined above)
   - messages of type 'leave-room' or 'message' are rejected if the socket is not part of the defined room
+- A **main room** is created for each handler and each socket is automatically added to each main room on connection
+  - e.g. room name `tournament:main` for handler `tournament`
 
 ## Usage
 
