@@ -1,16 +1,16 @@
-const SocketToRooms = new Map<WebSocket, Set<Room>>();
+const SocketToRooms = new Map<WSocket, Set<Room>>();
 const Rooms = new Map<string, Room>();
-import { type WebSocket } from 'ws';
+import WSocket from './Socket.js';
 
-class RoomManager {
+export class RoomManager {
   /**
    * Joins the specified socket to the room
    * and creates a new room if not previously
    * existing
-   * @param socket The WebSocket client to join.
+   * @param socket The socket to join.
    * @param roomName The name of the room to join.
    */
-  public joinRoom(socket: WebSocket, roomName: string) {
+  public joinRoom(socket: WSocket, roomName: string) {
     let room = Rooms.get(roomName);
     if (!room) {
       room = new Room(roomName);
@@ -23,11 +23,11 @@ class RoomManager {
   /**
    * Removes the specified socket from the room
    * and closes the room if last client left
-   * @param socket The WebSocket client to join.
-   * @param roomName The name of the room to join.
+   * @param socket The socket to leave.
+   * @param roomName The name of the room to leave from
    * @throws If room does not exist, or client not in room
    */
-  public leaveRoom(socket: WebSocket, roomName: string) {
+  public leaveRoom(socket: WSocket, roomName: string) {
     let room = Rooms.get(roomName);
     if (!room) {
       throw new Error(`Cannot leave room \`${roomName}\`: doesn't exist`);
@@ -39,7 +39,7 @@ class RoomManager {
     return room;
   }
 
-  public leaveAllRooms(socket: WebSocket) {
+  public leaveAllRooms(socket: WSocket) {
     Rooms.forEach((room) => {
       if (room.has(socket)) {
         this.leaveRoom(socket, room.name);
@@ -50,25 +50,12 @@ class RoomManager {
   public get(roomName: string): Room | undefined {
     return Rooms.get(roomName);
   }
-
-  /**
-   * Updates the socket references in all rooms
-   */
-  public updateSocket(oldSocket: WebSocket, newSocket: WebSocket) {
-    const rooms = SocketToRooms.get(oldSocket);
-    if (!rooms) {
-      return;
-    }
-    rooms.forEach((room) => {
-      room.updateSocket(oldSocket, newSocket);
-    });
-  }
 }
 
 class Room {
   public name: string;
   private data: any = {};
-  private clients: Set<WebSocket> = new Set();
+  private clients: Set<WSocket> = new Set();
 
   constructor(name: string) {
     this.name = name;
@@ -82,17 +69,10 @@ class Room {
     this.data = data;
   }
 
-  public updateSocket(oldSocket: WebSocket, newSocket: WebSocket) {
-    if (this.clients.has(oldSocket)) {
-      this.clients.delete(oldSocket);
-      this.clients.add(newSocket);
-    }
-  }
-
   /**
    * add client to room
    */
-  public join(socket: WebSocket) {
+  public join(socket: WSocket) {
     // add to global
     let rooms =
       SocketToRooms.get(socket) ??
@@ -109,7 +89,7 @@ class Room {
    * remove client from room
    * @throw if client not in room
    */
-  public leave(socket: WebSocket) {
+  public leave(socket: WSocket) {
     this.clients.delete(socket);
     let rooms = SocketToRooms.get(socket);
     if (!rooms) {
@@ -128,7 +108,7 @@ class Room {
 
   public broadcast(message: string) {
     this.clients.forEach((socket) => {
-      if (socket.isOnline()) {
+      if (socket.connected) {
         socket.send(message);
       }
     });
@@ -141,7 +121,7 @@ class Room {
   public getConnections() {
     return [...this.clients];
   }
-  public has(socket: WebSocket) {
+  public has(socket: WSocket) {
     return this.clients.has(socket);
   }
 }

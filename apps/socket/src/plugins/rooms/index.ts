@@ -1,4 +1,3 @@
-import { type WebSocket } from 'ws';
 import { type FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { type FastifyInstance } from 'fastify';
@@ -12,7 +11,7 @@ import {
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
 import { authenticateClient } from './authentication.js';
-import { decorateSocketInstance } from './socket.js';
+import { WSocket } from './WSocket/index.js';
 
 /**
  * Main room plugin; handles incoming messages and
@@ -26,43 +25,24 @@ async function roomPlugin(app: FastifyInstance) {
   app.get(
     '/',
     { websocket: true },
-    async (unextendedSocket, request: FastifyRequest) => {
-      const socket = unextendedSocket as WebSocket;
+    async (webSocket, request: FastifyRequest) => {
+      const socket = new WSocket(webSocket);
 
-      // on open
-      console.log(`new client connected`);
-      decorateSocketInstance(socket);
-      socket.upsertData({ connected: true });
 
-      socket.on('close', async () => {
-        console.log(`[${socket.getData()?.uuid}]: connection closed`);
-        socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
-        try {
-          if (!socket.getData()?.uuid) {
-            await authenticateClient(socket, request);
-          }
-          await runOnCloseHooks(socket);
-        } catch (error) {
-          console.error(
-            `[${socket.getData()?.uuid}]: error on close: ${error}`
-          );
+      socket.onClose(async () => {
+        if (!socket.uuid) {
+          await authenticateClient(socket, request);
         }
+        socket.lastSeen = new Date(Date.now());
+        await runOnCloseHooks(socket);
       });
 
-      socket.on('message', async (input: Buffer) => {
-        console.log(`[${socket.getData()?.uuid}]: new message`);
-        try {
-          if (!socket.getData()?.uuid) {
-            await authenticateClient(socket, request);
-          }
-          const message = getValidMessage(input, socket);
-          await runMessageHandler(socket, message);
-        } catch (error) {
-          console.error(
-            `[${socket.getData()?.uuid}]: error on message: ${error}`
-          );
-          socket.sendError(JSON.stringify(error)); // TODO: send default error back to client instead
+      socket.onMessage(async (input: Buffer) => {
+        if (!socket.uuid) {
+          await authenticateClient(socket, request);
         }
+        const message = getValidMessage(input, socket);
+        await runMessageHandler(socket, message);
       });
 
       // perform async work after registering event handlers
@@ -71,7 +51,7 @@ async function roomPlugin(app: FastifyInstance) {
         await authenticateClient(socket, request);
         await runOnOpenHooks(socket);
       } catch (error) {
-        console.error(`[${socket.getData()?.uuid}]: error on open: ${error}`);
+        console.error(`[${socket.uuid}]: error on open: ${error}`);
       }
     }
   );

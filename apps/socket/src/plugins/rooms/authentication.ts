@@ -1,4 +1,4 @@
-import WebSocket from 'ws';
+import { WSocket } from './WSocket/index.js';
 import { type FastifyRequest } from 'fastify';
 import type { User } from 'db/generated/client/index.js';
 
@@ -45,14 +45,14 @@ async function fetchUser(sessionCookie: string): Promise<User> {
  * @throw on failed authentication (missing or invalid session cookie)
  */
 export async function authenticateClient(
-  socket: WebSocket,
+  socket: WSocket,
   request: FastifyRequest
 ) {
   console.log(`Authenticating client...`);
 
   const sessionCookie = getSessionCookie(request);
   if (!sessionCookie) {
-    if (socket.isOnline()) {
+    if (socket.connected) {
       socket.sendError('please login first');
     }
     throw new Error(`Authentication failed: No session cookie`);
@@ -61,5 +61,5 @@ export async function authenticateClient(
   const user = await fetchUser(sessionCookie);
   console.log(`User authenticated: ${user.uuid}`);
 
-  socket.upsertData({ uuid: user.uuid, jwt: sessionCookie });
+  socket.set({ uuid: user.uuid });
 }

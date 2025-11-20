@@ -1,22 +1,22 @@
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { WebSocket } from 'ws';
+import { WSocket } from './WSocket/index.js';
 import { SocketMessage } from './validation.js';
 
-const ZodWebSocket = z.custom<WebSocket>((val) => {
-  return val instanceof WebSocket;
+const ZodWSocket = z.custom<WSocket>((val) => {
+  return val instanceof WSocket;
 });
-type ZodWebSocket = z.infer<typeof ZodWebSocket>;
+type ZodWSocket = z.infer<typeof ZodWSocket>;
 
 /**
  * Schema for handler exports
  */
 const Handler = z.object({
   onStartup: z.optional(z.function({ input: [] })),
-  onOpen: z.optional(z.function({ input: [ZodWebSocket] })),
-  onMessage: z.optional(z.function({ input: [ZodWebSocket, SocketMessage] })),
-  onClose: z.optional(z.function({ input: [ZodWebSocket] })),
+  onOpen: z.optional(z.function({ input: [ZodWSocket] })),
+  onMessage: z.optional(z.function({ input: [ZodWSocket, SocketMessage] })),
+  onClose: z.optional(z.function({ input: [ZodWSocket] })),
 });
 type Handler = z.infer<typeof Handler>;
 
@@ -52,19 +52,19 @@ export async function runOnStartupHooks() {
     if (handler.onStartup) await handler.onStartup();
   }
 }
-export async function runOnOpenHooks(socket: WebSocket) {
+export async function runOnOpenHooks(socket: WSocket) {
   for (const [, handler] of Object.entries(roomHandlers)) {
     if (handler.onOpen) await handler.onOpen(socket);
   }
 }
-export async function runOnCloseHooks(socket: WebSocket) {
+export async function runOnCloseHooks(socket: WSocket) {
   for (const [, handler] of Object.entries(roomHandlers)) {
     if (handler.onClose) await handler.onClose(socket);
   }
 }
 
 export async function runMessageHandler(
-  socket: WebSocket,
+  socket: WSocket,
   message: SocketMessage
 ) {
   // handlerName can't be undefined since zod validation ensures it matches the regex
