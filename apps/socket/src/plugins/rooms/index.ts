@@ -11,7 +11,7 @@ import {
 } from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
-import processClientAuthentication from './authentication.js';
+import { authenticateClient } from './authentication.js';
 import { decorateSocketInstance } from './socket.js';
 
 /**
@@ -37,14 +37,23 @@ async function roomPlugin(app: FastifyInstance) {
       socket.on('close', async () => {
         console.log(`[${socket.getData()?.uuid}]: connection closed`);
         socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
-        await runOnCloseHooks(socket);
+        try {
+          if (!socket.getData()?.uuid) {
+            await authenticateClient(socket, request);
+          }
+          await runOnCloseHooks(socket);
+        } catch (error) {
+          console.error(
+            `[${socket.getData()?.uuid}]: error on close: ${error}`
+          );
+        }
       });
 
       socket.on('message', async (input: Buffer) => {
         console.log(`[${socket.getData()?.uuid}]: new message`);
         try {
           if (!socket.getData()?.uuid) {
-            await processClientAuthentication(socket, request);
+            await authenticateClient(socket, request);
           }
           const message = getValidMessage(input, socket);
           await runMessageHandler(socket, message);
@@ -58,8 +67,12 @@ async function roomPlugin(app: FastifyInstance) {
 
       // perform async work after registering event handlers
       // to not drop messages
-      await processClientAuthentication(socket, request);
-      await runOnOpenHooks(socket);
+      try {
+        await authenticateClient(socket, request);
+        await runOnOpenHooks(socket);
+      } catch (error) {
+        console.error(`[${socket.getData()?.uuid}]: error on open: ${error}`);
+      }
     }
   );
 }
