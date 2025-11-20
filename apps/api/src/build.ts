@@ -1,6 +1,7 @@
 import path from 'path';
 import AutoLoad from '@fastify/autoload';
 import Fastify from 'fastify';
+// import fastifyStatic from '@fastify/static';
 
 const app = Fastify({
   logger: {
@@ -37,6 +38,13 @@ export async function build(loadAuth = true) {
   });
 
   console.info('✅ Multipart loaded');
+
+  // await app.register(fastifyStatic, {
+  //   root: path.join(process.cwd(), 'public'),
+  //   prefix: '/',
+  // });
+
+  // console.info('✅ fastifyStatic loaded');
 
   // Load all API routes AFTER plugins
   await app.register(AutoLoad, {

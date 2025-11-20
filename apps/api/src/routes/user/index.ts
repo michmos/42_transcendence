@@ -3,6 +3,7 @@ import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
 import type { User } from 'db/generated/client/client.js';
 import fs from 'fs';
 import path from 'path';
+import { pipeline } from 'stream/promises';
 import * as schemas from './userValidationSchemas.js';
 import fastifyMultipart from '@fastify/multipart';
 import { getTournaments } from '../tournaments/validationSchemas.js';
@@ -21,6 +22,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   // Getting all logged-in user's own data to display on his profile page.
   // First getting the user data from the User table
   // Second getting all ACCEPTED friends and friend REQUESTS from other users
+  // Third getting user's match history - both 1v1 and tournament matches
   // Returning an object with user and friends data
   app.get('/me', async function (request, reply) {
     try {
@@ -29,15 +31,27 @@ export default async function (app: FastifyInstance): Promise<void> {
       const userData = await app.db.getUserMe(uuidSelf);
       const cleanedUserData = cleanSelfUserData(userData);
       const userFriends = await app.db.getFriendsMe(uuidSelf);
+      const userMatches = await app.db.getUserMatchHistory(uuidSelf);
 
       // For testing :
       // console.log('/user/me - userData:', userData);
       // console.log('/user/me - cleanedUserData:', cleanedUserData);
       // console.log('/user/me - userFriends:', userFriends);
-      console.log('/user/me - userFriends:', { cleanedUserData, userFriends });
+      // console.log('/user/me - userMatches:', userMatches)
+      console.log(
+        '/user/me - userFriends: ------\n',
+        {
+          cleanedUserData,
+          userFriends,
+          userMatches,
+        },
+        '------\n'
+      );
       // End of testing
 
-      return reply.code(200).send({ cleanedUserData, userFriends });
+      return reply
+        .code(200)
+        .send({ cleanedUserData, userFriends, userMatches });
     } catch (error) {
       return reply.code(500).send({ Error: `${error}` });
     }
@@ -77,12 +91,24 @@ export default async function (app: FastifyInstance): Promise<void> {
   // - fixing path to where image is saved, e.g. /public/profile-images/user12345
   app.post('/me/avatar', async function (request, reply) {
     try {
+      // if (request.headers['content-length'])
+      //   continue // Needs to send back an error if something with content-length... Not sure what
+
       // Getting the file and file data from request.file() and checking if file
       const file: fastifyMultipart.MultipartFile | undefined =
         await request.file();
       if (!file) return reply.code(400).send({ Error: 'No image received' });
 
-      // Getting the user uuid before doing any of the heavy lifting
+      // Checking if file has correct media type
+      if (
+        file.mimetype !== 'image/png' &&
+        file.mimetype !== 'image/jpeg' &&
+        file.mimetype !== 'image/jpg'
+      )
+        return reply.code(415).send({
+          Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
+        });
+
       const uuidSelf: string = request.user.uuid;
 
       // Extracting the filename and stream from file
@@ -95,11 +121,12 @@ export default async function (app: FastifyInstance): Promise<void> {
         request.user.uuid + path.extname(filename)
       );
 
-      // Doing something I am not sure about
+      // ensure that directory exists
       await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
 
       // Doing next thing I am not sure about
-      await stream.pipe(fs.createWriteStream(savePath));
+      stream.pipe(fs.createWriteStream(savePath));
+      await pipeline(stream, fs.createWriteStream(savePath));
 
       // Setting/replacing image file path in user's record database
       const userData = await app.db.setUserMeAvatar(uuidSelf, savePath);
@@ -133,7 +160,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         if (!user) return reply.code(404).send({ Error: 'user not found' });
 
         const cleanedUser = cleanOtherUserData(user);
-        console.log('Cleaned Other user data:', cleanedUser); // FOR TESTING ONLY
+        // console.log('Cleaned Other user data:', cleanedUser); // FOR TESTING ONLY
         return reply.code(200).send(cleanedUser);
       } catch (error) {
         return reply.code(500).send({ Error: `${error}` });

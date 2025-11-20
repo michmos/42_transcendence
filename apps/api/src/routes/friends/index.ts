@@ -4,6 +4,7 @@ import { friendshipState } from 'db/generated/client/client.js';
 import {
   findFriendRecord,
   modifyFriendsState,
+  type fullFriendshipRecord,
 } from '../../plugins/database/friendship.js';
 import * as schemas from './friendshipValidationSchemas.js';
 
@@ -29,7 +30,9 @@ export default async function (app: FastifyInstance): Promise<void> {
           friendRecord.friendBId === uuidSelf &&
           friendRecord.state === friendshipState.REQUESTED
         )
-          return reply.code(200).send({ message: 'Friend accepted' });
+          return reply
+            .code(200)
+            .send({ friendRecord, message: 'Friend accepted' });
         else if (friendRecord)
           return reply.code(409).send({
             Error: 'Friendship request already pending, accepted or rejected',
@@ -88,24 +91,32 @@ export default async function (app: FastifyInstance): Promise<void> {
             .send({ Error: 'Friendship state already ACCEPTED or REJECTED' });
 
         const { accept } = request.body;
-        let newFriendshipState: Friendship;
+        let updatedFriendshipState: fullFriendshipRecord;
         if (accept === true)
-          newFriendshipState = await modifyFriendsState(
+          updatedFriendshipState = await modifyFriendsState(
             friendRecord.uuid,
             friendshipState.ACCEPTED
           );
         else
-          newFriendshipState = await modifyFriendsState(
+          updatedFriendshipState = await modifyFriendsState(
             friendRecord.uuid,
             friendshipState.REJECTED
           );
-        if (!newFriendshipState)
+        if (!updatedFriendshipState)
           throw new Error(`Failed resolving friend request from ${nickname}`);
 
+        // console.log('newFriendState:', updatedFriendshipState);
+        const cleanedFriendshipRecord = cleanFriendshipRecord(
+          uuidSelf,
+          updatedFriendshipState
+        );
+        // console.log('cleanedFriendshipRecord:', cleanedFriendshipRecord);
+
         if (accept === true)
-          return reply
-            .code(200)
-            .send({ message: 'Friendship request accepted' });
+          return reply.code(200).send({
+            cleanedFriendshipRecord,
+            message: 'Friendship request accepted',
+          });
         else
           return reply
             .code(200)
@@ -176,3 +187,48 @@ export default async function (app: FastifyInstance): Promise<void> {
     return uuid;
   }
 }
+
+interface cleanedFriendshipRecord {
+  otherUser: string;
+  avatar: string | null;
+  state: friendshipState;
+  isRequester: boolean;
+}
+
+function cleanFriendshipRecord(
+  uuidSelf: string,
+  friendRecord: fullFriendshipRecord
+): cleanedFriendshipRecord {
+  let otherUserNickname: string;
+  let avatar: string | null;
+  let isRequester: boolean;
+  if (uuidSelf === friendRecord.friendAId) {
+    otherUserNickname = friendRecord.friendB.nickname;
+    avatar = friendRecord.friendB.avatar;
+    isRequester = true;
+  } else {
+    otherUserNickname = friendRecord.friendA.nickname;
+    avatar = friendRecord.friendA.avatar;
+    isRequester = false;
+  }
+
+  return {
+    otherUser: otherUserNickname,
+    avatar: avatar,
+    isRequester: isRequester,
+    state: friendRecord.state,
+  };
+}
+
+// function cleanFriendshipList(
+//   uuidSelf: string,
+//   friendList: fullFriendshipData[]
+// ): cleanFriendshipRecord[] {
+//   const cleanedFriendsList = friendList.map((f) => {
+//     const isRequester = f.friendAId === uuidSelf;
+//     const friend = f.friendAId === uuidSelf ? f.friendB : f.friendA;
+//     return { ...friend, state: f.state, isRequester };
+//   });
+
+//   return cleanedFriendsList;
+// }

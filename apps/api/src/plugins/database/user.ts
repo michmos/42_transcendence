@@ -1,4 +1,4 @@
-import type { User } from 'db/generated/client/index.js';
+import { type User, status } from 'db/generated/client/index.js';
 import Database from 'db';
 import { generateNickName } from './utils.js';
 
@@ -35,6 +35,45 @@ export async function setUserMeAvatar(
     where: { uuid },
     data: { avatar: newAvatarLoc },
   });
+}
+
+export async function getUserMatchHistory(uuid: string): Promise<object[]> {
+  const matches = await Database.match.findMany({
+    where: {
+      AND: [
+        {
+          OR: [
+            {
+              player1Id: uuid,
+            },
+            { player2Id: uuid },
+          ],
+        },
+        {
+          status: status.finished,
+        },
+      ],
+    },
+    select: {
+      updatedAt: true,
+      Score1: true,
+      Score2: true,
+      player1: { select: { nickname: true } },
+      player2: { select: { nickname: true } },
+      tournamentRoundId: true,
+      winnerId: true,
+    },
+    orderBy: { updatedAt: 'asc' },
+  });
+  return matches.map((match) => ({
+    date: match.updatedAt.toISOString().slice(0, 10),
+    score1: match.Score1,
+    score2: match.Score2,
+    player1: match.player1?.nickname ?? 'Guest',
+    player2: match.player2?.nickname ?? 'Guest',
+    result: match.winnerId === uuid ? 'WON' : 'LOST',
+    gameType: match.tournamentRoundId ? 'Tournament match' : '1 v 1',
+  }));
 }
 
 // ---------------- OTHER STUFF

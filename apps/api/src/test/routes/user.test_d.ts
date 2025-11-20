@@ -1,7 +1,11 @@
 import { describe, test, expect } from 'vitest';
 import { app } from '../setup.js';
 import { setUserTo, normalUser } from '../utils.js';
-import { friendshipState, type User } from 'db/generated/client/index.js';
+import {
+  friendshipState,
+  type User,
+  type Match,
+} from 'db/generated/client/index.js';
 // import { userRole } from 'db/generated/client/index.js';
 
 // MMOSER'S IMPORTS
@@ -75,64 +79,101 @@ describe('GET /user/me', () => {
         tournamentsWon: expect.any(Number),
       },
       userFriends: expect.any(Array),
+      userMatches: expect.any(Array),
     });
     const data = response.json();
     expect(data.userFriends.length === 0);
   });
 
-  test('User, with friends - valid', async () => {
+  test('User, with friends and match history - valid', async () => {
     // setUserTo('MEMBER');
 
     let i;
     for (i = 0; i < 10; i++) {
-      const userResult = await app.db.addUser(
+      const otherUser = await app.db.addUser(
         `friend${i}@mail.com`,
         `friend${i}`
       );
       const friendshipRecord = await app.db.addFriend(
-        userResult.uuid,
+        otherUser.uuid,
         normalUser.uuid
       );
-      if (i % 2 === 0)
+      if (i % 2 === 0) {
         await app.db.modifyFriendsState(
           friendshipRecord.uuid,
           friendshipState.ACCEPTED
         );
-      else
+        const player1Id = normalUser.uuid;
+        const player2Id = otherUser.uuid;
+        const match: Match = await app.db.addMatch({ player1Id, player2Id });
+        const uuid: string = match.uuid;
+        await app.db.updateMatch({
+          uuid,
+          Score1: 5,
+          Score2: 10,
+          winnerId: otherUser.uuid,
+          status: 'finished',
+        });
+      } else {
         await app.db.modifyFriendsState(
           friendshipRecord.uuid,
           friendshipState.REJECTED
         );
+        const player1Id = normalUser.uuid;
+        const player2Id = otherUser.uuid;
+        const match = await app.db.addMatch({ player1Id, player2Id });
+        const uuid: string = match.uuid;
+        await app.db.updateMatch({
+          uuid,
+          Score1: 10,
+          Score2: 2,
+          winnerId: normalUser.uuid,
+          status: 'finished',
+        });
+      }
     }
     for (i = 10; i < 20; i++) {
-      const userResult = await app.db.addUser(
+      const otherUser = await app.db.addUser(
         `friend${i}@mail.com`,
         `friend${i}`
       );
       const friendshipRecord = await app.db.addFriend(
         normalUser.uuid,
-        userResult.uuid
+        otherUser.uuid
       );
-      if (i % 2 === 0)
+      if (i % 2 === 0) {
         await app.db.modifyFriendsState(
           friendshipRecord.uuid,
           friendshipState.ACCEPTED
         );
-      else
+        const player1Id = normalUser.uuid;
+        const player2Id = otherUser.uuid;
+        const match: Match = await app.db.addMatch({ player1Id, player2Id });
+        const uuid: string = match.uuid;
+        await app.db.updateMatch({
+          uuid,
+          Score1: 10,
+          Score2: 2,
+          winnerId: normalUser.uuid,
+          status: 'finished',
+          // tournamentRoundId: `t-round-${i}`,
+        });
+      } else {
         await app.db.modifyFriendsState(
           friendshipRecord.uuid,
           friendshipState.REJECTED
         );
+      }
     }
     for (i = 20; i < 30; i++) {
-      const userResult = await app.db.addUser(
+      const otherUser = await app.db.addUser(
         `friend${i}@mail.com`,
         `friend${i}`
       );
       if (i % 2 === 0) {
-        await app.db.addFriend(normalUser.uuid, userResult.uuid);
+        await app.db.addFriend(normalUser.uuid, otherUser.uuid);
       } else {
-        await app.db.addFriend(userResult.uuid, normalUser.uuid);
+        await app.db.addFriend(otherUser.uuid, normalUser.uuid);
       }
     }
 
@@ -157,6 +198,7 @@ describe('GET /user/me', () => {
         tournamentsWon: expect.any(Number),
       },
       userFriends: expect.any(Array),
+      userMatches: expect.any(Array),
     });
     const data = response.json();
     if (data.userFriends.length > 0) {

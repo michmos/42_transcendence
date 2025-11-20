@@ -43,6 +43,11 @@ describe('POST /friend/:nickname', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
+      // friendRecord: {
+      //   friendA: expect.any(String),
+      //   friendB: expect.any(String),
+      //   state: 'ACCEPTED',
+      // },
       message: 'Friend accepted',
     });
   });
@@ -106,6 +111,12 @@ describe('PATCH /friends/:nickname', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
+      cleanedFriendshipRecord: {
+        otherUser: expect.any(String),
+        // avatar: expect.anything(),
+        state: expect.stringMatching(/^(ACCEPTED|REJECTED)$/),
+        isRequester: expect.any(Boolean),
+      },
       message: 'Friendship request accepted',
     });
   });
