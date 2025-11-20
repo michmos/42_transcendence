@@ -18,12 +18,13 @@ class Socket {
     this.hooks.forEach((hook) => hook(event));
   }
 
-  public connect(url: string) {
+  public connect(url: string, onOpen?: () => void) {
     console.log('Connecting to WebSocket server at', url);
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
       console.log('WebSocket connection established');
+	  if (onOpen) onOpen();
     };
 
     this.socket.onmessage = (event) => {
