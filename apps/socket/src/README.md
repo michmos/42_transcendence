@@ -61,14 +61,33 @@ When a new message is received, the handler name is extracted from the room name
    _! ATTENTION: this is the name that will be used to map the handler_
 2. add your logic
    _important_: there must be an `index.ts` file with a default export of the following type:
-   ```ts
-   export default async function (
-     socket: WebSocket,
-     message: SocketMessage
-   ): Promise<void> {
-   ```
-   this function will be called for every message that specifies that handler and will be given the socket and the message
 
+   ```ts
+    import { type SocketMessage } from '../../plugins/rooms/index.js';
+    import { WebSocket } from 'ws';
+
+    export default {
+      onStartup?: async () => {
+        console.log('This code is being run on server start');
+        // e.g. fetching api for ongoing tournaments
+      },
+      onOpen?: (socket: WebSocket) => {
+        console.log('This code is run if a socket connects to the server');
+        // e.g. add him to general tournaments channel
+        // socket.join('tournament:main');
+      },
+      onMessage?: (socket: WebSocket, message: SocketMessage) => {
+        console.log('This code is run if a socket sends a message TO THIS HANDLER');
+        // e.g. Tournament logic (create tournament, join tournament, leave tournament)
+      },
+      onClose?: (socket: WebSocket) => {
+        console.log('This code is run if a socket disconnects from a server');
+        // e.g. remove him from tournament rooms (or leave him in)
+      },
+    };
+   ```
+
+**!! I included ? to express that all fields are optional -> you can create a hadnler that just has logic for `onMessage` or `onOpen` if you want!!**
 That's all you need to do! The system will automatically pick up the new handler and route messages accordingly.
 
 ### extended socket API
@@ -106,3 +125,10 @@ The RoomManager is a singleton that should be used to all room-related operation
 ## TODOs
 
 - extract everything inside package maybe?
+
+- each handler needs to provide a
+  {
+  onOpen:
+  onMessage:
+  onClose:
+  }
