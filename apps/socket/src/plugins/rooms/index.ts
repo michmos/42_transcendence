@@ -2,7 +2,13 @@ import { type WebSocket } from 'ws';
 import { type FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { type FastifyInstance } from 'fastify';
-import { loadRoomHandlers, getRoomHandler } from './roomHandlerLoader.js';
+import {
+  loadRoomHandlers,
+  runOnStartupHooks,
+  runOnCloseHooks,
+  runOnOpenHooks,
+  runMessageHandler,
+} from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
 export { type SocketMessage } from './validation.js';
 import processClientAuthentication from './authentication.js';
@@ -14,7 +20,8 @@ import { decorateSocketInstance } from './socket.js';
  * @param app Fastify instance
  */
 async function roomPlugin(app: FastifyInstance) {
-  const handlers = await loadRoomHandlers();
+  await loadRoomHandlers();
+  await runOnStartupHooks();
 
   app.get(
     '/',
@@ -26,14 +33,11 @@ async function roomPlugin(app: FastifyInstance) {
       console.log(`new client connected`);
       decorateSocketInstance(socket);
       socket.upsertData({ connected: true });
-      // join main rooms
-      for (const key of Object.keys(handlers)) {
-        socket.join(`${key}:main`);
-      }
 
-      socket.on('close', () => {
+      socket.on('close', async () => {
         console.log(`[${socket.getData()?.uuid}]: connection closed`);
         socket.upsertData({ connected: false, lastSeen: new Date(Date.now()) });
+        await runOnCloseHooks(socket);
       });
 
       socket.on('message', async (input: Buffer) => {
@@ -43,19 +47,19 @@ async function roomPlugin(app: FastifyInstance) {
             await processClientAuthentication(socket, request);
           }
           const message = getValidMessage(input, socket);
-          const handler = getRoomHandler(message.room, handlers);
-          await handler(socket, message);
+          await runMessageHandler(socket, message);
         } catch (error) {
           console.error(
             `[${socket.getData()?.uuid}]: error on message: ${error}`
           );
-          socket.sendError(JSON.stringify(error));
+          socket.sendError(JSON.stringify(error)); // TODO: send default error back to client instead
         }
       });
 
       // perform async work after registering event handlers
       // to not drop messages
       await processClientAuthentication(socket, request);
+      await runOnOpenHooks(socket);
     }
   );
 }
