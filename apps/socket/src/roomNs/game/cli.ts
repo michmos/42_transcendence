@@ -34,6 +34,11 @@ const ws = new WebSocket(url);
 // Force terminal window size
 // process.stdout.write('\x1b[8;50;91t');
 process.stdout.write(`\x1b[8;${WINDOW_HEIGHT + 6};${WINDOW_WIDTH}t`);
+// Hide cursor
+process.stdout.write("\x1b[?25l");
+// Clear window
+console.clear();
+
 
 ws.on('open', () => {
   console.log('Connected to server');
@@ -46,10 +51,8 @@ ws.on('message', (msg: WebSocket.RawData) => {
   const message = JSON.parse(msg.toString());
   if (message.type === 'message' && message.data.subtype === 'state') {
 	gameState = message.data.serverState;
-	console.clear();
+	// console.clear();
 	displayBoard();
-    console.log(`Score: ${message.data.serverState.leftScore} - ${message.data.serverState.rightScore}`);
-	console.log(`Time: ${formatTime(gameState.timeRemaining)} ⏱`);
   }
 });
 
@@ -95,10 +98,12 @@ function enableExitHandlers() {
 
   const cleanup = () => {
     restoreRepeatRate();
+	process.stdout.write("\x1b[?25l");
     process.exit();
   };
 
   process.on("exit", restoreRepeatRate);
+  process.on("exit", () => process.stdout.write("\x1b[?25h"));
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
   process.on("SIGHUP", cleanup);
@@ -144,22 +149,15 @@ function enableKeyboardInput() {
       keys.r = false;
     }
   }, 1000 / 60);
-	// if (key.name === 'w') {
-  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'up' }}));
-  //   } else if (key.name === 's') {
-  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'down' }}));
-  //   } else if (key.name === 'p') {
-  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'pause' }}));
-  //   } else if (key.name === 'r') {
-  //     ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'reset' }}));
-  //   }
-  // });
 }
+
+let prevFrame = "";
 
 function displayBoard() {
   // Game title
-  console.log(' '.repeat(WINDOW_HEIGHT), '🏓 PONG CLI CLIENT 🏓');
-  console.log('▁'.repeat(WINDOW_WIDTH));
+  let output = '';
+  output += ' '.repeat(WINDOW_HEIGHT) + '🏓 PONG CLI CLIENT 🏓\n';
+  output += '▁'.repeat(WINDOW_WIDTH) + '\n';
 
   // Game field (simplified ASCII representation)
   // const width = 91;
@@ -204,7 +202,17 @@ function displayBoard() {
         line += ' ';
       }
     }
-    console.log(line);
+    output += line + '\n';
   }
-  console.log('▔'.repeat(WINDOW_WIDTH));
+
+  output += '▔'.repeat(WINDOW_WIDTH) + '\n';
+
+  output += `Score: ${gameState.leftScore} - ${gameState.rightScore} \n`;
+  output += `Time: ${formatTime(gameState.timeRemaining)} ⏱       \n`;
+
+  if (output !== prevFrame) {
+    process.stdout.write("\x1b[H");    // Move cursor to top-left
+    process.stdout.write(output);       // Draw full frame
+    prevFrame = output;
+  }
 }
