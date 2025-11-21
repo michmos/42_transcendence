@@ -43,15 +43,16 @@ When a new message is received, the handler name is extracted from the room name
 
 - Validating if the room exists (and how to handle if not)
   (see further down)
+
+* Validating if the socket is allowed to perform the action in the room
+  (e.g. 'message' or 'leave-room' in a room you are not part of)
+
 - Handling the message according to its type
 
 **What is already done preHandler:**
 
 - Validate message
   - against type (see defined above)
-  - messages of type 'leave-room' or 'message' are rejected if the socket is not part of the defined room
-- A **main room** is created for each handler and each socket is automatically added to each main room on connection
-  - e.g. room name `tournament:main` for handler `tournament`
 
 ## Usage
 
@@ -63,45 +64,57 @@ When a new message is received, the handler name is extracted from the room name
    _important_: there must be an `index.ts` file with a default export of the following type:
 
    ```ts
-    import { type SocketMessage } from '../../plugins/rooms/index.js';
-    import { WebSocket } from 'ws';
+   import { type SocketMessage } from '../../plugins/rooms/index.js';
+   import { WSocket } from '../../plugins/rooms/WSocket/index.js';
 
-    export default {
-      onStartup?: async () => {
-        console.log('This code is being run on server start');
-        // e.g. fetching api for ongoing tournaments
-      },
-      onOpen?: (socket: WebSocket) => {
-        console.log('This code is run if a socket connects to the server');
-        // e.g. add him to general tournaments channel
-        // socket.join('tournament:main');
-      },
-      onMessage?: (socket: WebSocket, message: SocketMessage) => {
-        console.log('This code is run if a socket sends a message TO THIS HANDLER');
-        // e.g. Tournament logic (create tournament, join tournament, leave tournament)
-      },
-      onClose?: (socket: WebSocket) => {
-        console.log('This code is run if a socket disconnects from a server');
-        // e.g. remove him from tournament rooms (or leave him in)
-      },
-    };
+   export default {
+     onStartup: async () => {
+       console.log('This code is being run on server start');
+       // e.g. fetching api for ongoing tournaments
+     },
+     onOpen: (socket: WSocket) => {
+       console.log('This code is run if a socket connects to the server');
+       // socket.join('tournament:main');
+     },
+     onMessage: (socket: WSocket, message: SocketMessage) => {
+       console.log(
+         'This code is run if a socket sends a message TO THIS HANDLER'
+       );
+       // e.g. Tournament logic (create tournament, join tournament, leave tournament)
+     },
+     onClose: (socket: WSocket) => {
+       console.log('This code is run if a socket disconnects from a server');
+       // e.g. remove him from tournament rooms (or leave him in)
+     },
+   };
    ```
 
-**!! I included ? to express that all fields are optional -> you can create a hadnler that just has logic for `onMessage` or `onOpen` if you want!!**
+**!! I included ? to express that all fields are optional -> you can create a handler that just has logic for `onMessage` or `onOpen` if you want!!**
 That's all you need to do! The system will automatically pick up the new handler and route messages accordingly.
 
-### extended socket API
+### WSocket API
 
-To facilitate room management, the WebSocket object has been extended with the following methods:
+WSocket is a wrapper class around the native WebSocket that adds:
+
+- room management
+- metadata -> uuid, connected, lastSeen
+- auto logging (messages, closure)
+- default error handling
+
+For details check out `src/plugins/rooms/WSocket/index.ts`
 
 ```ts
   socket.join(name: string); // join room or create if not exists
   socket.leave(name: string); // leave room
   socket.leaveAll(); // leave all rooms
-  socket.setData(data: any) // attach metadata to the socket
-  socket.getData(); // retrieve metadata from the socket
   socket.isInRoom(name: string); boolean;
-  socket.isOnline(): boolean;
+  socket.send(message: string);
+  socket.sendError(message: string);
+  socket.sendSuccess();
+
+  socket.uuid; // string
+  socket.lastSeen; // Date
+  socket.connected; // boolean
 
 ```
 
@@ -123,12 +136,3 @@ The RoomManager is a singleton that should be used to all room-related operation
 ```
 
 ## TODOs
-
-- extract everything inside package maybe?
-
-- each handler needs to provide a
-  {
-  onOpen:
-  onMessage:
-  onClose:
-  }
