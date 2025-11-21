@@ -1,15 +1,11 @@
 import { describe, test, expect } from 'vitest';
 import { app } from '../setup.js';
-import { setUserTo, normalUser } from '../utils.js';
+import { setUserTo, normalUser, createValidTournament } from '../utils.js';
 import {
   friendshipState,
   type User,
   type Match,
 } from 'db/generated/client/index.js';
-// import { userRole } from 'db/generated/client/index.js';
-
-// MMOSER'S IMPORTS
-import { createValidTournament } from '../utils.js';
 import {
   type Tournament,
   status as statusEnum,
@@ -359,9 +355,11 @@ describe('GET /user/:nickname', () => {
 
 // MMOSER'S TESTCASES
 // -----   /user/me/tournaments  -   GET OTHER USER'S RELEVANT DATA
+
 describe('GET /user/me/tournaments', () => {
+  setUserTo('MEMBER');
   // ------------------------------------------------------------------------ 12
-  test('VALID - no tournaments -> 200', async () => {
+  test('no tournaments -> 200', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/user/me/tournaments',

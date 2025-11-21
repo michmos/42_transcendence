@@ -8,7 +8,7 @@ export const normalUser = {
   email_verified: false,
   fullName: 'Billy normal',
   username: 'normalUserName',
-  avatar: 'https://cdn.example.com/someAvatar',
+  // avatar: 'https://cdn.example.com/someAvatar',
   role: 'MEMBER',
 };
 
@@ -18,7 +18,7 @@ export const adminUser = {
   email_verified: false,
   fullName: 'Bob the admin',
   username: 'adminUserName',
-  avatar: 'https://cdn.example.com/someAvatar',
+  // avatar: 'https://cdn.example.com/someAvatar',
   role: 'ADMIN',
 };
 
