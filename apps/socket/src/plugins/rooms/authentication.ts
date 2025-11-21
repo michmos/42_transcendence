@@ -38,28 +38,19 @@ async function fetchUser(sessionCookie: string): Promise<User> {
 
 /**
  * authenticate client through session cookie
- * and update connection
- * @socket: socket to authenticate
  * @request: Fastify request
  *
  * @throw on failed authentication (missing or invalid session cookie)
  */
-export async function authenticateClient(
-  socket: WSocket,
-  request: FastifyRequest
-) {
+export async function authenticateClient(request: FastifyRequest) {
   console.log(`Authenticating client...`);
 
   const sessionCookie = getSessionCookie(request);
   if (!sessionCookie) {
-    if (socket.connected) {
-      socket.sendError('please login first');
-    }
     throw new Error(`Authentication failed: No session cookie`);
   }
 
   const user = await fetchUser(sessionCookie);
+  request.user = user;
   console.log(`User authenticated: ${user.uuid}`);
-
-  socket.set({ uuid: user.uuid });
 }

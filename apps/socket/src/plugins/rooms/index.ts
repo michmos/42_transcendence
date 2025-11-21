@@ -22,25 +22,36 @@ async function roomPlugin(app: FastifyInstance) {
   await loadRoomHandlers();
   await runOnStartupHooks();
 
+  app.addHook('preValidation', async (request, reply) => {
+    try {
+      await authenticateClient(request);
+    } catch (error) {
+      console.error(
+        'Authentication error:',
+        error instanceof Error ? error.message : error
+      );
+      await reply.code(401).send('not authenticated');
+    }
+  });
+
   app.get(
     '/',
-    { websocket: true },
+    {
+      websocket: true,
+    },
     async (webSocket, request: FastifyRequest) => {
-      const socket = new WSocket(webSocket);
-
+      if (!request.user) {
+        console.error('Unauthorized websocket connection attempt');
+        return;
+      }
+      const socket = new WSocket(webSocket, request.user.uuid);
 
       socket.onClose(async () => {
-        if (!socket.uuid) {
-          await authenticateClient(socket, request);
-        }
         socket.lastSeen = new Date(Date.now());
         await runOnCloseHooks(socket);
       });
 
       socket.onMessage(async (input: Buffer) => {
-        if (!socket.uuid) {
-          await authenticateClient(socket, request);
-        }
         const message = getValidMessage(input, socket);
         await runMessageHandler(socket, message);
       });
@@ -48,7 +59,6 @@ async function roomPlugin(app: FastifyInstance) {
       // perform async work after registering event handlers
       // to not drop messages
       try {
-        await authenticateClient(socket, request);
         await runOnOpenHooks(socket);
       } catch (error) {
         console.error(`[${socket.uuid}]: error on open: ${error}`);
