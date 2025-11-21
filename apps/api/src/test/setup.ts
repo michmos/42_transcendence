@@ -14,7 +14,12 @@ export let app: FastifyInstance;
 beforeAll(async () => {
   // add hook to mock authentication
   if (!app) {
-    app = await build(false);
+    try {
+      app = await build(false);
+    } catch (error) {
+      console.error('stopping test execution: error during build');
+      throw error;
+    }
 
     app.addHook('onRequest', async (request) => {
       // Mock authentication by attaching a user object to the request
