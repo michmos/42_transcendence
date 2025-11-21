@@ -1,12 +1,14 @@
 import { type FastifyInstance } from 'fastify';
 import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
-import type { User } from 'db/generated/client/client.js';
+import { cleanSelfUserData, cleanOtherUserData } from './utils.js';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
 import * as schemas from './userValidationSchemas.js';
 import fastifyMultipart from '@fastify/multipart';
 import { getTournaments } from '../tournaments/validationSchemas.js';
+import { cleanFriendshipList } from '../friends/utils.js';
+import type { fullFriendshipRecord } from '../friends/types.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.get('/', async function (request, reply) {
@@ -30,7 +32,9 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       const userData = await app.db.getUserMe(uuidSelf);
       const cleanedUserData = cleanSelfUserData(userData);
-      const userFriends = await app.db.getFriendsMe(uuidSelf);
+      const userFriends: fullFriendshipRecord[] =
+        await app.db.getFriendsMe(uuidSelf);
+      const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
       const userMatches = await app.db.getUserMatchHistory(uuidSelf);
 
       // For testing :
@@ -42,7 +46,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         '/user/me - userFriends: ------\n',
         {
           cleanedUserData,
-          userFriends,
+          cleanedUserFriends,
           userMatches,
         },
         '------\n'
@@ -51,7 +55,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       return reply
         .code(200)
-        .send({ cleanedUserData, userFriends, userMatches });
+        .send({ cleanedUserData, cleanedUserFriends, userMatches });
     } catch (error) {
       return reply.code(500).send({ Error: `${error}` });
     }
@@ -193,30 +197,4 @@ export default async function (app: FastifyInstance): Promise<void> {
     app.db.deleteMultipleFriends(uuid);
     return await app.db.removeUser(uuid);
   });
-}
-
-// Cleans up another user's data that is requested but not the requesting user's own data
-function cleanOtherUserData(user: User): Partial<User> {
-  const {
-    nickname,
-    avatar,
-    gamesPlayed,
-    gamesWon,
-    tournamentsPlayed,
-    tournamentsWon,
-  } = user;
-  return {
-    nickname,
-    avatar,
-    gamesPlayed,
-    gamesWon,
-    tournamentsPlayed,
-    tournamentsWon,
-  };
-}
-
-function cleanSelfUserData(userData: User): Partial<User> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { uuid, updatedAt, ...cleanedUserData } = userData;
-  return cleanedUserData;
 }

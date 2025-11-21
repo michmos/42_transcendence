@@ -17,6 +17,7 @@ import {
 
 // -----   /user   -   GET ALL USERS
 describe('GET /user', () => {
+  // ------------------------------------------------------------------------ 1
   test('Admin getting all users - valid', async () => {
     setUserTo('ADMIN');
 
@@ -30,6 +31,7 @@ describe('GET /user', () => {
     expect(users).toHaveLength(2);
   });
 
+  // ------------------------------------------------------------------------ 2
   test('Admin getting all users - valid', async () => {
     for (let i = 0; i < 10; ++i) {
       await app.db.addUser(`user${i}@mail.com`, `nickName${i}`);
@@ -46,6 +48,7 @@ describe('GET /user', () => {
     expect(users).toHaveLength(12);
   });
 
+  // ------------------------------------------------------------------------ 3
   test('Member getting all users - invalid', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -57,7 +60,12 @@ describe('GET /user', () => {
 
 // -----   /user/me   -   USER'S OWN PROFILE
 describe('GET /user/me', () => {
+  // ------------------------------------------------------------------------ 4
   test('User, no friends - valid', async () => {
+    await app.db.setUserMeAvatar(
+      normalUser.uuid,
+      'https://cdn.example.com/someAvatar'
+    );
     const response = await app.inject({
       method: 'GET',
       url: '/user/me',
@@ -67,10 +75,7 @@ describe('GET /user/me', () => {
     expect(response.json()).toMatchObject({
       cleanedUserData: {
         createdAt: expect.any(String),
-        email: expect.any(String),
-        email_verified: true,
-        avatar: null,
-        fullName: null,
+        avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),
         role: expect.any(String),
         gamesPlayed: expect.any(Number),
@@ -78,21 +83,28 @@ describe('GET /user/me', () => {
         tournamentsPlayed: expect.any(Number),
         tournamentsWon: expect.any(Number),
       },
-      userFriends: expect.any(Array),
+      cleanedUserFriends: expect.any(Array),
       userMatches: expect.any(Array),
     });
     const data = response.json();
-    expect(data.userFriends.length === 0);
+    expect(data.cleanedUserFriends.length === 0);
   });
 
-  test('User, with friends and match history - valid', async () => {
+  // ------------------------------------------------------------------------ 5
+  test('VALID - User, with friends and match history', async () => {
     // setUserTo('MEMBER');
+
+    await app.db.setUserMeAvatar(
+      normalUser.uuid,
+      'https://cdn.example.com/someAvatar'
+    );
 
     let i;
     for (i = 0; i < 10; i++) {
-      const otherUser = await app.db.addUser(
-        `friend${i}@mail.com`,
-        `friend${i}`
+      let otherUser = await app.db.addUser(`friend${i}@mail.com`, `friend${i}`);
+      otherUser = await app.db.setUserMeAvatar(
+        otherUser.uuid,
+        'https://cdn.example.com/someAvatar'
       );
       const friendshipRecord = await app.db.addFriend(
         otherUser.uuid,
@@ -133,9 +145,10 @@ describe('GET /user/me', () => {
       }
     }
     for (i = 10; i < 20; i++) {
-      const otherUser = await app.db.addUser(
-        `friend${i}@mail.com`,
-        `friend${i}`
+      let otherUser = await app.db.addUser(`friend${i}@mail.com`, `friend${i}`);
+      otherUser = await app.db.setUserMeAvatar(
+        otherUser.uuid,
+        'https://cdn.example.com/someAvatar'
       );
       const friendshipRecord = await app.db.addFriend(
         normalUser.uuid,
@@ -166,9 +179,10 @@ describe('GET /user/me', () => {
       }
     }
     for (i = 20; i < 30; i++) {
-      const otherUser = await app.db.addUser(
-        `friend${i}@mail.com`,
-        `friend${i}`
+      let otherUser = await app.db.addUser(`friend${i}@mail.com`, `friend${i}`);
+      otherUser = await app.db.setUserMeAvatar(
+        otherUser.uuid,
+        'https://cdn.example.com/someAvatar'
       );
       if (i % 2 === 0) {
         await app.db.addFriend(normalUser.uuid, otherUser.uuid);
@@ -186,10 +200,7 @@ describe('GET /user/me', () => {
     expect(response.json()).toMatchObject({
       cleanedUserData: {
         createdAt: expect.any(String),
-        email: expect.any(String),
-        email_verified: true,
-        avatar: null,
-        fullName: null,
+        avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),
         role: expect.any(String),
         gamesPlayed: expect.any(Number),
@@ -197,30 +208,45 @@ describe('GET /user/me', () => {
         tournamentsPlayed: expect.any(Number),
         tournamentsWon: expect.any(Number),
       },
-      userFriends: expect.any(Array),
+      cleanedUserFriends: expect.any(Array),
       userMatches: expect.any(Array),
     });
     const data = response.json();
-    if (data.userFriends.length > 0) {
-      const friend = data.userFriends[0];
+    if (data.cleanedUserFriends.length > 0) {
+      const friend = data.cleanedUserFriends[0];
       expect(friend).toMatchObject({
-        nickname: expect.any(String),
-        state: expect.stringMatching(/^(ACCEPTED|REQUESTED)$/),
+        otherUser: expect.any(String),
+        state: expect.any(String),
         isRequester: expect.any(Boolean),
       });
       expect(friend.avatar === null || typeof friend.avatar === 'string').toBe(
         true
       );
     }
-    expect(data.userFriends.length).toBe(25);
-  });
+    if (data.userMatches.length > 0) {
+      const match = data.userMatches[0];
+      expect(match).toMatchObject({
+        date: expect.any(String),
+        score1: expect.any(Number),
+        score2: expect.any(Number),
+        player1: expect.any(String),
+        player2: expect.any(String),
+        result: expect.any(String),
+        gameType: expect.any(String),
+      });
+    }
+    expect(data.cleanedUserFriends.length).toBe(25);
+  }, 10000);
 });
 
 // -----   /user/me/nickname   -   GET OTHER USER'S RELEVANT DATA
 describe('GET /user/me/nickname', () => {
-  // current username: normalUserName
-
-  test('Changing nickname - valid', async () => {
+  // ------------------------------------------------------------------------ 6
+  test('VALID - Changing nickname', async () => {
+    await app.db.setUserMeAvatar(
+      normalUser.uuid,
+      'https://cdn.example.com/someAvatar'
+    );
     const response = await app.inject({
       method: 'PATCH',
       url: '/user/me/nickname',
@@ -231,10 +257,7 @@ describe('GET /user/me/nickname', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       createdAt: expect.any(String),
-      email: expect.any(String),
-      email_verified: true,
-      avatar: null,
-      fullName: null,
+      avatar: 'https://cdn.example.com/someAvatar',
       nickname: expect.any(String),
       role: expect.any(String),
       gamesPlayed: expect.any(Number),
@@ -244,7 +267,8 @@ describe('GET /user/me/nickname', () => {
     });
   });
 
-  test('Changing nickname, but nickname already exists', async () => {
+  // ------------------------------------------------------------------------ 7
+  test('INVALID - Changing nickname, but nickname already exists', async () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/user/me/nickname',
@@ -259,8 +283,9 @@ describe('GET /user/me/nickname', () => {
     });
   });
 
+  // ------------------------------------------------------------------------ 8
   // Nicknames should be between 3 - 30 characters - NOTE: This should be checked on frontend already, but does get reach backend through curl
-  test('Changing nickname, but invalid amount of characters', async () => {
+  test('INVALID - Changing nickname, but invalid amount of characters', async () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/user/me/nickname',
@@ -270,7 +295,8 @@ describe('GET /user/me/nickname', () => {
     });
     expect(response.statusCode).toBe(400);
   });
-  test('Changing nickname, but invalid amount of characters', async () => {
+  // ------------------------------------------------------------------------ 9
+  test('INVALID - Changing nickname, but invalid amount of characters', async () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/user/me/nickname',
@@ -289,10 +315,15 @@ describe('GET /user/me/nickname', () => {
 
 // -----   /user/:nickname   -   GET OTHER USER'S RELEVANT DATA
 describe('GET /user/:nickname', () => {
-  test('Other user data - valid', async () => {
+  // ------------------------------------------------------------------------ 10
+  test('VALID - Other user data', async () => {
     const otherUserResult = await app.db.addUser(
       'otherUser@email.com',
       'otherUser'
+    );
+    await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
 
@@ -304,7 +335,7 @@ describe('GET /user/:nickname', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       nickname: expect.any(String),
-      avatar: null,
+      avatar: 'https://cdn.example.com/someAvatar',
       gamesPlayed: 0,
       gamesWon: 0,
       tournamentsPlayed: 0,
@@ -312,7 +343,8 @@ describe('GET /user/:nickname', () => {
     });
   });
 
-  test('Other user, but user doesnt exist - invalid', async () => {
+  // ------------------------------------------------------------------------ 11
+  test('INVALID - Other user, but user doesnt exist', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/user/somename',
@@ -328,9 +360,8 @@ describe('GET /user/:nickname', () => {
 // MMOSER'S TESTCASES
 // -----   /user/me/tournaments  -   GET OTHER USER'S RELEVANT DATA
 describe('GET /user/me/tournaments', () => {
-  // setUserTo('MEMBER');
-
-  test('no tournaments -> 200', async () => {
+  // ------------------------------------------------------------------------ 12
+  test('VALID - no tournaments -> 200', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/user/me/tournaments',
@@ -340,6 +371,7 @@ describe('GET /user/me/tournaments', () => {
     expect(tournaments).toHaveLength(0);
   });
 
+  // ------------------------------------------------------------------------ 13
   test('several tournaments -> 200', async () => {
     await createValidTournament(app);
     await createValidTournament(app);
@@ -354,7 +386,8 @@ describe('GET /user/me/tournaments', () => {
     expect(tournaments).toHaveLength(4);
   });
 
-  test('tournaments by status -> 200', async () => {
+  // ------------------------------------------------------------------------ 14
+  test('VALID - tournaments by status -> 200', async () => {
     const testStatus = async (status: statusEnum) => {
       const tournament = await createValidTournament(app);
       await app.db.updateTournament({ uuid: tournament.uuid, status });

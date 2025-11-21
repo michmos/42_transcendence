@@ -1,16 +1,6 @@
 import type { Friendship, friendshipState } from 'db/generated/client/index.js';
+import { type fullFriendshipRecord } from '../../routes/friends/types.js';
 import Database from 'db';
-
-export interface fullFriendshipRecord {
-  uuid: string;
-  createdAt: Date;
-  updatedAt: Date;
-  friendAId: string;
-  friendBId: string;
-  state: friendshipState;
-  friendA: { nickname: string; avatar: string | null };
-  friendB: { nickname: string; avatar: string | null };
-}
 
 export async function findFriendRecord(
   uuidSelf: string,
@@ -62,7 +52,9 @@ export async function modifyFriendsState(
   });
 }
 
-export async function getFriendsMe(uuid: string): Promise<object[]> {
+export async function getFriendsMe(
+  uuid: string
+): Promise<fullFriendshipRecord[]> {
   const foundRelations = await Database.friendship.findMany({
     where: {
       OR: [
@@ -79,22 +71,13 @@ export async function getFriendsMe(uuid: string): Promise<object[]> {
         { AND: [{ friendBId: uuid }, { state: 'REJECTED' }] },
       ],
     },
-    select: {
-      friendAId: true,
-      friendBId: true,
+    include: {
       friendA: { select: { nickname: true, avatar: true } },
       friendB: { select: { nickname: true, avatar: true } },
-      state: true,
     },
   });
 
-  const friendsList = foundRelations.map((f) => {
-    const isRequester = f.friendAId === uuid;
-    const friend = f.friendAId === uuid ? f.friendB : f.friendA;
-    return { ...friend, state: f.state, isRequester };
-  });
-
-  return friendsList;
+  return foundRelations;
 }
 
 export async function deleteFriend(uuid: string): Promise<Friendship> {
@@ -118,7 +101,7 @@ export async function getAllFriendRecords(): Promise<Friendship[]> {
 
 export async function getUserFriendRecords(
   uuid: string
-): Promise<Partial<fullFriendshipRecord>[]> {
+): Promise<fullFriendshipRecord[]> {
   return Database.friendship.findMany({
     where: { OR: [{ friendAId: uuid }, { friendBId: uuid }] },
     include: {

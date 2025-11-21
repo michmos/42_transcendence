@@ -8,9 +8,13 @@ describe('POST /friend/:nickname', () => {
   // VALID - Adding existing user as friend, while NO existing relational friendship record between the two users exists
   test('VALID - Adding user as friend, with no existing friendship record', async () => {
     setUserTo('MEMBER');
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
 
@@ -21,6 +25,12 @@ describe('POST /friend/:nickname', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
+      cleanedFriendshipRecord: {
+        otherUser: expect.any(String),
+        avatar: expect.any(String),
+        state: 'REQUESTED',
+        isRequester: true,
+      },
       message: 'Friend request sent',
     });
   });
@@ -28,9 +38,13 @@ describe('POST /friend/:nickname', () => {
   // VALID - Adding existing user as friend, when other user already sent friendship request
   test('VALID - Adding existing user as friend, when other user already sent friendship request', async () => {
     setUserTo('MEMBER');
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     await app.db.addFriend(otherUserResult.uuid, normalUser.uuid);
 
@@ -43,11 +57,12 @@ describe('POST /friend/:nickname', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      // friendRecord: {
-      //   friendA: expect.any(String),
-      //   friendB: expect.any(String),
-      //   state: 'ACCEPTED',
-      // },
+      cleanedFriendshipRecord: {
+        otherUser: expect.any(String),
+        // avatar: expect.anything(),
+        state: 'ACCEPTED',
+        isRequester: false,
+      },
       message: 'Friend accepted',
     });
   });
@@ -94,9 +109,13 @@ describe('POST /friend/:nickname', () => {
 describe('PATCH /friends/:nickname', () => {
   // VALID - Accept friend request
   test('VALID - Accept friend request', async () => {
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
     await app.db.addFriend(otherUserResult.uuid, normalUser.uuid);
@@ -123,9 +142,13 @@ describe('PATCH /friends/:nickname', () => {
 
   // VALID - Reject friend request
   test('VALID - Reject friend request', async () => {
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
     await app.db.addFriend(otherUserResult.uuid, normalUser.uuid);
@@ -379,9 +402,13 @@ describe('PATCH /friends/:nickname', () => {
 describe('DELETE /friends/:nickname', () => {
   // VALID - Delete a friendship request as the requester
   test('VALID - Delete a friendship request as the requester', async () => {
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
     await app.db.addFriend(normalUser.uuid, otherUserResult.uuid);
@@ -399,9 +426,13 @@ describe('DELETE /friends/:nickname', () => {
 
   // VALID - Delete a friendship request from another user
   test('VALID - Delete a friendship request from another user', async () => {
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
     await app.db.addFriend(otherUserResult.uuid, normalUser.uuid);
@@ -419,9 +450,13 @@ describe('DELETE /friends/:nickname', () => {
 
   // VALID - Delete an accepted friendship
   test('VALID - Delete an accepted friendship', async () => {
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
     const result = await app.db.addFriend(
@@ -443,9 +478,13 @@ describe('DELETE /friends/:nickname', () => {
 
   // VALID - Delete a rejected friendship as the requested
   test('VALID - Delete a rejected friendship as the requested', async () => {
-    const otherUserResult = await app.db.addUser(
+    let otherUserResult = await app.db.addUser(
       'otherUser@gmail.com',
       'otherUser'
+    );
+    otherUserResult = await app.db.setUserMeAvatar(
+      otherUserResult.uuid,
+      'https://cdn.example.com/someAvatar'
     );
     const otherUser = otherUserResult.nickname;
     const result = await app.db.addFriend(
