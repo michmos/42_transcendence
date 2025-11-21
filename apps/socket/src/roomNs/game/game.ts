@@ -126,8 +126,8 @@ export function updateGame() {
       gameSpeed
     );
 
-    gameState.ballX = CANVAS_WIDTH / 2 - BALL_SIZE / 2;
-    gameState.ballY = CANVAS_HEIGHT / 2 - BALL_SIZE / 2;
+    gameState.ballX = CANVAS_WIDTH / 2;
+    gameState.ballY = CANVAS_HEIGHT / 2;
     gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -6 : 6;
     gameState.ballSpeedY = Math.random() > 0.5 ? -Math.random() : Math.random();
 

@@ -1,5 +1,5 @@
 import { draw } from './draw';
-import { Socket } from '/sgoinfre/mlubbers/ft_transcendence/apps/web/src/plugins/websocket/index';
+import { Socket } from '../../plugins/websocket/index';
 
 import {
   getCanvas,

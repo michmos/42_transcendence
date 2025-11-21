@@ -27,7 +27,7 @@ const CANVAS_HEIGHT = 600;
 const WINDOW_WIDTH = 91;
 const WINDOW_HEIGHT = 34;
 
-const url = 'ws://localhost:3001/'; // Match your server port
+const url = `ws://10.11.4.4:3001/`; // Match your server port (hardcoded for now)
 const clientId = `${Math.random().toString(36).slice(2, 10)}`; // or pass from CLI args
 const ws = new WebSocket(url);
 
