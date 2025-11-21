@@ -21,14 +21,6 @@ export default async function (app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.get('/:uuid', async function (request, reply) {
-    const { uuid } = request.params as { uuid: string };
-
-    if (!isAdmin(request, reply) && !isSameUUID(request, reply, uuid)) {
-      return;
-    }
-  });
-
   // Getting all logged-in user's own data to display on his profile page.
   // First getting the user data from the User table
   // Second getting all ACCEPTED friends and friend REQUESTS from other users
