@@ -9,12 +9,13 @@ export type SocketMetaData = {
 
 export default class WSocket {
   private socket: WebSocket;
-  public uuid?: string;
+  public uuid: string;
   public lastSeen?: Date;
-  public connected?: boolean;
+  public connected: boolean;
 
-  constructor(socket: WebSocket) {
+  constructor(socket: WebSocket, uuid: string) {
     this.socket = socket;
+    this.uuid = uuid;
     this.connected = true;
     this.socket.on('close', () => {
       this.connected = false;
