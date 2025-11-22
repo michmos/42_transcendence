@@ -54,11 +54,9 @@ When a new message is received, the handler name is extracted from the room name
 - Validate message
   - against type (see defined above)
 
-## Usage
+## Creating a new handler
 
-### Creating a new handler
-
-1. add a directory under `src/sockets/roomHandlers/` with the handler name
+1. add a directory under `src/roomHandlers/` with the handler name
    _! ATTENTION: this is the name that will be used to map the handler_
 2. add your logic
    _important_: there must be an `index.ts` file with a default export of the following type:
@@ -92,7 +90,22 @@ When a new message is received, the handler name is extracted from the room name
 **!! I included ? to express that all fields are optional -> you can create a handler that just has logic for `onMessage` or `onOpen` if you want!!**
 That's all you need to do! The system will automatically pick up the new handler and route messages accordingly.
 
-### WSocket API
+## WSocket API
+
+Consists of three different levels:
+
+1. Socket level: individual socket connection
+2. User level: collection of connected sockets from the same user
+3. Room level: collection of sockets based on rooms
+
+Depending on the level the operations have a different meaning ->
+socket.send sends a message to that socket
+user.send sends a message to all sockets of that user
+room.send sends a message to all sockets in that room
+
+### 1. WSocket
+
+For details check out `src/plugins/rooms/WSocket/Socket.ts`
 
 WSocket is a wrapper class around the native WebSocket that adds:
 
@@ -101,8 +114,6 @@ WSocket is a wrapper class around the native WebSocket that adds:
 - auto logging (messages, closure)
 - default error handling
 
-For details check out `src/plugins/rooms/WSocket/index.ts`
-
 ```ts
   socket.join(name: string); // join room or create if not exists
   socket.leave(name: string); // leave room
@@ -110,7 +121,8 @@ For details check out `src/plugins/rooms/WSocket/index.ts`
   socket.isInRoom(name: string); boolean;
   socket.send(message: string);
   socket.sendError(message: string);
-  socket.sendSuccess();
+  socket.sendSuccess(); // send a simple success message
+  socket.getUser();;  // returns the User object to which this socket belongs
 
   socket.uuid; // string
   socket.lastSeen; // Date
@@ -118,12 +130,37 @@ For details check out `src/plugins/rooms/WSocket/index.ts`
 
 ```
 
-### RoomManager API
+### 2. User
 
-The RoomManager is a singleton that should be used to all room-related operations that are not accessible via the socket API.
+For details check out `src/plugins/rooms/WSocket/User.ts`
+
+When a WSocket is created it is automatically added to a User object (if the User already exists, i.e. has already other connected sockets) or a new User object is created. This object can be retrieved through the socket instance:
 
 ```ts
-  import RoomManager from './SOMEPATH/plugins/rooms/RoomManager/index.js';
+const user = socket.getUser();
+```
+
+When a WSocket is closed it is automatically removed from the User object -> The user object contains only open socket connections
+
+=> The User object allows to perform bulk actions to all sockets belonging to the same user. The methods follow the same naming convention as for `WSocket`
+
+```ts
+  user.join(name: string); // all sockets of that user join a room
+  user.leave(name: string); // all sockets of that user leave a room
+  user.leaveAll(); // leave all rooms
+  user.send(message: string);
+  user.sendError(message: string);
+  user.sendSuccess(); // send a simple success message
+```
+
+### RoomManager
+
+For details check out `src/plugins/rooms/WSocket/RoomManager.ts`
+
+The RoomManager is a singleton that performs actions to sockets on a room level.
+
+```ts
+  import RoomManager from './SOCKETAPPROOT/src/plugins/rooms/RoomManager/index.js';
 
   RoomManager.get(`someExistingRoom`);                     // get the room instance
   RoomManager.get(`someExistingRoom`)?.setData(data:any);  // set room metadata

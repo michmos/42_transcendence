@@ -1,5 +1,6 @@
 import RoomManager from './RoomManager.js';
 import { type WebSocket } from 'ws';
+import User, { getUser } from './User.js';
 
 export type SocketMetaData = {
   uuid?: string;
@@ -9,6 +10,7 @@ export type SocketMetaData = {
 
 export default class WSocket {
   private socket: WebSocket;
+  private user: User | null;
   public uuid: string;
   public lastSeen?: Date;
   public connected: boolean;
@@ -17,15 +19,19 @@ export default class WSocket {
     this.socket = socket;
     this.uuid = uuid;
     this.connected = true;
+    this.user = getUser(this);
     this.socket.on('close', () => {
       this.connected = false;
       this.socket.close();
+      this.user?.remove(this);
+      this.user = null;
+      console.log(`[${this.uuid}]: connection closed`);
     });
   }
 
+  // add Hooks
   public onClose(callback: () => void | Promise<void>) {
     this.socket.on('close', () => {
-      console.log(`[${this.uuid}]: connection closed`);
       Promise.resolve(callback()).catch((error) =>
         console.error(`[${this.uuid}]: error on close: ${error}`)
       );
@@ -40,6 +46,11 @@ export default class WSocket {
         this.sendError('Internal error');
       });
     });
+  }
+
+  // User
+  public getUser() {
+    return this.user;
   }
 
   // room operations
