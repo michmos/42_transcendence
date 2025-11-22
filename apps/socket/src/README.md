@@ -39,21 +39,6 @@ So the room name specifies the handler!
 
 When a new message is received, the handler name is extracted from the room name and the corresponding handler is invoked.
 
-**Each handler is responsible for:**
-
-- Validating if the room exists (and how to handle if not)
-  (see further down)
-
-* Validating if the socket is allowed to perform the action in the room
-  (e.g. 'message' or 'leave-room' in a room you are not part of)
-
-- Handling the message according to its type
-
-**What is already done preHandler:**
-
-- Validate message
-  - against type (see defined above)
-
 ## Creating a new handler
 
 1. add a directory under `src/roomHandlers/` with the handler name
@@ -89,6 +74,29 @@ When a new message is received, the handler name is extracted from the room name
 
 **!! I included ? to express that all fields are optional -> you can create a handler that just has logic for `onMessage` or `onOpen` if you want!!**
 That's all you need to do! The system will automatically pick up the new handler and route messages accordingly.
+
+### Responsibilities
+
+**Each handler is responsible for:**
+
+- Validating if the room exists (and how to handle if not)
+  (see further down)
+
+* Validating if the socket is allowed to perform the action in the room
+  (e.g. 'message' or 'leave-room' in a room you are not part of)
+
+- Handling the message according to its type
+
+- Dealing with multiple socket connections to the same client (use: User api for bulk operations (see further below))
+
+- handling reconnectsj
+
+**What is already done preHandler:**
+
+- Validate message against type (see defined above)
+- authenticate user / socket
+- log changes in connection state and messages
+- catch errors and send default error message to client
 
 ## WSocket API
 
