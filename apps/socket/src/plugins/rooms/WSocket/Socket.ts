@@ -68,15 +68,21 @@ export default class WSocket {
 
   // communication
   public send(message: string) {
-    this.socket.send(message);
+    if (this.connected) {
+      this.socket.send(message);
+    }
   }
 
   public sendError(message: string) {
-    this.send(JSON.stringify({ status: 'error', message }));
+    if (this.connected) {
+      this.send(JSON.stringify({ status: 'error', message }));
+    }
   }
 
   public sendSuccess() {
-    this.send(JSON.stringify({ status: 'success' }));
+    if (this.connected) {
+      this.send(JSON.stringify({ status: 'success' }));
+    }
   }
 
   // general
