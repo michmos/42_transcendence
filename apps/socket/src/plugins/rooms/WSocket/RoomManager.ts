@@ -108,9 +108,7 @@ class Room {
 
   public broadcast(message: string) {
     this.clients.forEach((socket) => {
-      if (socket.connected) {
-        socket.send(message);
-      }
+      socket.send(message);
     });
   }
 
