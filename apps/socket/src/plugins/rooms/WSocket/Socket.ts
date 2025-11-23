@@ -20,12 +20,13 @@ export default class WSocket {
     this.uuid = uuid;
     this.connected = true;
     this.user = getUser(this);
+
     this.socket.on('close', () => {
-      this.connected = false;
       this.socket.close();
       this.user?.removeSocket(this);
       this.user = null;
       this.leaveAll();
+      this.connected = false;
       console.log(`[${this.uuid}]: connection closed`);
     });
   }
@@ -56,14 +57,23 @@ export default class WSocket {
 
   // room operations
   public join(name: string) {
+    if (!this.connected) {
+      throw new Error('Cannot join room: socket is not connected');
+    }
     RoomManager.joinRoom(this, name);
   }
 
   public leave(name: string) {
+    if (!this.connected) {
+      throw new Error('Cannot leave room: socket is not connected');
+    }
     RoomManager.leaveRoom(this, name);
   }
 
   public leaveAll() {
+    if (!this.connected) {
+      throw new Error('Cannot leave rooms: socket is not connected');
+    }
     RoomManager.leaveAllRooms(this);
   }
 
@@ -80,21 +90,24 @@ export default class WSocket {
 
   // communication
   public send(message: string) {
-    if (this.connected) {
-      this.socket.send(message);
+    if (!this.connected) {
+      throw new Error('Cannot send message: socket is not connected');
     }
+    this.socket.send(message);
   }
 
   public sendError(message: string) {
-    if (this.connected) {
-      this.send(JSON.stringify({ status: 'error', message }));
+    if (!this.connected) {
+      throw new Error('Cannot send error: socket is not connected');
     }
+    this.send(JSON.stringify({ status: 'error', message }));
   }
 
   public sendSuccess() {
-    if (this.connected) {
-      this.send(JSON.stringify({ status: 'success' }));
+    if (!this.connected) {
+      throw new Error('Cannot send success: socket is not connected');
     }
+    this.send(JSON.stringify({ status: 'success' }));
   }
 
   // general
