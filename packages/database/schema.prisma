@@ -23,9 +23,9 @@ enum status {
 }
 
 enum friendshipState {
-	REQUESTED
-	ACCEPTED
-	REJECTED
+  REQUESTED
+  ACCEPTED
+  REJECTED
 }
 
 // ----- MODELS -----
@@ -51,32 +51,32 @@ model User {
   matches2          Match[]    @relation("MatchesAsPlayer2")
 
   // Statistics
-  gamesPlayed       Int @default(0)
-  gamesWon          Int @default(0)
+  gamesPlayed       Int       @default(0)
+  gamesWon          Int       @default(0)
 
-  tournamentsPlayed Int @default(0)
-  tournamentsWon    Int @default(0)
+  tournamentsPlayed Int       @default(0)
+  tournamentsWon    Int       @default(0)
 
   // Relations / Friendships
-  friendsA		    Friendship[]	@relation(name: "friendsA")
-  friendsB		   	Friendship[]	@relation(name: "friendsB")
+  friendsA          Friendship[]  @relation(name: "friendsA")
+  friendsB          Friendship[]  @relation(name: "friendsB")
 }
 
 model Friendship {
-	// Meta
-	uuid			  String			@id @default(uuid())
-	createdAt		DateTime		@default(now())
-	updatedAt		DateTime		@updatedAt
+  // Meta
+  uuid        String      @id @default(uuid())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-	// Relations
-	friendA			User 			@relation("friendsA", fields: [friendAId], references: [uuid])
-	friendAId		String
-	friendB			User 			@relation("friendsB", fields: [friendBId], references: [uuid])
-	friendBId		String
-	state			friendshipState	@default(REQUESTED)
+  // Relations
+  friendA     User        @relation("friendsA", fields: [friendAId], references: [uuid])
+  friendAId   String
+  friendB     User        @relation("friendsB", fields: [friendBId], references: [uuid])
+  friendBId   String
+  state       friendshipState @default(REQUESTED)
 
-	@@unique([friendAId, friendBId])
-	@@index(state)
+  @@unique([friendAId, friendBId])
+  @@index(state)
 }
 
 

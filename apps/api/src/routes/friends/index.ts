@@ -120,10 +120,8 @@ export default async function (app: FastifyInstance): Promise<void> {
         if (!updatedFriendshipState)
           throw new Error(`Failed resolving friend request from ${nickname}`);
 
-        // console.log('newFriendState:', updatedFriendshipState);
         const cleanedFriendshipRecord: cleanedFriendshipRecord =
           cleanFriendshipRecord(uuidSelf, updatedFriendshipState);
-        // console.log('cleanedFriendshipRecord:', cleanedFriendshipRecord);
 
         if (accept === true)
           return reply.code(200).send({

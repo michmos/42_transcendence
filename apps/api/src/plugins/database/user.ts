@@ -79,7 +79,7 @@ export async function getUserMatchHistory(uuid: string): Promise<object[]> {
 // ---------------- OTHER STUFF
 export async function addUser(email: string, nickname: string): Promise<User> {
   return Database.user.create({
-    data: { email, nickname, email_verified: true }, // ADDED email_verified FOR TESTING APIs ONLY, SHOULD BE REMOVED FOR PRODUCTION
+    data: { email, nickname },
   });
 }
 

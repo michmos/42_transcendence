@@ -1,11 +1,11 @@
 import { type FastifyInstance } from 'fastify';
 import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
 import { cleanSelfUserData, cleanOtherUserData } from './utils.js';
-import fs from 'fs';
-import path from 'path';
-import { pipeline } from 'stream/promises';
+// import fs from 'fs';
+// import path from 'path';
+// import { pipeline } from 'stream/promises';
 import * as schemas from './userValidationSchemas.js';
-import fastifyMultipart from '@fastify/multipart';
+// import fastifyMultipart from '@fastify/multipart';
 import { getTournaments } from '../tournaments/validationSchemas.js';
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
@@ -36,22 +36,6 @@ export default async function (app: FastifyInstance): Promise<void> {
         await app.db.getFriendsMe(uuidSelf);
       const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
       const userMatches = await app.db.getUserMatchHistory(uuidSelf);
-
-      // For testing :
-      // console.log('/user/me - userData:', userData);
-      // console.log('/user/me - cleanedUserData:', cleanedUserData);
-      // console.log('/user/me - userFriends:', userFriends);
-      // console.log('/user/me - userMatches:', userMatches)
-      console.log(
-        '/user/me - userFriends: ------\n',
-        {
-          cleanedUserData,
-          cleanedUserFriends,
-          userMatches,
-        },
-        '------\n'
-      );
-      // End of testing
 
       return reply
         .code(200)
@@ -93,52 +77,52 @@ export default async function (app: FastifyInstance): Promise<void> {
   // - changing image to 1:1 and appropriate size if possible, to save storage
   // - image name changing
   // - fixing path to where image is saved, e.g. /public/profile-images/user12345
-  app.post('/me/avatar', async function (request, reply) {
-    try {
-      // if (request.headers['content-length'])
-      //   continue // Needs to send back an error if something with content-length... Not sure what
+  // app.post('/me/avatar', async function (request, reply) {
+  //   try {
+  //     // if (request.headers['content-length'])
+  //     //   continue // Needs to send back an error if something with content-length... Not sure what
 
-      // Getting the file and file data from request.file() and checking if file
-      const file: fastifyMultipart.MultipartFile | undefined =
-        await request.file();
-      if (!file) return reply.code(400).send({ Error: 'No image received' });
+  //     // Getting the file and file data from request.file() and checking if file
+  //     const file: fastifyMultipart.MultipartFile | undefined =
+  //       await request.file();
+  //     if (!file) return reply.code(400).send({ Error: 'No image received' });
 
-      // Checking if file has correct media type
-      if (
-        file.mimetype !== 'image/png' &&
-        file.mimetype !== 'image/jpeg' &&
-        file.mimetype !== 'image/jpg'
-      )
-        return reply.code(415).send({
-          Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
-        });
+  //     // Checking if file has correct media type
+  //     if (
+  //       file.mimetype !== 'image/png' &&
+  //       file.mimetype !== 'image/jpeg' &&
+  //       file.mimetype !== 'image/jpg'
+  //     )
+  //       return reply.code(415).send({
+  //         Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
+  //       });
 
-      const uuidSelf: string = request.user.uuid;
+  //     const uuidSelf: string = request.user.uuid;
 
-      // Extracting the filename and stream from file
-      const { filename, file: stream } = file;
+  //     // Extracting the filename and stream from file
+  //     const { filename, file: stream } = file;
 
-      // Creating file path
-      const savePath = path.join(
-        process.cwd(),
-        'public/userAvatars',
-        request.user.uuid + path.extname(filename)
-      );
+  //     // Creating file path
+  //     const savePath = path.join(
+  //       process.cwd(),
+  //       'public/userAvatars',
+  //       request.user.uuid + path.extname(filename)
+  //     );
 
-      // ensure that directory exists
-      await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
+  //     // ensure that directory exists
+  //     await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
 
-      // Doing next thing I am not sure about
-      stream.pipe(fs.createWriteStream(savePath));
-      await pipeline(stream, fs.createWriteStream(savePath));
+  //     // Doing next thing I am not sure about
+  //     stream.pipe(fs.createWriteStream(savePath));
+  //     await pipeline(stream, fs.createWriteStream(savePath));
 
-      // Setting/replacing image file path in user's record database
-      const userData = await app.db.setUserMeAvatar(uuidSelf, savePath);
-      return reply.code(200).send(cleanSelfUserData(userData));
-    } catch (error) {
-      return reply.code(500).send({ Error: `${error}` });
-    }
-  });
+  //     // Setting/replacing image file path in user's record database
+  //     const userData = await app.db.setUserMeAvatar(uuidSelf, savePath);
+  //     return reply.code(200).send(cleanSelfUserData(userData));
+  //   } catch (error) {
+  //     return reply.code(500).send({ Error: `${error}` });
+  //   }
+  // });
 
   app.get<{ Querystring: getTournaments }>(
     '/me/tournaments',
@@ -189,12 +173,12 @@ export default async function (app: FastifyInstance): Promise<void> {
   app.delete('/', async function (request, reply) {
     const { uuid } = request.body as { uuid: string };
 
-    if (!isAdmin(request, reply) && isSameUUID(request, reply, uuid)) return;
+    if (!isAdmin(request, reply) || !isSameUUID(request, reply, uuid)) return;
 
     if (!uuid) {
       return new Error('UUID is required');
     }
-    app.db.deleteMultipleFriends(uuid);
+    await app.db.deleteMultipleFriends(uuid);
     return await app.db.removeUser(uuid);
   });
 }

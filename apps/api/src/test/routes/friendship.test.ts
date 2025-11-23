@@ -59,7 +59,7 @@ describe('POST /friend/:nickname', () => {
     expect(response.json()).toMatchObject({
       cleanedFriendshipRecord: {
         otherUser: expect.any(String),
-        // avatar: expect.anything(),
+        avatar: expect.any(String),
         state: 'ACCEPTED',
         isRequester: false,
       },
@@ -132,7 +132,7 @@ describe('PATCH /friends/:nickname', () => {
     expect(response.json()).toMatchObject({
       cleanedFriendshipRecord: {
         otherUser: expect.any(String),
-        // avatar: expect.anything(),
+        avatar: expect.any(String),
         state: expect.stringMatching(/^(ACCEPTED|REJECTED)$/),
         isRequester: expect.any(Boolean),
       },

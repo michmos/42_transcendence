@@ -1,6 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox';
 
-// PAtCH set nickname
+// PATCH set nickname
 export const PatchUserMeSetNickname = {
   body: Type.Object(
     {

@@ -83,7 +83,7 @@ describe('GET /user/me', () => {
       userMatches: expect.any(Array),
     });
     const data = response.json();
-    expect(data.cleanedUserFriends.length === 0);
+    expect(data.cleanedUserFriends).toHaveLength(0);
   });
 
   // ------------------------------------------------------------------------ 5
