@@ -48,24 +48,28 @@ When a new message is received, the handler name is extracted from the room name
 
    ```ts
    import { type SocketMessage } from '../../plugins/rooms/index.js';
-   import { WSocket } from '../../plugins/rooms/WSocket/index.js';
+   import {
+     RoomManager,
+     WSocket,
+     User,
+   } from '../../plugins/rooms/WSocket/index.js';
 
    export default {
      onStartup: async () => {
        console.log('This code is being run on server start');
        // e.g. fetching api for ongoing tournaments
      },
-     onOpen: (socket: WSocket) => {
+     onOpen: async (socket: WSocket) => {
        console.log('This code is run if a socket connects to the server');
        // socket.join('tournament:main');
      },
-     onMessage: (socket: WSocket, message: SocketMessage) => {
+     onMessage: async (socket: WSocket, message: SocketMessage) => {
        console.log(
          'This code is run if a socket sends a message TO THIS HANDLER'
        );
        // e.g. Tournament logic (create tournament, join tournament, leave tournament)
      },
-     onClose: (socket: WSocket) => {
+     onClose: async (socket: WSocket) => {
        console.log('This code is run if a socket disconnects from a server');
        // e.g. remove him from tournament rooms (or leave him in)
      },
@@ -89,7 +93,7 @@ That's all you need to do! The system will automatically pick up the new handler
 
 - Dealing with multiple socket connections to the same client (use: User api for bulk operations (see further below))
 
-- handling reconnectsj
+- handling reconnects (sockets are automatically removed from rooms on closure - if desired, the handler needs to add them back on reconnect)
 
 **What is already done preHandler:**
 
@@ -104,9 +108,9 @@ Consists of three different levels:
 
 1. Socket level: individual socket connection
 2. User level: collection of connected sockets from the same user
-3. Room level: collection of sockets based on rooms
+3. Room level: collection of connected sockets based on rooms
 
-Depending on the level the operations have a different meaning ->
+Depending on the level, the operations have a different meaning ->
 socket.send sends a message to that socket
 user.send sends a message to all sockets of that user
 room.send sends a message to all sockets in that room
@@ -148,7 +152,7 @@ When a WSocket is created it is automatically added to a User object (if the Use
 const user = socket.getUser();
 ```
 
-When a WSocket is closed it is automatically removed from the User object -> The user object contains only open socket connections
+**When a WSocket is closed it is automatically removed from the User object -> The user object contains only open socket connections**
 
 => The User object allows to perform bulk actions to all sockets belonging to the same user. The methods follow the same naming convention as for `WSocket`
 
@@ -165,6 +169,8 @@ When a WSocket is closed it is automatically removed from the User object -> The
 For details check out `src/plugins/rooms/WSocket/RoomManager.ts`
 
 The RoomManager is a singleton that performs actions to sockets on a room level.
+
+**When a socket is closed, it is automatically removed from all rooms -> the RoomManager only keeps track of open socket connections. It is the responsibility of the handler to handle client reconnects (and add them back to rooms if desired)**
 
 ```ts
   import RoomManager from './SOCKETAPPROOT/src/plugins/rooms/RoomManager/index.js';
