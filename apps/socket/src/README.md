@@ -153,7 +153,6 @@ When a WSocket is closed it is automatically removed from the User object -> The
 => The User object allows to perform bulk actions to all sockets belonging to the same user. The methods follow the same naming convention as for `WSocket`
 
 ```ts
-  user.join(name: string); // all sockets of that user join a room
   user.leave(name: string); // all sockets of that user leave a room
   user.leaveAll(); // leave all rooms
   user.send(message: string);
@@ -173,11 +172,9 @@ The RoomManager is a singleton that performs actions to sockets on a room level.
   RoomManager.get(`someExistingRoom`);                     // get the room instance
   RoomManager.get(`someExistingRoom`)?.setData(data:any);  // set room metadata
   RoomManager.get(`someExistingRoom`)?.getData();          // get room metadata
-  RoomManager.get(`someExistingRoom`)?.close();            // close the room
   RoomManager.get(`someExistingRoom`)?.broadcast();        // broadcast a message to all room members
   RoomManager.get(`someExistingRoom`)?.size();             // get number of members in the room
   RoomManager.get(`someExistingRoom`)?.has(socket: WebSocket); // check if a socket is in the room
-  RoomManager.get(`someExistingRoom`)?.getConnections();  // get all sockets in the room
 ```
 
 ## TODOs

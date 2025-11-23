@@ -6,7 +6,7 @@ let uuidToUser: Map<string, User> = new Map();
 export function getUser(socket: WSocket) {
   const existingUser = uuidToUser.get(socket.uuid);
   if (existingUser) {
-    existingUser.add(socket);
+    existingUser.addSocket(socket);
     return existingUser;
   }
   const newUser = new User(socket);
@@ -24,21 +24,14 @@ export default class User {
     this.uuid = socket.uuid;
   }
 
-  public add(socket: WSocket) {
+  public addSocket(socket: WSocket) {
     this.sockets.add(socket);
   }
 
-  public remove(socket: WSocket) {
+  public removeSocket(socket: WSocket) {
     this.sockets.delete(socket);
     if (this.sockets.size === 0) {
       uuidToUser.delete(this.uuid);
-    }
-  }
-
-  // room operations
-  public join(name: string) {
-    for (const socket of this.sockets) {
-      RoomManager.joinRoom(socket, name);
     }
   }
 

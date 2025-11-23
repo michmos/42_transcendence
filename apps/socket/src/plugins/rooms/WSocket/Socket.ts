@@ -23,7 +23,7 @@ export default class WSocket {
     this.socket.on('close', () => {
       this.connected = false;
       this.socket.close();
-      this.user?.remove(this);
+      this.user?.removeSocket(this);
       this.user = null;
       this.leaveAll();
       console.log(`[${this.uuid}]: connection closed`);
