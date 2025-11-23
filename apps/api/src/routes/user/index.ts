@@ -1,11 +1,12 @@
 import { type FastifyInstance } from 'fastify';
 import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
 import { cleanSelfUserData, cleanOtherUserData } from './utils.js';
-// import fs from 'fs';
-// import path from 'path';
-// import { pipeline } from 'stream/promises';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import sharp from 'sharp';
 import * as schemas from './userValidationSchemas.js';
-// import fastifyMultipart from '@fastify/multipart';
+import fastifyMultipart from '@fastify/multipart';
 import { getTournaments } from '../tournaments/validationSchemas.js';
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
@@ -72,57 +73,67 @@ export default async function (app: FastifyInstance): Promise<void> {
     }
   );
 
-  // ---- TODO:
-  // - Needs image (type checking)
-  // - changing image to 1:1 and appropriate size if possible, to save storage
-  // - image name changing
-  // - fixing path to where image is saved, e.g. /public/profile-images/user12345
-  // app.post('/me/avatar', async function (request, reply) {
-  //   try {
-  //     // if (request.headers['content-length'])
-  //     //   continue // Needs to send back an error if something with content-length... Not sure what
+  app.post('/me/avatar', async function (request, reply) {
+    try {
+      const file: fastifyMultipart.MultipartFile | undefined =
+        await request.file();
+      if (!file) return reply.code(400).send({ Error: 'No image received' });
 
-  //     // Getting the file and file data from request.file() and checking if file
-  //     const file: fastifyMultipart.MultipartFile | undefined =
-  //       await request.file();
-  //     if (!file) return reply.code(400).send({ Error: 'No image received' });
+      if (
+        file.mimetype !== 'image/png' &&
+        file.mimetype !== 'image/jpeg' &&
+        file.mimetype !== 'image/jpg'
+      )
+        return reply.code(415).send({
+          Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
+        });
 
-  //     // Checking if file has correct media type
-  //     if (
-  //       file.mimetype !== 'image/png' &&
-  //       file.mimetype !== 'image/jpeg' &&
-  //       file.mimetype !== 'image/jpg'
-  //     )
-  //       return reply.code(415).send({
-  //         Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
-  //       });
+      // Reading file into buffer. Max 2MB
+      const buffer = await file.toBuffer();
+      if (buffer.length > 2 * 1024 * 1024)
+        return reply.code(413).send({
+          Error: 'File too large. Must be smaller than 2MB',
+        });
 
-  //     const uuidSelf: string = request.user.uuid;
+      // Getting own uuid and extracting filename from file
+      const uuidSelf: string = request.user.uuid;
+      const { filename } = file;
 
-  //     // Extracting the filename and stream from file
-  //     const { filename, file: stream } = file;
+      // generating new filename for avatar
+      const avatarUuid = crypto.randomUUID();
+      const extension = path.extname(filename);
+      const newFilename = `${avatarUuid}${extension}`;
 
-  //     // Creating file path
-  //     const savePath = path.join(
-  //       process.cwd(),
-  //       'public/userAvatars',
-  //       request.user.uuid + path.extname(filename)
-  //     );
+      // Generating path where avatar will get stored & then then relative path to be stored in DB
+      const savePath = path.join(
+        process.cwd(),
+        'public/userAvatars',
+        newFilename
+      );
+      const relPath = `/userAvatars/${newFilename}`;
 
-  //     // ensure that directory exists
-  //     await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
+      // ensure that directory exists
+      await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
 
-  //     // Doing next thing I am not sure about
-  //     stream.pipe(fs.createWriteStream(savePath));
-  //     await pipeline(stream, fs.createWriteStream(savePath));
+      // Resize and write image to avatar directory
+      try {
+        await sharp(buffer)
+          .resize(256, 256, { fit: 'cover' })
+          .jpeg({ quality: 80 })
+          .toFile(savePath);
+      } catch {
+        return reply.code(415).send({
+          Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
+        });
+      }
 
-  //     // Setting/replacing image file path in user's record database
-  //     const userData = await app.db.setUserMeAvatar(uuidSelf, savePath);
-  //     return reply.code(200).send(cleanSelfUserData(userData));
-  //   } catch (error) {
-  //     return reply.code(500).send({ Error: `${error}` });
-  //   }
-  // });
+      // Setting/replacing image file path in user's record database
+      const userData = await app.db.setUserMeAvatar(uuidSelf, relPath);
+      return reply.code(200).send(cleanSelfUserData(userData));
+    } catch (error) {
+      return reply.code(500).send({ Error: `${error}` });
+    }
+  });
 
   app.get<{ Querystring: getTournaments }>(
     '/me/tournaments',
