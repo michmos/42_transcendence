@@ -1,8 +1,8 @@
-const SocketToRooms = new Map<WSocket, Set<Room>>();
-const Rooms = new Map<string, Room>();
 import WSocket from './Socket.js';
 
 export class RoomManager {
+  private _rooms = new Map<string, __Room>();
+
   /**
    * Joins the specified socket to the room
    * and creates a new room if not previously
@@ -11,13 +11,14 @@ export class RoomManager {
    * @param roomName The name of the room to join.
    */
   public joinRoom(socket: WSocket, roomName: string) {
-    let room = Rooms.get(roomName);
+    let room = this._rooms.get(roomName);
     if (!room) {
-      room = new Room(roomName);
-      Rooms.set(roomName, room);
+      // create new room
+      room = new __Room(roomName);
+      this._rooms.set(roomName, room);
     }
-    room.join(socket);
-    return room;
+    room.addSocket(socket);
+    return room.toPublicInterface();
   }
 
   /**
@@ -28,19 +29,18 @@ export class RoomManager {
    * @throws If room does not exist, or client not in room
    */
   public leaveRoom(socket: WSocket, roomName: string) {
-    let room = Rooms.get(roomName);
+    let room = this._rooms.get(roomName);
     if (!room) {
       throw new Error(`Cannot leave room \`${roomName}\`: doesn't exist`);
     }
-    room.leave(socket);
+    room.removeSocket(socket);
     if (room.size() === 0) {
-      room.close();
+      this._rooms.delete(room.name);
     }
-    return room;
   }
 
   public leaveAllRooms(socket: WSocket) {
-    Rooms.forEach((room) => {
+    this._rooms.forEach((room) => {
       if (room.has(socket)) {
         this.leaveRoom(socket, room.name);
       }
@@ -48,14 +48,23 @@ export class RoomManager {
   }
 
   public get(roomName: string): Room | undefined {
-    return Rooms.get(roomName);
+    return this._rooms.get(roomName)?.toPublicInterface();
   }
 }
 
-class Room {
+interface Room {
+  name: string;
+  getData(): any;
+  setData(data: any): void;
+  size(): number;
+  has(socket: WSocket): boolean;
+  broadcast(message: string): void;
+}
+
+class __Room {
   public name: string;
   private data: any = {};
-  private clients: Set<WSocket> = new Set();
+  private sockets: Set<WSocket> = new Set();
 
   constructor(name: string) {
     this.name = name;
@@ -72,55 +81,47 @@ class Room {
   /**
    * add client to room
    */
-  public join(socket: WSocket) {
-    // add to global
-    let rooms =
-      SocketToRooms.get(socket) ??
-      SocketToRooms.set(socket, new Set()).get(socket);
-    if (!rooms) {
-      throw new Error(`socket could not be added to room: ${this.name}`);
-    }
-    rooms.add(this);
-    // add to local
-    this.clients.add(socket);
+  public addSocket(socket: WSocket) {
+    this.sockets.add(socket);
   }
 
   /**
    * remove client from room
    * @throw if client not in room
    */
-  public leave(socket: WSocket) {
-    this.clients.delete(socket);
-    let rooms = SocketToRooms.get(socket);
-    if (!rooms) {
-      throw new Error(`socket not found`);
-    }
-    rooms.delete(this);
+  public removeSocket(socket: WSocket) {
+    this.sockets.delete(socket);
   }
 
-  // remove room
-  public close() {
-    this.clients.forEach((socket) => {
-      this.leave(socket);
+  public removeAllSockets() {
+    this.sockets.forEach((socket) => {
+      this.removeSocket(socket);
     });
-    Rooms.delete(this.name);
   }
 
   public broadcast(message: string) {
-    this.clients.forEach((socket) => {
+    this.sockets.forEach((socket) => {
       socket.send(message);
     });
   }
 
   public size() {
-    return this.clients.size;
+    return this.sockets.size;
   }
 
-  public getConnections() {
-    return [...this.clients];
-  }
   public has(socket: WSocket) {
-    return this.clients.has(socket);
+    return this.sockets.has(socket);
+  }
+
+  public toPublicInterface(): Room {
+    return {
+      name: this.name,
+      getData: () => this.getData(),
+      setData: (data: any) => this.setData(data),
+      size: () => this.size(),
+      has: (socket: WSocket) => this.has(socket),
+      broadcast: (message: string) => this.broadcast(message),
+    };
   }
 }
 
