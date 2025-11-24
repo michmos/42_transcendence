@@ -42,7 +42,10 @@ export async function loadRoomHandlers() {
       roomHandlers[roomName] = result.data;
       console.info(`☑️ Handler: ${roomName} loaded`);
     } catch (error) {
-      console.error(`❌ Handler: ${roomName} could not be loaded: `, error);
+      console.error(
+        `❌ Handler: ${roomName} could not be loaded: `,
+        (error as Error).message
+      );
     }
   }
 }
