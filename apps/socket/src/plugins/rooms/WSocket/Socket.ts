@@ -29,7 +29,7 @@ export default class WSocket {
       this.user = null;
       this.leaveAll();
       this.connected = false;
-      console.log(`[${this.uuid}]: connection closed`);
+      this.consoleLog(`connection closed`);
     });
   }
 
@@ -37,16 +37,16 @@ export default class WSocket {
   public onClose(callback: () => void | Promise<void>) {
     this.socket.on('close', () => {
       Promise.resolve(callback()).catch((error) =>
-        console.error(`[${this.uuid}]: error on close: ${error}`)
+        this.consoleError(`error on close: ${error}`)
       );
     });
   }
 
   public onMessage(callback: (input: Buffer) => void | Promise<void>) {
     this.socket.on('message', (input: Buffer) => {
-      console.log(`[${this.uuid}]: new message`);
+      this.consoleLog(`new message`);
       Promise.resolve(callback(input)).catch((error) => {
-        console.error(`[${this.uuid}]: error on message: ${error}`);
+        this.consoleError(`error on message: ${error}`);
         this.sendError('Internal error');
       });
     });
@@ -55,6 +55,15 @@ export default class WSocket {
   // User
   public getUser() {
     return this.user;
+  }
+
+  // formatted logging
+  public consoleLog(message: string) {
+    console.log(`[${this.uuid}]: ${message}`);
+  }
+
+  public consoleError(message: string) {
+    console.error(`[${this.uuid}]: ${message}`);
   }
 
   // room operations
