@@ -426,7 +426,7 @@ describe('POST /tournaments/{uuid}/users', () => {
 
 describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
   test('valid: remove yourself from tournament -> 200', async () => {
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     const response = await app.inject({
       method: 'DELETE',
@@ -435,7 +435,7 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     expect(response.statusCode).toBe(200);
   });
   test('valid: remove sb else from tournament as Admin -> 200', async () => {
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     setUserTo('ADMIN');
     const response = await app.inject({
@@ -445,7 +445,7 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     expect(response.statusCode).toBe(200);
   });
   test('invalid: remove yourself from ongoing tournament as Member -> 422', async () => {
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
     await app.db.updateTournament({ uuid: tournament.uuid, status: 'ongoing' });
 
     const response = await app.inject({
@@ -455,7 +455,7 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     expect(response.statusCode).toBe(422);
   });
   test('invalid: remove sb else from ongoing tournament as Admin -> 422', async () => {
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
     await app.db.updateTournament({ uuid: tournament.uuid, status: 'ongoing' });
 
     setUserTo('ADMIN');
@@ -467,7 +467,7 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
   });
   test('invalid: remove sb else from tournament as Member -> 403', async () => {
     setUserTo('ADMIN');
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     setUserTo('MEMBER');
     const response = await app.inject({
@@ -477,7 +477,7 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     expect(response.statusCode).toBe(403);
   });
   test('invalid: remove yourself from non-existent tournament -> 404', async () => {
-    await createValidTournament();
+    await createValidTournament(app);
 
     const response = await app.inject({
       method: 'DELETE',
@@ -486,7 +486,7 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     expect(response.statusCode).toBe(404);
   });
   test('invalid: remove non-existent user from tournament as Admin -> 404', async () => {
-    const tournament = await createValidTournament();
+    const tournament = await createValidTournament(app);
 
     setUserTo('ADMIN');
     const response = await app.inject({
