@@ -101,7 +101,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           request.params.userUuid !== getUuid(request) &&
           !isAdmin(request, reply)
         )
-          return;
+          return reply.status(403).send({ error: 'Forbidden' });
       },
     },
     async function (request, reply) {
@@ -119,7 +119,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         ))
       ) {
         return reply
-          .status(404)
+          .status(400)
           .send({ error: 'User does not participate in tournament' });
       }
 
