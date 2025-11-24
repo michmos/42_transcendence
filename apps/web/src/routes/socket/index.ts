@@ -56,7 +56,7 @@ function SendMessageToServer() {
 
     if (window.socket.isConnected()) {
       console.log('Sending message:', message);
-      window.socket.sendMessage(message);
+      window.socket.send(message);
 
       // Display sent message in the messages list
       const listItem = document.createElement('li');
