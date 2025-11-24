@@ -1,3 +1,5 @@
+import { type SocketMessage } from '../../types/SocketMessage.js';
+
 class Socket {
   private socket: WebSocket | null = null;
   private hooks: ((event: MessageEvent) => void)[] = [];
@@ -39,12 +41,39 @@ class Socket {
     };
   }
 
-  public sendMessage(message: string) {
+  public send(message: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(message);
     } else {
       console.error('WebSocket is not open. Unable to send message:', message);
     }
+  }
+
+  public joinRoom(room: string, data?: any) {
+    const message: SocketMessage = {
+      type: 'join-room',
+      room: room,
+      ...(data && { data: data }),
+    };
+    this.send(JSON.stringify(message));
+  }
+
+  public leaveRoom(room: string, data?: any) {
+    const message: SocketMessage = {
+      type: 'leave-room',
+      room: room,
+      ...(data && { data: data }),
+    };
+    this.send(JSON.stringify(message));
+  }
+
+  public sendMessage(room: string, data: any) {
+    const socketMessage: SocketMessage = {
+      type: 'leave-room',
+      room: room,
+      ...(data && { data: data }),
+    };
+    this.send(JSON.stringify(socketMessage));
   }
 
   public isConnected(): boolean {
