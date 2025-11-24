@@ -191,7 +191,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   // ------------- Helper function
 
   async function getUserUuid(nickname: string) {
-    const user: User | null = await app.db.getUser(nickname);
+    const user: User | null = await app.db.getUserByNickname(nickname);
     if (!user) return null;
 
     const { uuid } = user;

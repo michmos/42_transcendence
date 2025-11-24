@@ -8,7 +8,13 @@ export async function getUsers(): Promise<User[]> {
   });
 }
 
-export async function getUser(nickname: string): Promise<User | null> {
+export async function getUser(uuid: string): Promise<User | null> {
+  return Database.user.findUnique({ where: { uuid } });
+}
+
+export async function getUserByNickname(
+  nickname: string
+): Promise<User | null> {
   return Database.user.findUnique({ where: { nickname } });
 }
 
