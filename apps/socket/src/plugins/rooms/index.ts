@@ -13,6 +13,11 @@ export { type SocketMessage } from './validation.js';
 import { authenticateClient } from './authentication.js';
 import { WSocket } from './WSocket/index.js';
 
+interface IIdentifiers {
+  uuid: string;
+  jwt: string;
+}
+
 /**
  * Main room plugin; handles incoming messages and
  * routes them to the appropriate room handlers
@@ -22,6 +27,7 @@ async function roomPlugin(app: FastifyInstance) {
   await loadRoomHandlers();
   await runOnStartupHooks();
 
+  app.decorateRequest('identifiers', null);
   app.addHook('preValidation', async (request, reply) => {
     try {
       await authenticateClient(request);
@@ -40,11 +46,12 @@ async function roomPlugin(app: FastifyInstance) {
       websocket: true,
     },
     async (webSocket, request: FastifyRequest) => {
-      if (!request.user) {
+      const identifiers = request.getDecorator<IIdentifiers>('identifiers');
+      if (!identifiers) {
         console.error('Unauthorized websocket connection attempt');
         return;
       }
-      const socket = new WSocket(webSocket, request.user.uuid);
+      const socket = new WSocket(webSocket, identifiers.uuid, identifiers.jwt);
 
       socket.onClose(async () => {
         socket.lastSeen = new Date(Date.now());
