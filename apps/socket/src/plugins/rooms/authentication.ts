@@ -1,4 +1,3 @@
-import { WSocket } from './WSocket/index.js';
 import { type FastifyRequest } from 'fastify';
 import type { User } from 'db/generated/client/index.js';
 
@@ -51,6 +50,9 @@ export async function authenticateClient(request: FastifyRequest) {
   }
 
   const user = await fetchUser(sessionCookie);
-  request.user = user;
+  request.setDecorator('identifiers', {
+    uuid: user.uuid,
+    jwt: sessionCookie,
+  });
   console.log(`User authenticated: ${user.uuid}`);
 }

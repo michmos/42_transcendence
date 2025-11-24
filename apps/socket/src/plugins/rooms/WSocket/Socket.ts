@@ -12,12 +12,14 @@ export default class WSocket {
   private socket: WebSocket;
   private user: User | null;
   public uuid: string;
+  public jwt: string;
   public lastSeen?: Date;
   public connected: boolean;
 
-  constructor(socket: WebSocket, uuid: string) {
+  constructor(socket: WebSocket, uuid: string, jwt: string) {
     this.socket = socket;
     this.uuid = uuid;
+    this.jwt = jwt;
     this.connected = true;
     this.user = getUser(this);
 
