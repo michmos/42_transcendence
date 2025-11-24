@@ -52,7 +52,7 @@ export class RoomManager {
   }
 }
 
-interface Room {
+export interface Room {
   name: string;
   getData(): any;
   setData(data: any): void;

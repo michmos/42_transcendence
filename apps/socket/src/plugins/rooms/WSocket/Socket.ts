@@ -1,4 +1,4 @@
-import RoomManager from './RoomManager.js';
+import RoomManager, { type Room } from './RoomManager.js';
 import { type WebSocket } from 'ws';
 import User, { getUser } from './User.js';
 
@@ -67,11 +67,11 @@ export default class WSocket {
   }
 
   // room operations
-  public join(name: string) {
+  public join(name: string): Room {
     if (!this.connected) {
       throw new Error('Cannot join room: socket is not connected');
     }
-    RoomManager.joinRoom(this, name);
+    return RoomManager.joinRoom(this, name);
   }
 
   public leave(name: string) {
