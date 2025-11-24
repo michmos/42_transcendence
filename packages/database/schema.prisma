@@ -92,8 +92,6 @@ model Tournament {
   minPlayers        Int
   maxPlayers        Int
   playerCount       Int       @default(1)
-  lockTime          Int       @default(10)
-  gameTime          Int       @default(3)
   status            status    @default(outstanding)
   numberOfRounds    Int       @default(0)
   currentRound      Int       @default(0)

@@ -230,8 +230,6 @@ components:
         - tournamentName
         - maxPlayers
         - minPlayers
-        - lockTime
-        - gameTime
         - playerCount
         - status
       properties:
@@ -250,12 +248,6 @@ components:
         playerCount:
           type: integer
           example: 5
-        lockTime:
-          type: integer
-          example: 3
-        gameTime:
-          type: integer
-          example: 3
         winner:
           $ref: '#/components/schemas/User'
         status:
@@ -287,8 +279,6 @@ components:
         - tournamentName
         - maxPlayers
         - minPlayers
-        - lockTime
-        - gameTime
       properties:
         tournamentName:
           type: string
@@ -299,12 +289,6 @@ components:
         minPlayers:
           type: integer
           example: 4
-        lockTime:
-          type: integer
-          example: 3
-        gameTime:
-          type: integer
-          example: 3
 
     Match:
       type: object
@@ -779,7 +763,7 @@ paths:
                     $ref: '#/components/schemas/CleanedUser'
                   userFriends:
                     type: array
-                    items: 
+                    items:
                       $ref: '#/components/schemas/Friend'
                 required:
                   - CleanedUser
@@ -933,7 +917,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error' 
+                $ref: '#/components/schemas/Error'
 
   /friends/:nickname:
     post: # Maybe make this a separate API link

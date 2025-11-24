@@ -12,8 +12,6 @@ export const createTournament = {
       tournamentName: Type.String({ minLength: 1 }),
       minPlayers: Type.Integer({ minimum: 2, maximum: 8 }),
       maxPlayers: Type.Integer({ minimum: 2, maximum: 16 }),
-      lockTime: Type.Optional(Type.Integer()),
-      gameTime: Type.Optional(Type.Integer()),
     },
     { additionalProperties: false }
   ),
