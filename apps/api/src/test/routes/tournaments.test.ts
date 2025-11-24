@@ -221,8 +221,6 @@ describe('GET /tournaments/{uuid}', () => {
     expect(tournament.tournamentName).toBe('TestTournament');
     expect(tournament.maxPlayers).toBe(4);
     expect(tournament.minPlayers).toBe(2);
-    expect(tournament.lockTime).toBe(1);
-    expect(tournament.gameTime).toBe(1);
     expect(tournament.status).toBe('outstanding');
     expect(tournament.playerCount).toBeGreaterThan(0);
   });

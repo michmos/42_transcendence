@@ -11,8 +11,6 @@ export async function createTournament(data: {
   minPlayers: number;
   maxPlayers: number;
   userUuid: string;
-  lockTime?: number;
-  gameTime?: number;
 }): Promise<Tournament> {
   const { userUuid, ...rest } = data;
 
