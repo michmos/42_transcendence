@@ -1,6 +1,6 @@
 import WSocket from './Socket.js';
 
-export class RoomManager {
+class RoomManager {
   private _rooms = new Map<string, __Room>();
 
   /**
