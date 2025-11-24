@@ -146,7 +146,7 @@ WSocket is a wrapper class around the native WebSocket that adds:
 
 For details check out `src/plugins/rooms/WSocket/User.ts`
 
-When a WSocket is created it is automatically added to a User object (if the User already exists, i.e. has already other connected sockets) or a new User object is created. This object can be retrieved through the socket instance:
+When a WSocket is created it is automatically added to a User object (if the User already exists, i.e. has already other connected sockets) or a new User object is created if its the only open connection. This object can be retrieved through the socket instance:
 
 ```ts
 const user = socket.getUser();
@@ -154,10 +154,12 @@ const user = socket.getUser();
 
 **When a WSocket is closed it is automatically removed from the User object -> The user object contains only open socket connections**
 
-=> The User object allows to perform bulk actions to all sockets belonging to the same user. The methods follow the same naming convention as for `WSocket`
+=> The User object allows to perform bulk actions to all open sockets belonging to the same user. The methods follow the same naming convention as for `WSocket`
+**Each action is performed only on currently open sockets of that user! (e.g. joining a room with a user, simply means that all current connections of that user are added to that room !!Future connections are not automatically added to the Room!!)**
 
 ```ts
   user.leave(name: string); // all sockets of that user leave a room
+  user.join(name: string); // all CURRENT open sockets of that user join a room
   user.leaveAll(); // leave all rooms
   user.send(message: string);
   user.sendError(message: string);

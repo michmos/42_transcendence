@@ -35,6 +35,14 @@ export default class User {
     }
   }
 
+  public join(name: string) {
+    let room;
+    for (const socket of this.sockets) {
+      room = RoomManager.joinRoom(socket, name);
+    }
+    return room;
+  }
+
   public leave(name: string) {
     for (const socket of this.sockets) {
       RoomManager.leaveRoom(socket, name);
