@@ -81,6 +81,19 @@ describe('POST /tournaments', () => {
     ).toBe(400);
   });
 
+  test('invalid settings: wrong filed names -> 400', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tournaments',
+      body: {
+        name: 'hello',
+        maplayers: 2,
+        miayers: 3,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
   test('invalid settings: maxPlayers < minPlayers -> 400', async () => {
     const response = await app.inject({
       method: 'POST',
@@ -115,6 +128,45 @@ describe('POST /tournaments', () => {
         ...validTournamentBody,
         maxPlayers: 10,
         minPlayers: 9,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('invalid settings: minPlayers < 2 -> 400', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tournaments',
+      body: {
+        ...validTournamentBody,
+        maxPlayers: 10,
+        minPlayers: 1,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('invalid settings: maxPlayers < 2 -> 400', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tournaments',
+      body: {
+        ...validTournamentBody,
+        maxPlayers: 2,
+        minPlayers: 0,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('invalid settings: negative values -> 400', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tournaments',
+      body: {
+        ...validTournamentBody,
+        maxPlayers: -1,
+        minPlayers: -2,
       },
     });
     expect(response.statusCode).toBe(400);
