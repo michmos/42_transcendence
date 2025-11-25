@@ -1,6 +1,10 @@
 import path from 'path';
 import AutoLoad from '@fastify/autoload';
-import Fastify from 'fastify';
+import Fastify, {
+  type FastifyError,
+  type FastifyRequest,
+  type FastifyReply,
+} from 'fastify';
 // import fastifyStatic from '@fastify/static';
 
 const app = Fastify({
@@ -18,6 +22,27 @@ const app = Fastify({
 });
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+const errorHandler = (
+  error: FastifyError,
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  let response: any = { message: error.message };
+  const statusCode = error.statusCode || 500;
+
+  if (error.validation) {
+    response = {
+      message: `Valiation error in ${error.validationContext}`,
+      errors: error.validation,
+    };
+  }
+
+  console.error(
+    `Error occurred during request to ${request.url}: ${error.message}`
+  );
+  reply.status(statusCode).send(response);
+};
 
 export async function build(loadAuth = true) {
   console.info('⚙️  Auto-loading plugins and api routes...');
@@ -39,12 +64,7 @@ export async function build(loadAuth = true) {
 
   console.info('✅ Multipart loaded');
 
-  // await app.register(fastifyStatic, {
-  //   root: path.join(process.cwd(), 'public'),
-  //   prefix: '/',
-  // });
-
-  // console.info('✅ fastifyStatic loaded');
+  app.setErrorHandler(errorHandler);
 
   // Load all API routes AFTER plugins
   await app.register(AutoLoad, {
