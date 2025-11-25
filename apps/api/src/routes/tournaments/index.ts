@@ -2,7 +2,7 @@ import { type FastifyInstance } from 'fastify';
 import { status as statusEnum } from 'db/generated/client/index.js';
 import * as schemas from './validationSchemas.js';
 import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
-import { isOpenTournament, isParticipant } from './utils.js';
+import { isOpenTournament } from './utils.js';
 import generateTournamentPlan from './matchmaking.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
@@ -141,7 +141,17 @@ export default async function (app: FastifyInstance): Promise<void> {
             error: `Tournament with uuid: ${request.params.uuid} not found`,
           });
         }
-        if (!(await isParticipant(request, reply, app))) return;
+        if (
+          !(await app.db.participatesInTournament(
+            getUuid(request),
+            request.params.uuid
+          )) &&
+          !isAdmin(request, reply)
+        ) {
+          return reply
+            .status(403)
+            .send({ error: `User is not participating in this tournament` });
+        }
       },
     },
     async function (request, reply) {

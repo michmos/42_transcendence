@@ -28,18 +28,3 @@ export async function isOpenTournament(
   }
   return true;
 }
-
-export async function isParticipant(
-  request: Fastify.FastifyRequest,
-  reply: Fastify.FastifyReply,
-  app: FastifyInstance
-) {
-  const uuid = (request.params as schemas.getTournamentRound).uuid;
-  if (!(await app.db.participatesInTournament(getUuid(request), uuid))) {
-    reply
-      .status(403)
-      .send({ error: `User is not participating in this tournament` });
-    return false;
-  }
-  return true;
-}
