@@ -10,17 +10,9 @@ export async function createTournament(data: {
   tournamentName: string;
   minPlayers: number;
   maxPlayers: number;
-  userUuid: string;
 }): Promise<Tournament> {
-  const { userUuid, ...rest } = data;
-
   return Database.tournament.create({
-    data: {
-      ...rest,
-      participants: {
-        connect: { uuid: userUuid },
-      },
-    },
+    data,
   });
 }
 
