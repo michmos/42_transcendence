@@ -21,7 +21,6 @@ export default async function (app: FastifyInstance): Promise<void> {
     async function (request, reply) {
       const tournament = await app.db.createTournament({
         ...request.body,
-        userUuid: getUuid(request),
       });
       return reply.status(201).send(tournament);
     }
@@ -67,6 +66,14 @@ export default async function (app: FastifyInstance): Promise<void> {
       if (!(await isOpenTournament(request.params.uuid, app, reply))) return;
 
       const userUuid = request.body.uuid || getUuid(request);
+      if (
+        await app.db.participatesInTournament(userUuid, request.params.uuid)
+      ) {
+        return reply
+          .status(409)
+          .send({ error: 'User already participates in tournament' });
+      }
+
       // add user
       let tournamentWithUser;
       try {
