@@ -1,5 +1,10 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
+import {
+  createTournament,
+  joinTournament,
+  leaveTournament,
+} from './tournamentOps.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -18,6 +23,10 @@ interface Tournament {
   startDate: string;
   prizePool?: number;
   gameTime: string;
+}
+
+function getInput(element: HTMLDivElement, id: string) {
+  return (element.querySelector(id) as HTMLInputElement).value;
 }
 
 const mockTournaments: Tournament[] = [
@@ -314,26 +323,6 @@ function showNewTournamentDialog() {
         </div>
       </div>
       
-      <div class="space-y-2">
-        <label for="lock-time" class="text-sm font-semibold text-gray-700">Lock Time</label>
-        <input
-          id="lock-time"
-          type="text"
-          placeholder="e.g., 30 sec"
-          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-        />
-      </div>
-      
-      <div class="space-y-2">
-        <label for="game-time" class="text-sm font-semibold text-gray-700">Game Time</label>
-        <input
-          id="game-time"
-          type="text"
-          placeholder="e.g., 3 min"
-          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-        />
-      </div>
-      
       <div class="flex gap-3 pt-4">
         <button class="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="create-btn">
           Save
@@ -362,6 +351,11 @@ function showNewTournamentDialog() {
   dialog.querySelector('#create-btn')?.addEventListener('click', () => {
     // TODO: Implement tournament creation API call
     console.log('Creating tournament...');
+    createTournament({
+      tournamentName: getInput(dialog, '#tournament-name'),
+      minPlayers: parseInt(getInput(dialog, '#min-size')),
+      maxPlayers: parseInt(getInput(dialog, '#max-players')),
+    });
     closeDialog();
   });
 }
