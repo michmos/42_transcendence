@@ -34,6 +34,14 @@ const start = async () => {
 
     console.info('✅ Plugins loaded');
 
+    // Load all routes (used for API -> Socket communication)
+    await app.register(AutoLoad, {
+      dir: path.join(__dirname, 'routes'),
+      dirNameRoutePrefix: true,
+    });
+
+    console.info('✅ Routes loaded');
+
     await app.listen({ port: env.SOCKET_PORT, host: '0.0.0.0' });
 
     console.info(
