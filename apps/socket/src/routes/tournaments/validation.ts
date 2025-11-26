@@ -5,7 +5,6 @@ import { status as statusEnum } from 'db/generated/client/index.js';
 export const tournamentCreated = {
   body: Type.Object({
     uuid: Type.String(),
-    key: Type.String(),
   }),
 };
 export type tournamentCreatedBody = Static<typeof tournamentCreated.body>;
@@ -20,7 +19,6 @@ export const tournamentUpdated = {
       Type.Union(Object.values(statusEnum).map((value) => Type.Literal(value)))
     ),
     playerCount: Type.Optional(Type.Number()),
-    key: Type.String(),
   }),
 };
 export type tournamentUpdatedParams = Static<typeof tournamentUpdated.params>;
