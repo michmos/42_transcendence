@@ -24,7 +24,6 @@ export default class WSocket {
     this.user = getUser(this);
 
     this.socket.on('close', () => {
-      this.socket.close();
       this.user?.removeSocket(this);
       this.user = null;
       this.leaveAll();
