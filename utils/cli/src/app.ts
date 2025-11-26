@@ -42,7 +42,7 @@ async function prompt() {
   console.log('- exit: Quit the CLI application');
   if (app.jwtToken) {
     console.log(`- game: Start a new CLI game session`);
-    console.log(`- logout: Log out ${app.user.fullName}\n\n`);
+    console.log(`- logout: Log out\n\n`);
   } else {
     for (const provider of app.providers) {
       console.log(
