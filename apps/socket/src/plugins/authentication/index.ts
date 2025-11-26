@@ -60,7 +60,7 @@ async function authenticateClient(request: FastifyRequest) {
 async function authenticateAPIServer(request: FastifyRequest) {
   const key = request.headers['x-api-server-key'];
   if (!key || key !== env.API_SERVER_KEY) {
-    throw new Error(`Unauthorized access attempt with key: ${key}`);
+    throw new Error(`Unauthorized access attempt`);
   }
   console.log(`API server authenticated`);
 }
