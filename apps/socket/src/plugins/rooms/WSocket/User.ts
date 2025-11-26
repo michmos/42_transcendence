@@ -3,6 +3,10 @@ import WSocket from './Socket.js';
 
 let uuidToUser: Map<string, User> = new Map();
 
+export function userIsOnline(uuid: string) {
+  return uuidToUser.has(uuid);
+}
+
 export function getUser(socket: WSocket) {
   const existingUser = uuidToUser.get(socket.uuid);
   if (existingUser) {
@@ -72,5 +76,9 @@ export default class User {
     for (const socket of this.sockets) {
       socket.sendSuccess();
     }
+  }
+
+  public getConnectionCount() {
+    return this.sockets.size;
   }
 }
