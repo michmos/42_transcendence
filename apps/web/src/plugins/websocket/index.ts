@@ -69,7 +69,7 @@ class Socket {
 
   public sendMessage(room: string, data: object) {
     const socketMessage: SocketMessage = {
-      type: 'leave-room',
+      type: 'message',
       room: room,
       ...(data && { data: data }),
     };
