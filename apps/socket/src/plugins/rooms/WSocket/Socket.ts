@@ -75,16 +75,10 @@ export default class WSocket {
   }
 
   public leave(name: string) {
-    if (!this.connected) {
-      throw new Error('Cannot leave room: socket is not connected');
-    }
     RoomManager.leaveRoom(this, name);
   }
 
   public leaveAll() {
-    if (!this.connected) {
-      throw new Error('Cannot leave rooms: socket is not connected');
-    }
     RoomManager.leaveAllRooms(this);
   }
 
