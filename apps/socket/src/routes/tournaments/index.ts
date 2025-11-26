@@ -3,12 +3,13 @@ import * as schemas from './validation.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.post<{ Body: schemas.tournamentCreatedBody }>(
-    '/broadcast',
+    '/main/broadcast',
     {
       schema: schemas.tournamentCreated,
     },
-    async function (request, reply) {
+    async function (request) {
       // handling
+      console.log(request.body);
     }
   );
 
@@ -20,8 +21,9 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentUpdated,
     },
-    async function (request, reply) {
+    async function (request) {
       // hanlding
+      console.log(request.params.uuid);
     }
   );
 }

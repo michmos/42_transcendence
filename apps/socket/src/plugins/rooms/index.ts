@@ -45,7 +45,7 @@ async function roomPlugin(app: FastifyInstance) {
       });
 
       socket.onMessage(async (input: Buffer) => {
-        const message = getValidMessage(input, socket);
+        const message = getValidMessage(input);
         await runMessageHandler(socket, message);
       });
 

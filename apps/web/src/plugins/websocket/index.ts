@@ -49,7 +49,7 @@ class Socket {
     }
   }
 
-  public joinRoom(room: string, data?: any) {
+  public joinRoom(room: string, data?: object) {
     const message: SocketMessage = {
       type: 'join-room',
       room: room,
@@ -58,7 +58,7 @@ class Socket {
     this.send(JSON.stringify(message));
   }
 
-  public leaveRoom(room: string, data?: any) {
+  public leaveRoom(room: string, data?: object) {
     const message: SocketMessage = {
       type: 'leave-room',
       room: room,
@@ -67,7 +67,7 @@ class Socket {
     this.send(JSON.stringify(message));
   }
 
-  public sendMessage(room: string, data: any) {
+  public sendMessage(room: string, data: object) {
     const socketMessage: SocketMessage = {
       type: 'leave-room',
       room: room,

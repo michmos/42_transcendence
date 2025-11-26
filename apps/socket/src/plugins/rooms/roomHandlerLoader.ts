@@ -75,7 +75,7 @@ export async function runMessageHandler(
   const messageHandler = roomHandlers[handlerName]?.onMessage;
   if (!messageHandler) {
     throw new Error(
-      `getHandler: No Message Handler provided for: \'${handlerName}\'`
+      `getHandler: No Message Handler provided for: '${handlerName}'`
     );
   }
   await messageHandler(socket, message);

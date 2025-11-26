@@ -1,7 +1,7 @@
 import RoomManager from './RoomManager.js';
 import WSocket from './Socket.js';
 
-let uuidToUser: Map<string, User> = new Map();
+const uuidToUser = new Map<string, User>();
 
 export function getUser(socket: WSocket) {
   const existingUser = uuidToUser.get(socket.uuid);

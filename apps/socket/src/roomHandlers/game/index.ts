@@ -1,11 +1,7 @@
 import WebSocket from 'ws';
 import { type SocketMessage } from '../../plugins/rooms/index.js';
 
-import {
-  convertPlayertoLocal,
-  attachClient,
-  removeExpiredRoles,
-} from './player.js';
+import { attachClient, removeExpiredRoles } from './player.js';
 
 import { updateGame, resetGame } from './game.js';
 

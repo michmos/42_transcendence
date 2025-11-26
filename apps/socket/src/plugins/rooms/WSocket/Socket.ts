@@ -2,11 +2,11 @@ import RoomManager, { type Room } from './RoomManager.js';
 import { type WebSocket } from 'ws';
 import User, { getUser } from './User.js';
 
-export type SocketMetaData = {
+export interface SocketMetaData {
   uuid?: string;
   lastSeen?: Date;
   connected?: boolean;
-};
+}
 
 export default class WSocket {
   private socket: WebSocket;

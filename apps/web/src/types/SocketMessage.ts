@@ -1,5 +1,5 @@
-export type SocketMessage = {
+export interface SocketMessage {
   type: 'join-room' | 'leave-room' | 'message';
   room: string;
-  data?: any;
-};
+  data?: object;
+}

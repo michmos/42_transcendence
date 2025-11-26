@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { WSocket } from './WSocket/index.js';
 
 /**
  * Schema for incoming socket messages
@@ -11,7 +10,7 @@ export const SocketMessage = z.object({
 });
 export type SocketMessage = z.infer<typeof SocketMessage>;
 
-export function getValidMessage(input: Buffer, socket: WSocket) {
+export function getValidMessage(input: Buffer) {
   // parse to object
   const json = JSON.parse(input.toString()) as SocketMessage;
   // validate against schema

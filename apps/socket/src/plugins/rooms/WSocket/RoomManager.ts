@@ -29,7 +29,7 @@ class RoomManager {
    * @throws If room does not exist, or client not in room
    */
   public leaveRoom(socket: WSocket, roomName: string) {
-    let room = this._rooms.get(roomName);
+    const room = this._rooms.get(roomName);
     if (!room) {
       throw new Error(`Cannot leave room \`${roomName}\`: doesn't exist`);
     }
@@ -54,8 +54,8 @@ class RoomManager {
 
 export interface Room {
   name: string;
-  getData(): any;
-  setData(data: any): void;
+  getData(): object;
+  setData(data: object): void;
   size(): number;
   has(socket: WSocket): boolean;
   broadcast(message: string): void;
@@ -63,8 +63,8 @@ export interface Room {
 
 class __Room {
   public name: string;
-  private data: any = {};
-  private sockets: Set<WSocket> = new Set();
+  private data: object = {};
+  private sockets = new Set<WSocket>();
 
   constructor(name: string) {
     this.name = name;
@@ -74,7 +74,7 @@ class __Room {
     return this.data;
   }
 
-  public setData(data: any) {
+  public setData(data: object) {
     this.data = data;
   }
 
@@ -117,7 +117,7 @@ class __Room {
     return {
       name: this.name,
       getData: () => this.getData(),
-      setData: (data: any) => this.setData(data),
+      setData: (data: object) => this.setData(data),
       size: () => this.size(),
       has: (socket: WSocket) => this.has(socket),
       broadcast: (message: string) => this.broadcast(message),
