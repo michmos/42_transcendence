@@ -179,9 +179,12 @@ export function draw() {
       (role === 'player1' && leftWon) ||
       (role === 'player2' && !leftWon);
 
-    const x = (role === 'local' && !leftWon) ?
-	    (canvas.width / 4) * 3 : (role === 'player2' ?
-         (canvas.width / 4) * 3 : canvas.width / 4);
+    const x =
+      role === 'local' && !leftWon
+        ? (canvas.width / 4) * 3
+        : role === 'player2'
+          ? (canvas.width / 4) * 3
+          : canvas.width / 4;
     const fontSize = 48;
     ctx.font = `${fontSize}px Arial`;
     ctx.textAlign = 'center';

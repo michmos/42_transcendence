@@ -24,7 +24,7 @@ class Socket {
 
     this.socket.onopen = () => {
       console.log('WebSocket connection established');
-	  if (onOpen) onOpen();
+      if (onOpen) onOpen();
     };
 
     this.socket.onmessage = (event) => {

@@ -170,7 +170,7 @@ setInterval(() => {
       subtype: 'state',
       timestamp: Date.now(),
       serverState: gameState,
-	  },
+    },
   });
 
   // Send to all connected clients
@@ -196,14 +196,14 @@ export default async function (
   socket: WebSocket,
   message: SocketMessage
 ): Promise<void> {
-
   // handle incoming message
   try {
     console.log(message);
 
     if (message.type === 'connect') {
       const clientId =
-        message.data.clientId || `anon-${Math.random().toString(36).slice(2, 10)}`;
+        message.data.clientId ||
+        `anon-${Math.random().toString(36).slice(2, 10)}`;
       const record = attachClient(clientId, socket);
       socket.send(
         JSON.stringify({
@@ -213,7 +213,7 @@ export default async function (
             subtype: 'role',
             role: record.role,
             clientId: record.clientId,
-          }
+          },
         })
       );
       console.log(
@@ -248,7 +248,7 @@ export default async function (
       if (record) {
         const wasPlayer1 = record.role === 'player1'; // Track if this was player1
         const wasPlayer2 = record.role === 'player2'; // Track if this was player2
-  
+
         record.webSocket = null;
         record.connected = false;
         record.lastSeen = Date.now();

@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import readline from 'readline';
-import { execSync } from "child_process";
+import { execSync } from 'child_process';
 
 interface ServerState {
   paddleWidth: number;
@@ -27,7 +27,19 @@ const CANVAS_HEIGHT = 600;
 const WINDOW_WIDTH = 91;
 const WINDOW_HEIGHT = 34;
 
-const url = `ws://10.11.4.4:3001/`; // Match your server port (hardcoded for now)
+function getServerUrl(): string {
+  const index = process.argv.indexOf('--server');
+
+  if (index !== -1 && process.argv[index + 1]) {
+    return process.argv[index + 1];
+  }
+
+  console.error('❌ Missing --server argument. Example:');
+  console.error('   npx pong-cli --server ws://10.10.5.4:3001');
+  process.exit(1);
+}
+
+const url = getServerUrl(); // Match your server port
 const clientId = `${Math.random().toString(36).slice(2, 10)}`; // or pass from CLI args
 const ws = new WebSocket(url);
 
@@ -35,24 +47,29 @@ const ws = new WebSocket(url);
 // process.stdout.write('\x1b[8;50;91t');
 process.stdout.write(`\x1b[8;${WINDOW_HEIGHT + 6};${WINDOW_WIDTH}t`);
 // Hide cursor
-process.stdout.write("\x1b[?25l");
+process.stdout.write('\x1b[?25l');
 // Clear window
 console.clear();
 
-
 ws.on('open', () => {
   console.log('Connected to server');
-  ws.send(JSON.stringify({ type: "connect", room: "game:testRoom", data: { clientId }}));
-//   ws.send(JSON.stringify({ type: 'connect', clientId }));
+  ws.send(
+    JSON.stringify({
+      type: 'connect',
+      room: 'game:testRoom',
+      data: { clientId },
+    })
+  );
+  //   ws.send(JSON.stringify({ type: 'connect', clientId }));
   enableKeyboardInput();
 });
 
 ws.on('message', (msg: WebSocket.RawData) => {
   const message = JSON.parse(msg.toString());
   if (message.type === 'message' && message.data.subtype === 'state') {
-	gameState = message.data.serverState;
-	// console.clear();
-	displayBoard();
+    gameState = message.data.serverState;
+    // console.clear();
+    displayBoard();
   }
 });
 
@@ -90,7 +107,7 @@ function restoreRepeatRate() {
 }
 
 function setGameRepeatRate() {
-  execSync("xset r rate 100 33");
+  execSync('xset r rate 100 33');
 }
 
 function enableExitHandlers() {
@@ -98,15 +115,15 @@ function enableExitHandlers() {
 
   const cleanup = () => {
     restoreRepeatRate();
-	process.stdout.write("\x1b[?25l");
+    process.stdout.write('\x1b[?25l');
     process.exit();
   };
 
-  process.on("exit", restoreRepeatRate);
-  process.on("exit", () => process.stdout.write("\x1b[?25h"));
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
-  process.on("SIGHUP", cleanup);
+  process.on('exit', restoreRepeatRate);
+  process.on('exit', () => process.stdout.write('\x1b[?25h'));
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+  process.on('SIGHUP', cleanup);
 }
 
 // saveOriginalRepeatRate();
@@ -127,31 +144,57 @@ function enableKeyboardInput() {
       process.exit();
     }
 
-    const keyName  = key.name.toLowerCase();
+    const keyName = key.name.toLowerCase();
 
     keys[keyName] = true;
 
     clearTimeout((keys as any)[`${keyName}_timeout`]);
     (keys as any)[`${keyName}_timeout`] = setTimeout(() => {
-        keys[keyName] = false;
+      keys[keyName] = false;
     }, 50);
-	});
+  });
 
   setInterval(() => {
-    if (keys.w) ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'up' }}));
-    if (keys.s) ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'down' }}));
+    if (keys.w)
+      ws.send(
+        JSON.stringify({
+          type: 'message',
+          room: 'game:testRoom',
+          data: { action: 'up' },
+        })
+      );
+    if (keys.s)
+      ws.send(
+        JSON.stringify({
+          type: 'message',
+          room: 'game:testRoom',
+          data: { action: 'down' },
+        })
+      );
     if (keys.p) {
-      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'pause' }}));
+      ws.send(
+        JSON.stringify({
+          type: 'message',
+          room: 'game:testRoom',
+          data: { action: 'pause' },
+        })
+      );
       keys.p = false;
     }
     if (keys.r) {
-      ws.send(JSON.stringify({ type: 'message', room: 'game:testRoom', data: { action: 'reset' }}));
+      ws.send(
+        JSON.stringify({
+          type: 'message',
+          room: 'game:testRoom',
+          data: { action: 'reset' },
+        })
+      );
       keys.r = false;
     }
   }, 1000 / 60);
 }
 
-let prevFrame = "";
+let prevFrame = '';
 
 function displayBoard() {
   // Game title
@@ -211,8 +254,8 @@ function displayBoard() {
   output += `Time: ${formatTime(gameState.timeRemaining)} ⏱       \n`;
 
   if (output !== prevFrame) {
-    process.stdout.write("\x1b[H");    // Move cursor to top-left
-    process.stdout.write(output);       // Draw full frame
+    process.stdout.write('\x1b[H'); // Move cursor to top-left
+    process.stdout.write(output); // Draw full frame
     prevFrame = output;
   }
 }

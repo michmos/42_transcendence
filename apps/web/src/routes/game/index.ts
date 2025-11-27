@@ -46,8 +46,10 @@ socket.registerWebSocketHook((event) => {
     const newState = message.data.serverState;
 
     if (lastServerUpdate > 0 && deltaTime > 0) {
-      ballVelocity.x = (newState.ballX - serverState.ballX) / (deltaTime / 1000);
-      ballVelocity.y = (newState.ballY - serverState.ballY) / (deltaTime / 1000);
+      ballVelocity.x =
+        (newState.ballX - serverState.ballX) / (deltaTime / 1000);
+      ballVelocity.y =
+        (newState.ballY - serverState.ballY) / (deltaTime / 1000);
     }
 
     setServerState(newState);
@@ -61,16 +63,21 @@ socket.registerWebSocketHook((event) => {
 
   if (message.type === 'message' && message.data.subtype === 'role') {
     setRole(message.data.role);
-    console.log(`🎮 Received role "${message.data.role}" for client ID: ${message.data.clientId}`);
+    console.log(
+      `🎮 Received role "${message.data.role}" for client ID: ${message.data.clientId}`
+    );
   }
 });
 
 // Connect using the global socket
 // socket.connect(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`);
 
-socket.connect(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`, () => {
-  sendMessage({ type: 'connect', data: { clientId } });
-});
+socket.connect(
+  `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`,
+  () => {
+    sendMessage({ type: 'connect', data: { clientId } });
+  }
+);
 setConnectionState('connected');
 
 // Message sender helper
@@ -85,13 +92,13 @@ const keys: Record<string, boolean> = {};
 document.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === 'p') {
-    sendMessage({ type: 'message', data: { action: 'pause' }});
+    sendMessage({ type: 'message', data: { action: 'pause' } });
   }
   if (e.key === 'r') {
-    sendMessage({ type: 'message', data: { action: 'reset' }});
+    sendMessage({ type: 'message', data: { action: 'reset' } });
   }
   if (e.key === '.') {
-    sendMessage({ type: 'message', data: { action: 'ai' }});
+    sendMessage({ type: 'message', data: { action: 'ai' } });
   }
   if (e.key === 'x') {
     if (socket.isConnected()) {
@@ -108,10 +115,10 @@ document.addEventListener('keyup', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     console.log('🕶️ Page hidden');
-    sendMessage({ type: 'message', data: { action: 'hidden' }});
+    sendMessage({ type: 'message', data: { action: 'hidden' } });
   } else {
     console.log('👓 Page visible');
-    sendMessage({ type: 'connect', data: { clientId }});
+    sendMessage({ type: 'connect', data: { clientId } });
   }
 });
 
@@ -129,14 +136,16 @@ setInterval(() => {
     if (keys.w) {
       if (role === 'player2' && localPaddles.rightY > 0)
         localPaddles.rightY -= 5;
-      else if (localPaddles.leftY > 0) 
-        localPaddles.leftY -= 5;
+      else if (localPaddles.leftY > 0) localPaddles.leftY -= 5;
       sendMessage({ type: 'message', data: { action: 'up' } });
     }
     if (keys.s) {
-      if (role === 'player2' && localPaddles.rightY < canvas.height - serverState.paddleHeight) 
+      if (
+        role === 'player2' &&
+        localPaddles.rightY < canvas.height - serverState.paddleHeight
+      )
         localPaddles.rightY += 5;
-      else if (localPaddles.leftY < canvas.height - serverState.paddleHeight) 
+      else if (localPaddles.leftY < canvas.height - serverState.paddleHeight)
         localPaddles.leftY += 5;
       sendMessage({ type: 'message', data: { action: 'down' } });
     }
@@ -144,7 +153,11 @@ setInterval(() => {
       localPaddles.rightY -= 5;
       sendMessage({ type: 'message', data: { action: 'up_r' } });
     }
-    if (keys.l && role === 'local' && localPaddles.rightY < canvas.height - serverState.paddleHeight) {
+    if (
+      keys.l &&
+      role === 'local' &&
+      localPaddles.rightY < canvas.height - serverState.paddleHeight
+    ) {
       localPaddles.rightY += 5;
       sendMessage({ type: 'message', data: { action: 'down_r' } });
     }
@@ -152,7 +165,6 @@ setInterval(() => {
 }, 1000 / 60);
 
 gameLoop();
-
 
 // import { draw } from './draw';
 // import { Socket } from '/sgoinfre/mlubbers/ft_transcendence/apps/web/src/plugins/websocket/index';
@@ -323,7 +335,7 @@ gameLoop();
 // }
 
 // export function sendMessage(msg: GameMessage) {
-  
+
 // 	const structuredMessage = {
 // 		type: msg.type,
 // 		room: TEST_ROOM,

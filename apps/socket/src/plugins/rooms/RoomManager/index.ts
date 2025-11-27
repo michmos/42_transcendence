@@ -27,7 +27,7 @@ class RoomManager {
    * @throws If room does not exist, or client not in room
    */
   public leaveRoom(socket: WebSocket, roomName: string) {
-    let room = Rooms.get(roomName);
+    const room = Rooms.get(roomName);
     if (!room) {
       throw new Error(`Cannot leave room \`${roomName}\`: doesn't exist`);
     }
@@ -53,7 +53,7 @@ class RoomManager {
 class Room {
   public name: string;
   private data: any = {};
-  private clients: Set<WebSocket> = new Set();
+  private clients = new Set<WebSocket>();
 
   constructor(name: string) {
     this.name = name;
@@ -72,7 +72,7 @@ class Room {
    */
   public join(socket: WebSocket) {
     // add to global
-    let rooms =
+    const rooms =
       SocketToRooms.get(socket) ??
       SocketToRooms.set(socket, new Set()).get(socket);
     if (!rooms) {
@@ -89,7 +89,7 @@ class Room {
    */
   public leave(socket: WebSocket) {
     this.clients.delete(socket);
-    let rooms = SocketToRooms.get(socket);
+    const rooms = SocketToRooms.get(socket);
     if (!rooms) {
       throw new Error(`socket not found`);
     }

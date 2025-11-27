@@ -77,12 +77,11 @@ async function roomPlugin(app: FastifyInstance) {
     });
 
     socket.on('message', async (input: Buffer) => {
-      
       let json;
       try {
         json = JSON.parse(input.toString());
       } catch {
-        console.warn("Invalid JSON string received:", input.toString());
+        console.warn('Invalid JSON string received:', input.toString());
         return;
       }
 
