@@ -1,6 +1,7 @@
 import type { ClientRecord } from './index.js';
 import { resetGame } from './game.js';
-import WebSocket from 'ws';
+// import WebSocket from 'ws';
+import { WSocket } from '../../plugins/rooms/WSocket/index.js';
 import {
   PING,
   PING_TIMEOUT,
@@ -118,7 +119,7 @@ export function convertPlayertoLocal(player: number) {
 
 export function attachClient(
   clientId: string,
-  webSocket: WebSocket
+  webSocket: WSocket
 ): ClientRecord {
   const now = Date.now();
   if (clientRecords.has(clientId)) {

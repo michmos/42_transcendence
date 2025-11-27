@@ -16,9 +16,9 @@ import {
 } from './state';
 
 type GameMessage =
-  | { type: 'connect'; data: { clientId: string | null } }
+  | { subtype: 'connect'; data: { clientId: string | null } }
   | {
-      type: 'message';
+      subtype: 'message';
       data: {
         action:
           | 'up'
@@ -37,7 +37,7 @@ const canvas = getCanvas();
 const socket = new Socket(); // global singleton socket
 
 // Register a hook to handle all incoming messages
-socket.registerWebSocketHook((event) => {
+window.socket.registerWebSocketHook((event) => {
   const message = JSON.parse(event.data);
 
   if (message.type === 'message' && message.data.subtype === 'state') {
@@ -55,7 +55,7 @@ socket.registerWebSocketHook((event) => {
     setServerState(newState);
     setLastServerUpdate(now);
 
-    if (socket.isConnected()) {
+    if (window.socket.isConnected()) {
       localPaddles.leftY = newState.leftY;
       localPaddles.rightY = newState.rightY;
     }
@@ -72,18 +72,21 @@ socket.registerWebSocketHook((event) => {
 // Connect using the global socket
 // socket.connect(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`);
 
-socket.connect(
-  `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`,
-  () => {
-    sendMessage({ type: 'connect', data: { clientId } });
-  }
-);
+window.socket.sendMessage(TEST_ROOM, { subtype: 'connect' });
+
+// socket.connect(
+//   `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`,
+//   () => {
+//     sendMessage({ subtype: 'connect' });
+//   }
+// );
 setConnectionState('connected');
 
 // Message sender helper
-export function sendMessage(msg: GameMessage) {
-  const structured = { ...msg, room: TEST_ROOM };
-  socket.sendMessage(JSON.stringify(structured));
+export function sendMessage(msg: object) {
+//   const structured = { ...msg, room: TEST_ROOM };
+  // socket.sendMessage(JSON.stringify(structured));
+  window.socket.sendMessage(TEST_ROOM, msg);
 }
 
 // Keyboard handling
@@ -92,17 +95,17 @@ const keys: Record<string, boolean> = {};
 document.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === 'p') {
-    sendMessage({ type: 'message', data: { action: 'pause' } });
+    sendMessage({ action: 'pause' });
   }
   if (e.key === 'r') {
-    sendMessage({ type: 'message', data: { action: 'reset' } });
+    sendMessage({ action: 'reset' });
   }
   if (e.key === '.') {
-    sendMessage({ type: 'message', data: { action: 'ai' } });
+    sendMessage({ action: 'ai' });
   }
   if (e.key === 'x') {
     if (socket.isConnected()) {
-      console.log('🧪 Simulating connection loss');
+    //   console.log('🧪 Simulating connection loss');
       // socket.getSocket()?.close(3000, 'Simulated network error');
     }
   }
@@ -115,10 +118,10 @@ document.addEventListener('keyup', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     console.log('🕶️ Page hidden');
-    sendMessage({ type: 'message', data: { action: 'hidden' } });
+    sendMessage({ subtype: 'message', data: { action: 'hidden' } });
   } else {
     console.log('👓 Page visible');
-    sendMessage({ type: 'connect', data: { clientId } });
+    sendMessage({ subtype: 'connect'});
   }
 });
 
@@ -137,7 +140,7 @@ setInterval(() => {
       if (role === 'player2' && localPaddles.rightY > 0)
         localPaddles.rightY -= 5;
       else if (localPaddles.leftY > 0) localPaddles.leftY -= 5;
-      sendMessage({ type: 'message', data: { action: 'up' } });
+      	sendMessage({ action: 'up' });
     }
     if (keys.s) {
       if (
@@ -147,11 +150,11 @@ setInterval(() => {
         localPaddles.rightY += 5;
       else if (localPaddles.leftY < canvas.height - serverState.paddleHeight)
         localPaddles.leftY += 5;
-      sendMessage({ type: 'message', data: { action: 'down' } });
+      sendMessage({ action: 'down' });
     }
     if (keys.o && role === 'local' && localPaddles.rightY > 0) {
       localPaddles.rightY -= 5;
-      sendMessage({ type: 'message', data: { action: 'up_r' } });
+      sendMessage({ action: 'up_r' });
     }
     if (
       keys.l &&
@@ -159,7 +162,7 @@ setInterval(() => {
       localPaddles.rightY < canvas.height - serverState.paddleHeight
     ) {
       localPaddles.rightY += 5;
-      sendMessage({ type: 'message', data: { action: 'down_r' } });
+      sendMessage({ action: 'down_r' });
     }
   }
 }, 1000 / 60);

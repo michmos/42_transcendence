@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Schema for incoming socket messages
  */
 export const SocketMessage = z.object({
-  type: z.enum(['join-room', 'leave-room', 'message']),
+  type: z.enum(['join-room', 'leave-room', 'message', 'connect']),
   room: z.string().regex(/^[a-zA-Z0-9]+(:[a-zA-Z0-9_-]+)?$/),
   data: z.any().optional(),
 });
