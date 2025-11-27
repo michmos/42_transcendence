@@ -1,6 +1,27 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".env"],
+  "globalEnv": [
+    "VITE_PORT",
+    "API_URL",
+    "SOCKET_URL",
+    "SOCKET_PORT",
+    "API_PORT",
+    "SWAGGER_PORT",
+    "API_SERVER",
+    "SOCKET_SERVER",
+    "SWAGGER_SERVER",
+    "ADMIN_API_KEY",
+    "JWT_SECRET",
+    "DATABASE_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "FORTYTWO_CLIENT_SECRET",
+    "FORTYTWO_CLIENT_ID",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "REDIRECT_URL"
+  ],
   "tasks": {
     "db:generate": {
       "inputs": ["$TURBO_DEFAULT$"],
@@ -12,214 +33,64 @@
       "env": ["DATABASE_URL"],
       "cache": false
     },
-    "db:studio": {
-      "env": ["DATABASE_URL"]
+    "db": {
+      "dependsOn": ["db:generate", "db:push"]
     },
+
     "dep:build": {
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": ["dist/**", "out/**"],
       "cache": false
     },
-    "build": {
-      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
-      "inputs": ["$TURBO_DEFAULT$"],
-      "outputs": ["dist/**", "out/**"],
-      "env": [
-        "VITE_PORT",
-        "API_URL",
-        "SOCKET_URL",
 
-        "SOCKET_PORT",
-        "API_PORT",
-        "SWAGGER_PORT",
-
-        "API_SERVER",
-        "SOCKET_SERVER",
-        "SWAGGER_SERVER",
-
-        "ADMIN_API_KEY",
-        "JWT_SECRET",
-
-        "DATABASE_URL",
-
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-
-        "FORTYTWO_CLIENT_SECRET",
-        "FORTYTWO_CLIENT_ID",
-
-        "GITHUB_CLIENT_ID",
-        "GITHUB_CLIENT_SECRET",
-
-        "REDIRECT_URL"
+    "app-base": {
+      "dependsOn": ["^dep:build", "^db"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "./packages/**",
+        "./plugins/**",
+        "./apps/**",
+        ".env"
       ],
       "cache": false
     },
-    "dev": {
-      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "./packages/**",
-        "./plugins/**",
-        "./apps/**",
-        ".env"
-      ],
-      "env": [
-        "VITE_PORT",
-        "API_URL",
-        "SOCKET_URL",
 
-        "SOCKET_PORT",
-        "API_PORT",
-        "SWAGGER_PORT",
-
-        "API_SERVER",
-        "SOCKET_SERVER",
-        "SWAGGER_SERVER",
-
-        "ADMIN_API_KEY",
-        "JWT_SECRET",
-
-        "DATABASE_URL",
-
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-
-        "FORTYTWO_CLIENT_SECRET",
-        "FORTYTWO_CLIENT_ID",
-
-        "GITHUB_CLIENT_ID",
-        "GITHUB_CLIENT_SECRET",
-
-        "REDIRECT_URL"
-      ],
-      "cache": false,
-      "persistent": true
+    "build": {
+      "dependsOn": ["^dep:build", "^db"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["dist/**", "out/**"],
+      "cache": false
     },
-    "test": {
-      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "./packages/**",
-        "./plugins/**",
-        "./apps/**",
-        ".env"
-      ],
-      "env": [
-        "VITE_PORT",
-        "API_URL",
-        "SOCKET_URL",
 
-        "SOCKET_PORT",
-        "API_PORT",
-        "SWAGGER_PORT",
-
-        "API_SERVER",
-        "SOCKET_SERVER",
-        "SWAGGER_SERVER",
-
-        "ADMIN_API_KEY",
-        "JWT_SECRET",
-
-        "DATABASE_URL",
-
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-
-        "FORTYTWO_CLIENT_SECRET",
-        "FORTYTWO_CLIENT_ID",
-
-        "GITHUB_CLIENT_ID",
-        "GITHUB_CLIENT_SECRET",
-
-        "REDIRECT_URL"
-      ],
-      "cache": false,
-      "persistent": true
-    },
-    "test:watch": {
-      "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "./packages/**",
-        "./plugins/**",
-        "./apps/**",
-        ".env"
-      ],
-      "env": [
-        "VITE_PORT",
-        "API_URL",
-        "SOCKET_URL",
-
-        "SOCKET_PORT",
-        "API_PORT",
-        "SWAGGER_PORT",
-
-        "API_SERVER",
-        "SOCKET_SERVER",
-        "SWAGGER_SERVER",
-
-        "ADMIN_API_KEY",
-        "JWT_SECRET",
-
-        "DATABASE_URL",
-
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-
-        "FORTYTWO_CLIENT_SECRET",
-        "FORTYTWO_CLIENT_ID",
-
-        "GITHUB_CLIENT_ID",
-        "GITHUB_CLIENT_SECRET",
-
-        "REDIRECT_URL"
-      ],
-      "cache": false,
-      "persistent": true
-    },
     "docker": {
       "dependsOn": ["^build"]
     },
-    "preview": {
-      "dependsOn": ["^db:generate", "^db:push", "build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env"],
-      "env": [
-        "VITE_PORT",
-        "API_URL",
-        "SOCKET_URL",
 
-        "SOCKET_PORT",
-        "API_PORT",
-        "SWAGGER_PORT",
-
-        "API_SERVER",
-        "SOCKET_SERVER",
-        "SWAGGER_SERVER",
-
-        "ADMIN_API_KEY",
-        "JWT_SECRET",
-
-        "DATABASE_URL",
-
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-
-        "FORTYTWO_CLIENT_SECRET",
-        "FORTYTWO_CLIENT_ID",
-
-        "GITHUB_CLIENT_ID",
-        "GITHUB_CLIENT_SECRET",
-
-        "REDIRECT_URL"
-      ],
-      "cache": false,
+    "dev": {
+      "dependsOn": ["app-base"],
       "persistent": true
     },
+
+    "test": {
+      "dependsOn": ["app-base"],
+      "persistent": true
+    },
+
+    "test:watch": {
+      "dependsOn": ["app-base"],
+      "persistent": true
+    },
+
+    "preview": {
+      "dependsOn": ["app-base", "build", "^db"],
+      "persistent": true
+    },
+
     "lint": {
       "inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
       "cache": false
     },
+
     "lint:fix": {
       "inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
       "cache": false
