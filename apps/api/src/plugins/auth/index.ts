@@ -13,7 +13,7 @@ async function authPlugin(app: Fastify.FastifyInstance) {
     throw new Error('Database plugin is not loaded');
   }
 
-  // Initialize the aut plugin
+  // Initialize the auth plugin
   Auth(app, env.REDIRECT_URL, '/', '/error', env.JWT_SECRET)
     .addProvider(Google)
     .addProvider(FortyTwo)
