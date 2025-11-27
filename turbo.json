@@ -24,6 +24,35 @@
       "dependsOn": ["^dep:build", "^db:generate", "^db:push"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": ["dist/**", "out/**"],
+      "env": [
+        "VITE_PORT",
+        "API_URL",
+        "SOCKET_URL",
+
+        "SOCKET_PORT",
+        "API_PORT",
+        "SWAGGER_PORT",
+
+        "API_SERVER",
+        "SOCKET_SERVER",
+        "SWAGGER_SERVER",
+
+        "ADMIN_API_KEY",
+        "JWT_SECRET",
+
+        "DATABASE_URL",
+
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+
+        "FORTYTWO_CLIENT_SECRET",
+        "FORTYTWO_CLIENT_ID",
+
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+
+        "REDIRECT_URL"
+      ],
       "cache": false
     },
     "dev": {

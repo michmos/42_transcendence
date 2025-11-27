@@ -31,9 +31,6 @@ jobs:
           mode: example
           load-mode: strict
 
-      - name: Copy .env.example to .env
-        run: cp .env.example .env
-
       - name: install dependencies
         run: pnpm install
 
