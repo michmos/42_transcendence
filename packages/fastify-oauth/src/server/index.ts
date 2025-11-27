@@ -183,6 +183,12 @@ class OAuth {
 
     this.ctx.app.addHook('onRequest', async (request, reply) => {
       // Check if authentication is using API keys instead of JWT sessions
+
+      if (request.user) {
+        console.error('Someone is trying to override request.user!');
+        return reply.status(400).send({ error: 'Bad Request' });
+      }
+
       const apiKey = request.headers['x-api-key'];
 
       if (apiKey && typeof apiKey === 'string') {

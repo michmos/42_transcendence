@@ -21,7 +21,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
 
-        # populates environment with variables defined in .env.example
+      # populates environment with variables defined in .env.example
       # mode: add on to .env
       # load-mode: strict -> fail if file not found
       - name: Load .env file
