@@ -7,6 +7,8 @@ export const env = createEnv({
     API_PORT: z.coerce.number().default(3002),
     DATABASE_URL: z.string().optional(),
 
+    API_SERVER_KEY: z.string().nonempty('API_SERVER_KEY is required'),
+
     GOOGLE_CLIENT_ID: z.string().nonempty('GOOGLE_CLIENT_ID is required'),
     GOOGLE_CLIENT_SECRET: z
       .string()

@@ -6,6 +6,7 @@ export const env = createEnv({
     SOCKET_URL: z.string().default('wss://localhost'),
     SOCKET_PORT: z.coerce.number().default(3001),
     DATABASE_URL: z.string().optional(),
+    API_SERVER_KEY: z.string().nonempty('API_SERVER_KEY is required'),
   },
 
   runtimeEnv: process.env,

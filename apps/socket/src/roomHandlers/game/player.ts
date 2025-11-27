@@ -1,4 +1,4 @@
-import type { ClientRecord } from './app.js';
+import type { ClientRecord } from './index.js';
 import { resetGame } from './game.js';
 import WebSocket from 'ws';
 import {
@@ -8,7 +8,7 @@ import {
   clientRecords,
   socketToClientId,
   gameState,
-} from './app.js';
+} from './index.js';
 
 export function removeExpiredRoles() {
   const now = Date.now();

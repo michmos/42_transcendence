@@ -31,7 +31,7 @@ async function authPlugin(app: Fastify.FastifyInstance) {
       await app.db.upsertUser({
         uuid: user.uuid,
         email: user.email ?? null,
-        email_verified: user.email_verified ?? null,
+        email_verified: user.email_verified ?? false,
         fullName: user.fullName ?? null,
         nickname:
           existingUser?.nickname ?? (await app.db.generateUniqueNickName()),

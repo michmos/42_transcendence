@@ -45,6 +45,7 @@ export class Button {
       'focus:outline-none',
       'focus:ring-2',
       'focus:ring-white/40',
+      'cursor-pointer',
       'disabled:opacity-60',
       'disabled:cursor-not-allowed',
     ].join(' ');
