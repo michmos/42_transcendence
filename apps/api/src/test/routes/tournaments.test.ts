@@ -288,6 +288,152 @@ describe('GET /tournaments/{uuid}', () => {
   });
 });
 
+describe('PATCH /tournaments/{uuid}', () => {
+  test('valid: change status (admin)-> 200', async () => {
+    const tournament = await createValidTournament(app);
+
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}`,
+      body: {
+        status: statusEnum.finished,
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    const updatedTournament = JSON.parse(response.payload) as Tournament;
+    expect(updatedTournament.status).toBe(statusEnum.finished);
+  });
+  test('valid: change name (admin)-> 200', async () => {
+    const tournament = await createValidTournament(app);
+
+    setUserTo('ADMIN');
+    const newName = 'newTournamentName';
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}`,
+      body: {
+        tournamentName: newName,
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    const updatedTournament = JSON.parse(response.payload) as Tournament;
+    expect(updatedTournament.tournamentName).toBe(newName);
+  });
+
+  test('invalid: change sth else than name or status (admin) -> 400', async () => {
+    const tournament = await createValidTournament(app);
+
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}`,
+      body: {
+        playerCount: 8,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('invalid: change name of non-existent tournament (admin) -> 404', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/non-existent-uuid`,
+      body: {
+        tournamentName: 'hello',
+      },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+  test('invalid: change name (user) -> 403', async () => {
+    const tournament = await createValidTournament(app);
+    const newName = 'newTournamentName';
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}`,
+      body: {
+        tournamentName: newName,
+      },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+});
+
+describe('PATCH /tournaments/{uuid}/start', () => {
+  test('valid: start tournament -> 200', async () => {
+    const tournament = await createValidTournament(app);
+    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.updateTournament({
+      uuid: tournament.uuid,
+      playerCount: tournament.minPlayers,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}/start`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(200);
+  });
+
+  test('invalid: start non-outstanding tournament', async () => {
+    const tournament = await createValidTournament(app);
+    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.updateTournament({
+      uuid: tournament.uuid,
+      playerCount: tournament.minPlayers,
+      status: statusEnum.ongoing,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}/start`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(422);
+  });
+
+  test('invalid: start tournament with playerCount < minPlayers -> 422', async () => {
+    const tournament = await createValidTournament(app);
+    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}/start`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(422);
+  });
+
+  test('invalid: start non-existent tournament -> 404', async () => {
+    const tournament = await createValidTournament(app);
+    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/invalid-tournament-id/start`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('invalid: start existing tournament without participating-> 403', async () => {
+    const tournament = await createValidTournament(app);
+    await app.db.updateTournament({
+      uuid: tournament.uuid,
+      playerCount: tournament.minPlayers,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}/start`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(403);
+  });
+});
+
 describe('POST /tournaments/{uuid}/users', () => {
   setUserTo('MEMBER');
 
@@ -348,7 +494,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     expect(response.statusCode).toBe(200);
   });
 
-  test('valid: last player to join triggers matchmaking', async () => {
+  test('invalid: Add yourself to full tournament -> 409', async () => {
     // user to create tournament
     setUserTo('MEMBER');
     const maxPlayers = 4;
@@ -356,8 +502,7 @@ describe('POST /tournaments/{uuid}/users', () => {
     // create tournament
     const tournament = await createValidTournament(app, { maxPlayers });
 
-    // add players up to maxPlayers - 1
-    for (let i = tournament.playerCount; i < maxPlayers - 1; i++) {
+    for (let i = tournament.playerCount; i < maxPlayers; i++) {
       try {
         const tempUser = await app.db.addUser(`email${i}`, `user${i}`);
         assert(tempUser !== null);
@@ -367,23 +512,17 @@ describe('POST /tournaments/{uuid}/users', () => {
       }
     }
 
-    // switch to another user to join as the last player
-    setUserTo('ADMIN');
-
+    // add yourself
     const response = await app.inject({
       method: 'POST',
       url: `/tournaments/${tournament.uuid}/users`,
       body: {},
     });
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBe(409);
 
-    // Verify that tournament status changed and matchmaking was done
+    // Verify that tournament playerCount hasn't changed
     const updatedTournament = await app.db.getTournament(tournament.uuid);
-    assert(updatedTournament !== null);
-    expect(updatedTournament.playerCount).toBe(tournament.maxPlayers);
-    expect(updatedTournament.status).toBe(statusEnum.ongoing);
-    expect(updatedTournament.currentRound).toBe(0);
-    expect(updatedTournament.numberOfRounds).toBe(tournament.maxPlayers - 1);
+    expect(updatedTournament?.playerCount).toBe(4);
   });
 
   test('invalid: Add yourself twice -> 409', async () => {
@@ -513,23 +652,29 @@ describe('POST /tournaments/{uuid}/users', () => {
   });
 });
 
-describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
+describe('DELETE /tournaments/{tournamentId}/users/', () => {
   test('valid: remove yourself from tournament -> 200', async () => {
     const tournament = await createValidTournament(app);
+    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
 
     const response = await app.inject({
       method: 'DELETE',
-      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {},
     });
     expect(response.statusCode).toBe(200);
   });
   test('valid: remove sb else from tournament as Admin -> 200', async () => {
     const tournament = await createValidTournament(app);
+    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
 
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'DELETE',
-      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        uuid: normalUser.uuid,
+      },
     });
     expect(response.statusCode).toBe(200);
   });
@@ -539,7 +684,8 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
 
     const response = await app.inject({
       method: 'DELETE',
-      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {},
     });
     expect(response.statusCode).toBe(422);
   });
@@ -550,7 +696,10 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'DELETE',
-      url: `/tournaments/${tournament.uuid}/users/${normalUser.uuid}`,
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        uuid: normalUser.uuid,
+      },
     });
     expect(response.statusCode).toBe(422);
   });
@@ -561,7 +710,10 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     setUserTo('MEMBER');
     const response = await app.inject({
       method: 'DELETE',
-      url: `/tournaments/${tournament.uuid}/users/${adminUser.uuid}`,
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        uuid: adminUser.uuid,
+      },
     });
     expect(response.statusCode).toBe(403);
   });
@@ -570,7 +722,8 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
 
     const response = await app.inject({
       method: 'DELETE',
-      url: `/tournaments/invalid-uuid/users/${normalUser.uuid}`,
+      url: `/tournaments/invalid-uuid/users`,
+      body: {},
     });
     expect(response.statusCode).toBe(404);
   });
@@ -580,7 +733,10 @@ describe('DELETE /tournaments/{tournamentId}/users/{userId}', () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'DELETE',
-      url: `/tournaments/${tournament.uuid}/users/invalid-user-uuid`,
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        uuid: 'invalid-user-uuid',
+      },
     });
     expect(response.statusCode).toBe(404);
   });
