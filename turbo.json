@@ -50,7 +50,8 @@
         "FORTYTWO_CLIENT_ID",
         "GITHUB_CLIENT_ID",
         "GITHUB_CLIENT_SECRET",
-        "UUID_ENCRYPTION_KEY"
+        "UUID_ENCRYPTION_KEY",
+        "API_SERVER_KEY"
       ],
       "cache": false,
       "persistent": true
@@ -79,7 +80,8 @@
         "FORTYTWO_CLIENT_ID",
         "GITHUB_CLIENT_ID",
         "GITHUB_CLIENT_SECRET",
-        "UUID_ENCRYPTION_KEY"
+        "UUID_ENCRYPTION_KEY",
+        "API_SERVER_KEY"
       ],
       "cache": false,
       "persistent": true
