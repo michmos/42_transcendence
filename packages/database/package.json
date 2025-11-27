@@ -11,7 +11,7 @@
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:format": "prisma format",
-    "postinstall": "if [ -z \"$DATABASE_URL\" ]; then echo DATABASE_URL not set && exit 1; fi && prisma generate && prisma db push --force-reset && tsc",
+    "postinstall": "if [ -z \"$DATABASE_URL\" ]; then export DATABASE_URL=\"file:./dev.db\"; fi && prisma generate && prisma db push --force-reset && tsc",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
