@@ -4,7 +4,7 @@ import { type FastifyError } from 'fastify';
 export async function messageSocketServer(endpoint: string, data: any) {
   let response;
   try {
-    response = await fetch(`http://localhost:3001/${endpoint}`, {
+    response = await fetch(`http://localhost:3001${endpoint}`, {
       // TODO: hardcoded url
       method: 'POST',
       headers: {
