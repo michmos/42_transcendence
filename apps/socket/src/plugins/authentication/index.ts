@@ -17,8 +17,7 @@ function getSessionCookie(request: FastifyRequest): string | null {
 }
 
 async function fetchUser(sessionCookie: string): Promise<User> {
-  const response = await fetch(`http://localhost:5173/api/auth/session`, {
-    // TODO: hardcoded localhost
+  const response = await fetch(`${env.API_URL}/auth/session`, {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
@@ -59,7 +58,7 @@ async function authenticateClient(request: FastifyRequest) {
 
 async function authenticateAPIServer(request: FastifyRequest) {
   const key = request.headers['x-api-server-key'];
-  if (!key || key !== env.API_SERVER_KEY) {
+  if (!key || key !== env.ADMIN_API_KEY) {
     throw new Error(`Unauthorized access attempt`);
   }
   console.log(`API server authenticated`);

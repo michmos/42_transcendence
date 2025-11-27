@@ -36,22 +36,33 @@
         ".env"
       ],
       "env": [
-        "DATABASE_URL",
-        "API_URL",
-        "API_PORT",
-        "SOCKET_URL",
-        "SOCKET_PORT",
         "VITE_PORT",
+        "API_URL",
+        "SOCKET_URL",
+
+        "SOCKET_PORT",
+        "API_PORT",
+        "SWAGGER_PORT",
+
+        "API_SERVER",
+        "SOCKET_SERVER",
+        "SWAGGER_SERVER",
+
+        "ADMIN_API_KEY",
+        "JWT_SECRET",
+
+        "DATABASE_URL",
+
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
-        "REDIRECT_URL",
-        "JWT_SECRET",
+
         "FORTYTWO_CLIENT_SECRET",
         "FORTYTWO_CLIENT_ID",
+
         "GITHUB_CLIENT_ID",
         "GITHUB_CLIENT_SECRET",
-        "UUID_ENCRYPTION_KEY",
-        "ADMIN_API_KEY"
+
+        "REDIRECT_URL"
       ],
       "cache": false,
       "persistent": true
@@ -66,22 +77,33 @@
         ".env"
       ],
       "env": [
-        "DATABASE_URL",
-        "API_URL",
-        "API_PORT",
-        "SOCKET_URL",
-        "SOCKET_PORT",
         "VITE_PORT",
+        "API_URL",
+        "SOCKET_URL",
+
+        "SOCKET_PORT",
+        "API_PORT",
+        "SWAGGER_PORT",
+
+        "API_SERVER",
+        "SOCKET_SERVER",
+        "SWAGGER_SERVER",
+
+        "ADMIN_API_KEY",
+        "JWT_SECRET",
+
+        "DATABASE_URL",
+
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
-        "REDIRECT_URL",
-        "JWT_SECRET",
+
         "FORTYTWO_CLIENT_SECRET",
         "FORTYTWO_CLIENT_ID",
+
         "GITHUB_CLIENT_ID",
         "GITHUB_CLIENT_SECRET",
-        "UUID_ENCRYPTION_KEY",
-        "API_SERVER_KEY"
+
+        "REDIRECT_URL"
       ],
       "cache": false,
       "persistent": true
@@ -96,21 +118,33 @@
         ".env"
       ],
       "env": [
-        "DATABASE_URL",
-        "API_URL",
-        "API_PORT",
-        "SOCKET_URL",
-        "SOCKET_PORT",
         "VITE_PORT",
+        "API_URL",
+        "SOCKET_URL",
+
+        "SOCKET_PORT",
+        "API_PORT",
+        "SWAGGER_PORT",
+
+        "API_SERVER",
+        "SOCKET_SERVER",
+        "SWAGGER_SERVER",
+
+        "ADMIN_API_KEY",
+        "JWT_SECRET",
+
+        "DATABASE_URL",
+
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
-        "REDIRECT_URL",
-        "JWT_SECRET",
+
         "FORTYTWO_CLIENT_SECRET",
         "FORTYTWO_CLIENT_ID",
+
         "GITHUB_CLIENT_ID",
         "GITHUB_CLIENT_SECRET",
-        "UUID_ENCRYPTION_KEY"
+
+        "REDIRECT_URL"
       ],
       "cache": false,
       "persistent": true
@@ -122,21 +156,33 @@
       "dependsOn": ["^db:generate", "^db:push", "build"],
       "inputs": ["$TURBO_DEFAULT$", ".env"],
       "env": [
-        "DATABASE_URL",
-        "API_URL",
-        "API_PORT",
-        "SOCKET_URL",
-        "SOCKET_PORT",
         "VITE_PORT",
+        "API_URL",
+        "SOCKET_URL",
+
+        "SOCKET_PORT",
+        "API_PORT",
+        "SWAGGER_PORT",
+
+        "API_SERVER",
+        "SOCKET_SERVER",
+        "SWAGGER_SERVER",
+
+        "ADMIN_API_KEY",
+        "JWT_SECRET",
+
+        "DATABASE_URL",
+
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
-        "REDIRECT_URL",
-        "JWT_SECRET",
+
         "FORTYTWO_CLIENT_SECRET",
         "FORTYTWO_CLIENT_ID",
+
         "GITHUB_CLIENT_ID",
         "GITHUB_CLIENT_SECRET",
-        "UUID_ENCRYPTION_KEY"
+
+        "REDIRECT_URL"
       ],
       "cache": false,
       "persistent": true

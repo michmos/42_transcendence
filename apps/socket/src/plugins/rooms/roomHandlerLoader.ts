@@ -30,7 +30,6 @@ export async function loadRoomHandlers() {
   const roomsDir = path.resolve(__dirname, '../../roomHandlers/');
   const rooms = fs.readdirSync(roomsDir);
 
-  console.info('⚙️  Auto-loading room handlers...');
   for (const room of rooms) {
     const roomName = room;
     try {
@@ -40,7 +39,7 @@ export async function loadRoomHandlers() {
         throw new Error(z.prettifyError(result.error));
       }
       roomHandlers[roomName] = result.data;
-      console.info(`☑️ Handler: ${roomName} loaded`);
+      console.info(`☑️  Handler: ${roomName} loaded`);
     } catch (error) {
       console.error(
         `❌ Handler: ${roomName} could not be loaded: `,

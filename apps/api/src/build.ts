@@ -20,8 +20,6 @@ const app = Fastify({
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 export async function build(loadAuth = true) {
-  console.info('⚙️  Auto-loading plugins and api routes...');
-
   // Load all plugins FIRST (especially auth plugin)
   await app.register(AutoLoad, {
     dir: path.join(__dirname, 'plugins'),
@@ -29,8 +27,7 @@ export async function build(loadAuth = true) {
     ignoreFilter: (path) => path.includes('auth') && !loadAuth,
   });
 
-  console.info('✅ Plugins loaded');
-
+  // TODO: Add this into the plugins folder as a separate plugin
   await app.register(import('@fastify/multipart'), {
     limits: {
       fileSize: 5 * 1024 * 1024, // 5MB max file size

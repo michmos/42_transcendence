@@ -5,13 +5,12 @@ import { type FastifyInstance } from 'fastify';
 const start = async () => {
   const app: FastifyInstance = await build();
   try {
-    await app.listen({ port: env.API_PORT, host: '0.0.0.0' });
+    await app.listen({ port: env.API_PORT });
 
     console.info(
       '🌐 API server started on port',
       env.API_PORT,
-      'with cors url',
-      env.API_URL
+      'with cors url'
     );
   } catch (err) {
     app.log.error(err);

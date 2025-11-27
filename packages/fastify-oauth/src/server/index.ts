@@ -185,7 +185,6 @@ class OAuth {
       // Check if authentication is using API keys instead of JWT sessions
       const apiKey = request.headers['x-api-key'];
 
-      console.info('API Key from headers:', request.headers);
       if (apiKey && typeof apiKey === 'string') {
         console.info(
           '🔑 Checking API key authentication for request to',
