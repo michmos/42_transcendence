@@ -65,6 +65,24 @@ const mockTournaments: Tournament[] = [
   },
 ];
 
+// TODO: handle events
+window.socket.registerWebSocketHook((event: MessageEvent) => {
+  const data = JSON.parse(event.data);
+  if (data.event === 'tournament-updated') {
+    console.log('Tournament updated:', data);
+  } else if (data.event === 'tournament-joined') {
+    console.log('Tournament joined:', data);
+  } else if (data.event === 'tournament-left') {
+    console.log('Tournament left:', data);
+  } else if (data.event === 'tournament-created') {
+    console.log('Tournament created:', data);
+  } else if (data.event === 'tournament-started') {
+    console.log('Tournament started:', data);
+  } else if (data.event === 'notify') {
+    console.log('Notification:', data.message);
+  }
+});
+
 function getStatusColor(status: string): string {
   switch (status) {
     case 'active':
@@ -348,14 +366,23 @@ function showNewTournamentDialog() {
   });
 
   dialog.querySelector('#cancel-btn')?.addEventListener('click', closeDialog);
-  dialog.querySelector('#create-btn')?.addEventListener('click', () => {
-    // TODO: Implement tournament creation API call
+  dialog.querySelector('#create-btn')?.addEventListener('click', async () => {
+    const tournamentName = getInput(dialog, '#tournament-name');
+    const minPlayers = parseInt(getInput(dialog, '#min-size'));
+    const maxPlayers = parseInt(getInput(dialog, '#max-players'));
+
+    // TODO: add validation logic (maxPlayers >=2 , minPlayer >=2, maxPlayers >= minPlayers)
+
     console.log('Creating tournament...');
-    createTournament({
-      tournamentName: getInput(dialog, '#tournament-name'),
-      minPlayers: parseInt(getInput(dialog, '#min-size')),
-      maxPlayers: parseInt(getInput(dialog, '#max-players')),
+    const newTournament = await createTournament({
+      tournamentName,
+      minPlayers,
+      maxPlayers,
     });
+    if (newTournament) {
+      await joinTournament(newTournament.uuid);
+      // TODO: update UI to reflect added tournament (where you already participate)
+    }
     closeDialog();
   });
 }
