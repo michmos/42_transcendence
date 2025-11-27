@@ -62,7 +62,6 @@ async function authenticateAPIServer(request: FastifyRequest) {
   if (!key || key !== env.API_SERVER_KEY) {
     throw new Error(`Unauthorized access attempt`);
   }
-  console.log(`API server authenticated`);
 }
 
 async function authPlugin(app: FastifyInstance) {
@@ -70,10 +69,8 @@ async function authPlugin(app: FastifyInstance) {
   app.addHook('preValidation', async function (request, reply) {
     try {
       if (request.url === '/') {
-        console.log(`Authenticating client...`);
         await authenticateClient(request);
       } else {
-        console.log(`Authenticating API server...`);
         await authenticateAPIServer(request);
       }
     } catch (error) {
