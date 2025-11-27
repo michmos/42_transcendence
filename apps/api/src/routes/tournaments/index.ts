@@ -24,8 +24,8 @@ export default async function (app: FastifyInstance): Promise<void> {
         ...request.body,
       });
       reply.status(201).send(tournament);
-      await messageSocketServer('/tournaments/main/broadcast', {
-        uuid: tournament.uuid,
+      await messageSocketServer('/tournaments/broadcast/created', {
+        tournamentUuid: tournament.uuid,
       });
     }
   );
@@ -84,9 +84,9 @@ export default async function (app: FastifyInstance): Promise<void> {
       });
 
       // notify socket server
-      await messageSocketServer(`/tournaments/${tournamentUuid}/broadcast`, {
-        event: 'tournament-updated',
-        status: statusEnum.ongoing,
+      await messageSocketServer(`/tournaments/broadcast/started`, {
+        tournamentUuid: tournament.uuid,
+        tournamentName: updatedTournament.tournamentName,
       });
 
       return reply.status(200).send(updatedTournament);
@@ -151,10 +151,10 @@ export default async function (app: FastifyInstance): Promise<void> {
       );
 
       // notify socket server
-      await messageSocketServer(`/tournaments/${tournamentUuid}/broadcast`, {
-        event: 'join-tournament',
-        playerCount: updatedTournament.playerCount,
+      await messageSocketServer(`/tournaments/broadcast/joined`, {
+        tournamentUuid: tournament.uuid,
         userUuid,
+        playerCount: updatedTournament.playerCount,
       });
       return reply.status(200).send(updatedTournament);
     }
@@ -209,10 +209,10 @@ export default async function (app: FastifyInstance): Promise<void> {
       );
 
       // notify socket server
-      await messageSocketServer(`/tournaments/${tournamentUuid}/broadcast`, {
-        event: 'leave-tournament',
-        playerCount: updatedTournament.playerCount,
+      await messageSocketServer(`/tournaments/broadcast/left`, {
+        tournamentUuid: tournament.uuid,
         userUuid,
+        playerCount: updatedTournament.playerCount,
       });
       return reply.status(200).send(updatedTournament);
     }
@@ -254,9 +254,10 @@ export default async function (app: FastifyInstance): Promise<void> {
       });
 
       // notify socket server
-      await messageSocketServer(`/tournaments/${tournamentUuid}/broadcast`, {
-        event: 'tournament-updated',
-        ...request.body,
+      await messageSocketServer(`/tournaments/broadcast/updated`, {
+        tournamentUuid: updatedTournament.uuid,
+        status: updatedTournament.status,
+        tournamentName: updatedTournament.tournamentName,
       });
       return reply.status(200).send(updatedTournament);
     }
