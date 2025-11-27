@@ -27,6 +27,8 @@ export const env = createEnv({
       .min(32, 'UUID_ENCRYPTION_KEY must be at least 32 characters long')
       .max(32, 'UUID_ENCRYPTION_KEY must be at most 32 characters long')
       .nonempty('UUID_ENCRYPTION_KEY is required'),
+
+    ADMIN_API_KEY: z.string().nonempty('ADMIN_API_KEY is required'),
   },
 
   runtimeEnv: process.env,

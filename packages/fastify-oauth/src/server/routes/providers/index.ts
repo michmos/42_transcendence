@@ -15,7 +15,7 @@ class ProviderUtility {
     this.ctx = ctx;
 
     this.ctx.app.get('/auth/providers', async (request, reply) => {
-      reply.send({
+      return reply.status(200).send({
         providers: this.oAuthProviders.map((provider) => ({
           name: provider.name,
           buttonUri: provider.buttonUri,

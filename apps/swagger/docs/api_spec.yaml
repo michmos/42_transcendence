@@ -51,6 +51,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    x-api-key:
+      type: apiKey
+      in: header
+      name: X-API-KEY
 
   schemas:
     Status:
@@ -321,6 +325,7 @@ paths:
         JWT used to identify user
       security:
         - bearerAuth: []
+        - x-api-key: []
       tags:
         - Tournament
       requestBody:
@@ -379,6 +384,7 @@ paths:
         Admin users can put a uuid in the body to add this user instead
       security:
         - bearerAuth: []
+        - x-api-key: []
       requestBody:
         required: false
         content:
@@ -431,6 +437,7 @@ paths:
         This step requires auth and only succeeds for admins or participants of the tournament.
       security:
         - bearerAuth: []
+        - x-api-key: []
       responses:
         '200':
           description: Tournament round data retrieved successfully
@@ -570,10 +577,12 @@ paths:
         Retrieve a list of all users.
 
         **Requires authentication via JWT token in the Authorization header.**
+        **OR Requires API key in the X-API-KEY header.**
 
         **Only users with the ADMIN role can access this endpoint.**
       security:
         - bearerAuth: []
+        - x-api-key: []
       responses:
         '200':
           description: A list of users.
@@ -617,6 +626,7 @@ paths:
       summary: Get all tournaments of a user
       security:
         - bearerAuth: []
+        - x-api-key: []
       responses:
         '200':
           description: List of tournaments retrieved successfully

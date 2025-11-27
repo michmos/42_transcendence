@@ -115,7 +115,7 @@ class OAuth {
   }
 
   // Add a new OAuth provider
-  public add(config: OAuthProviderOptions) {
+  public addProvider(config: OAuthProviderOptions) {
     ProviderUtility.add(config);
     return this;
   }
@@ -133,9 +133,15 @@ class OAuth {
     getUserRoleCallback: (uuid: string) => Promise<string | null>
   ) {
     // Allow unauthenticated access to the login routes
-    if (request.url.startsWith('/auth')) return;
+    if (request.url.startsWith('/auth')) {
+      console.info('🔓 Allowing unauthenticated access to', request.url);
+      return;
+    }
 
-    console.info('🔒 Checking authentication for request to', request.url);
+    console.info(
+      '🔒 Checking JWT session authentication for request to',
+      request.url
+    );
 
     // Check for a valid session cookie
     const session = SessionManager.decodeJWT(request.cookies.session as string);
@@ -166,14 +172,43 @@ class OAuth {
   }
 
   // Add an authentication hook to Fastify
-  public addAuthenticationHook(
-    getUserObjectCallback: (uuid: string) => Promise<string | null>
+  public registerAuthCallback(
+    getUserObjectCallback: (uuid: string) => Promise<string | null>,
+    api_admin_key: string,
+    adminRole: string
   ) {
-    console.info('🔒 Adding authentication hook to Fastify');
+    console.info('🔒 Registering authentication callback hook');
 
-    this.ctx.app.addHook('onRequest', (request, reply) =>
-      this.checkAuthenticationHook(request, reply, getUserObjectCallback)
-    );
+    this.ctx.app.addHook('onRequest', async (request, reply) => {
+      // Check if authentication is using API keys instead of JWT sessions
+      const apiKey = request.headers['x-api-key'];
+
+      console.info('API Key from headers:', request.headers);
+      if (apiKey && typeof apiKey === 'string') {
+        console.info(
+          '🔑 Checking API key authentication for request to',
+          request.url
+        );
+
+        if (apiKey !== api_admin_key) {
+          console.warn('Invalid API key provided for request to', request.url);
+          return reply.status(401).send({ error: 'Invalid API key' });
+        }
+
+        // Populate request.user with a placeholder user object for API key authenticated requests
+        request.user = {
+          uuid: 'api-key-user', // Placeholder UUID for API key users
+          role: adminRole, // Placeholder role for API key users
+        };
+        return;
+      } else {
+        return await this.checkAuthenticationHook(
+          request,
+          reply,
+          getUserObjectCallback
+        );
+      }
+    });
     return this;
   }
 }
