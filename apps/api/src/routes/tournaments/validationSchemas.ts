@@ -16,7 +16,49 @@ export const createTournament = {
     { additionalProperties: false }
   ),
 } as const;
-export type createTournament = Static<typeof createTournament.body>;
+export type createTournamentBody = Static<typeof createTournament.body>;
+
+// GET /tournaments
+export const getTournaments = {
+  querystring: Type.Object({
+    status: Type.Optional(
+      Type.Union(Object.values(statusEnum).map((value) => Type.Literal(value)))
+    ),
+  }),
+};
+export type getTournaments = Static<typeof getTournaments.querystring>;
+
+// PATCH /tournaments/:uuid
+export const updateTournament = {
+  params: Type.Object({
+    uuid: Type.String(),
+  }),
+  body: Type.Object(
+    {
+      tournamentName: Type.Optional(Type.String()),
+      status: Type.Optional(
+        Type.Union(
+          Object.values(statusEnum).map((value) => Type.Literal(value))
+        )
+      ),
+    },
+    { additionalProperties: false }
+  ),
+};
+export type updateTournamentBody = Static<typeof updateTournament.body>;
+
+// POST /tournaments/:tournamentId/users
+// DELETE /tournaments/:tournamentId/users
+export const joinOrLeave = {
+  params: Type.Object({
+    uuid: Type.String(),
+  }),
+  body: Type.Object({
+    uuid: Type.Optional(Type.String()),
+  }),
+};
+export type addUserBody = Static<typeof joinOrLeave.body>;
+export type rmvUserBody = Static<typeof joinOrLeave.body>;
 
 // GET /tournaments
 export const getTournaments = {
@@ -35,27 +77,7 @@ export const getTournament = {
   }),
 };
 export type getTournament = Static<typeof getTournament.params>;
-
-// POST /tournaments/:tournamentId/users
-export const addUser = {
-  params: Type.Object({
-    uuid: Type.String(),
-  }),
-  body: Type.Object({
-    uuid: Type.Optional(Type.String()),
-  }),
-};
-export type addUserParams = Static<typeof addUser.params>;
-export type addUserBody = Static<typeof addUser.body>;
-
-// DELETE /tournaments/:tournamentId/users/:userId
-export const removeUser = {
-  params: Type.Object({
-    tournamentUuid: Type.String(),
-    userUuid: Type.String(),
-  }),
-};
-export type removeUserParams = Static<typeof removeUser.params>;
+export type singleUuidParam = Static<typeof getTournament.params>;
 
 // GET /tournaments/:uuid/rounds/:roundIndex
 export const getTournamentRound = {
