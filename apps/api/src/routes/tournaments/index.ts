@@ -30,17 +30,66 @@ export default async function (app: FastifyInstance): Promise<void> {
     }
   );
 
-  app.get<{ Params: schemas.getTournament }>(
-    '/:uuid',
-    { schema: schemas.getTournament },
+  // start tournament
+  app.patch<{
+    Params: schemas.singleUuidParam;
+  }>(
+    '/:uuid/start',
+    {
+      schema: schemas.startTournament,
+    },
     async function (request, reply) {
-      const tournament = await app.db.getTournament(request.params.uuid);
+      const tournamentUuid = request.params.uuid;
+      // is existing tournament
+      const tournament = await app.db.getTournament(tournamentUuid);
       if (!tournament) {
         return reply.status(404).send({
-          error: `Tournament with uuid: ${request.params.uuid} not found`,
+          error: `Tournament with ${tournamentUuid} does not exist`,
         });
       }
-      return reply.status(200).send(tournament);
+
+      // status is outstanding
+      if (tournament.status !== statusEnum.outstanding) {
+        return reply.status(422).send({
+          error: `Tournament cannot be started: status: ${tournament.status}`,
+        });
+      }
+
+      // enough players
+      if (tournament.playerCount < tournament.minPlayers) {
+        return reply.status(422).send({
+          error: `Tournament cannot be started: not enough players (current: ${tournament.playerCount}, min: ${tournament.minPlayers})`,
+        });
+      }
+
+      // user participates in tournament
+      if (
+        !(await app.db.participatesInTournament(
+          getUuid(request),
+          request.params.uuid
+        ))
+      ) {
+        return reply.status(403).send({
+          error: 'Unauthorized: User does not participate in Tournamet',
+        });
+      }
+
+      // generate Tournament plan
+      await generateTournamentPlan(request.params.uuid, app);
+
+      // change tournament status
+      const updatedTournament = await app.db.updateTournament({
+        uuid: request.params.uuid,
+        status: statusEnum.ongoing,
+      });
+
+      // notify socket server
+      await messageSocketServer(`/tournaments/${tournamentUuid}/broadcast`, {
+        event: 'tournament-updated',
+        status: statusEnum.ongoing,
+      });
+
+      return reply.status(200).send(updatedTournament);
     }
   );
 

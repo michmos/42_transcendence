@@ -18,15 +18,12 @@ export const createTournament = {
 } as const;
 export type createTournamentBody = Static<typeof createTournament.body>;
 
-// GET /tournaments
-export const getTournaments = {
-  querystring: Type.Object({
-    status: Type.Optional(
-      Type.Union(Object.values(statusEnum).map((value) => Type.Literal(value)))
-    ),
+// PATCH /tournaments/:uuid/start
+export const startTournament = {
+  params: Type.Object({
+    uuid: Type.String(),
   }),
 };
-export type getTournaments = Static<typeof getTournaments.querystring>;
 
 // PATCH /tournaments/:uuid
 export const updateTournament = {
