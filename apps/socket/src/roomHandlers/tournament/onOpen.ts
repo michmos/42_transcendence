@@ -35,14 +35,14 @@ async function fetchTournaments(socket: WSocket, queryString: string) {
 }
 
 async function fetchCurrentTournaments(socket: WSocket) {
-  const outstandingTournaments = await fetchTournaments(
+  const myOutstandingTournaments = await fetchTournaments(
     socket,
     'status=outstanding'
   );
-  const ongoingTournaments = await fetchTournaments(socket, 'status=ongoing');
+  const myOngoingTournaments = await fetchTournaments(socket, 'status=ongoing');
   const currentTournaments = new Set<string>([
-    ...outstandingTournaments,
-    ...ongoingTournaments,
+    ...myOutstandingTournaments,
+    ...myOngoingTournaments,
   ]);
   return currentTournaments;
 }
