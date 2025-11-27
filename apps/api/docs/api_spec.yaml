@@ -422,6 +422,76 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+    patch:
+      tags:
+        - Tournament
+      summary: Update tournament
+      description: Update a tournament as admin
+      responses:
+        '200':
+          description: Tournament updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}/start:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    patch:
+      tags:
+        - Tournament
+      summary: Start tournament
+      description: |
+        Start a tournament as participant
+
+        Tournament must have enough players to start
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tournament started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Not enough players to start tournament
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /tournaments/{uuid}/users:
     parameters:
       - $ref: '#/components/parameters/uuid'
@@ -478,18 +548,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /tournaments/{tournament-uuid}/users/{user-uuid}:
-    parameters:
-      - name: tournament-uuid
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: user-uuid
-        in: path
-        required: false
-        schema:
-          type: string
     delete:
       tags:
         - Tournament
@@ -500,6 +558,16 @@ paths:
         Admin users can also remove other users from a tournament
       security:
         - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
 
       responses:
         '200':
