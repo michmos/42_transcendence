@@ -28,7 +28,7 @@ const errorHandler = (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  let response: any = { message: error.message };
+  let response: unknown = { message: error.message };
   const statusCode = error.statusCode || 500;
 
   if (error.validation) {
