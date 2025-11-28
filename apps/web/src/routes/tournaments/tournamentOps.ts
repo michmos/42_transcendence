@@ -23,14 +23,19 @@ export async function createTournament(specs: {
   return tournament;
 }
 
-export async function joinTournament(tournamentUuid: string): Promise<boolean> {
+export async function joinTournament(
+  tournamentUuid: string,
+  alias: string
+): Promise<boolean> {
   const response = await fetch(`/api/tournaments/${tournamentUuid}/users`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       credentials: 'include',
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify({
+      alias,
+    }),
   });
   if (!response.ok) {
     // TODO: handle error
