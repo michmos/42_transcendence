@@ -26,7 +26,7 @@ import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
 declare module 'fastify' {
   interface FastifyRequest {
     user?: {
-      uuid: string;
+      uuid: string | null;
       role: string;
     };
   }
@@ -132,45 +132,66 @@ class OAuth {
   private async checkAuthenticationHook(
     request: import('fastify').FastifyRequest,
     reply: import('fastify').FastifyReply,
+    adminRole: string,
+    api_admin_key: string,
     getUserRoleCallback: (uuid: string) => Promise<string | null>
   ) {
-    // Allow unauthenticated access to the login routes
-    if (request.url.startsWith('/auth')) {
-      console.info('🔓 Allowing unauthenticated access to', request.url);
-      return;
-    }
+    const apiKey = request.headers['x-api-key'];
 
-    console.info(
-      '🔒 Checking JWT session authentication for request to',
-      request.url
-    );
-
-    // Check for a valid session cookie
-    const session = SessionManager.decodeJWT(request.cookies.session as string);
-
-    // If no valid session, respond with 401 Unauthorized
-    if (!session) {
-      console.warn(
-        'No valid session found for request to',
-        request.url,
-        'from ip',
-        request.ip
+    if (apiKey && typeof apiKey === 'string') {
+      console.info(
+        '🔑 Checking API key authentication for request to',
+        request.url
       );
 
-      return reply
-        .status(401)
-        .send({ error: 'No valid session found, please log in' });
-    }
+      if (apiKey !== api_admin_key) {
+        console.warn('Invalid API key provided for request to', request.url);
+        return reply.status(401).send({ error: 'Invalid API key' });
+      }
 
-    // Fetch the user object from the database using the provided callback
-    const userRole = (await getUserRoleCallback(session.uuid)) as string | null;
-    console.info('Fetched user role for UUID', session.uuid, ':', userRole);
-    if (!userRole)
-      return reply.status(401).send({ error: 'User not found in database' });
-    request.user = {
-      uuid: session.uuid,
-      role: userRole,
-    };
+      // Populate request.user with a placeholder user object for API key authenticated requests
+      request.user = {
+        uuid: null, // Placeholder UUID for API key users
+        role: adminRole, // Placeholder role for API key users
+      };
+      return;
+    } else {
+      console.info(
+        '🔒 Checking JWT session authentication for request to',
+        request.url
+      );
+
+      // Check for a valid session cookie
+      const session = SessionManager.decodeJWT(
+        request.cookies.session as string
+      );
+
+      // If no valid session, respond with 401 Unauthorized
+      if (!session) {
+        console.warn(
+          'No valid session found for request to',
+          request.url,
+          'from ip',
+          request.ip
+        );
+
+        return reply
+          .status(401)
+          .send({ error: 'No valid session found, please log in' });
+      }
+
+      // Fetch the user object from the database using the provided callback
+      const userRole = (await getUserRoleCallback(session.uuid)) as
+        | string
+        | null;
+      console.info('Fetched user role for UUID', session.uuid, ':', userRole);
+      if (!userRole)
+        return reply.status(401).send({ error: 'User not found in database' });
+      request.user = {
+        uuid: session.uuid,
+        role: userRole,
+      };
+    }
   }
 
   // Add an authentication hook to Fastify
@@ -182,39 +203,26 @@ class OAuth {
     console.info('🔒 Registering authentication callback hook');
 
     this.ctx.app.addHook('onRequest', async (request, reply) => {
-      // Check if authentication is using API keys instead of JWT sessions
+      // Allow unauthenticated access to the login routes
+      if (request.url.startsWith('/auth')) {
+        console.info('🔓 Allowing unauthenticated access to', request.url);
+        return;
+      }
 
+      // Prevent overriding request.user
       if (request.user) {
         console.error('Someone is trying to override request.user!');
         return reply.status(400).send({ error: 'Bad Request' });
       }
 
-      const apiKey = request.headers['x-api-key'];
-
-      if (apiKey && typeof apiKey === 'string') {
-        console.info(
-          '🔑 Checking API key authentication for request to',
-          request.url
-        );
-
-        if (apiKey !== api_admin_key) {
-          console.warn('Invalid API key provided for request to', request.url);
-          return reply.status(401).send({ error: 'Invalid API key' });
-        }
-
-        // Populate request.user with a placeholder user object for API key authenticated requests
-        request.user = {
-          uuid: 'api-key-user', // Placeholder UUID for API key users
-          role: adminRole, // Placeholder role for API key users
-        };
-        return;
-      } else {
-        return await this.checkAuthenticationHook(
-          request,
-          reply,
-          getUserObjectCallback
-        );
-      }
+      // Check authentication
+      return await this.checkAuthenticationHook(
+        request,
+        reply,
+        adminRole,
+        api_admin_key,
+        getUserObjectCallback
+      );
     });
     return this;
   }

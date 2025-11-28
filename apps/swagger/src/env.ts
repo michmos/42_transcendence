@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const env = createEnv({
   server: {
-    SWAGGER_PORT: z.coerce.number().default(3000),
+    SWAGGER_PORT: z.coerce.number().default(3003),
   },
 
   runtimeEnv: process.env,

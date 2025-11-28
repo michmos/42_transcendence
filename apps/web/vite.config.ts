@@ -16,8 +16,7 @@ export default defineConfig(() => {
         '/websocket': {
           target: env.SOCKET_SERVER,
           changeOrigin: true,
-          upgrade: true,
-          secure: true,
+          secure: false,
           ws: true,
           rewrite: (path) => path.replace(/^\/websocket/, ''),
         },

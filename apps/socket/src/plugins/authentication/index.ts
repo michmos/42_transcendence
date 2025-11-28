@@ -57,7 +57,7 @@ async function authenticateClient(request: FastifyRequest) {
 }
 
 async function authenticateAPIServer(request: FastifyRequest) {
-  const key = request.headers['x-api-server-key'];
+  const key = request.headers['x-api-key'];
   if (!key || key !== env.ADMIN_API_KEY) {
     throw new Error(`Unauthorized access attempt`);
   }

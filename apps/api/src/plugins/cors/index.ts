@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify';
+import { env } from '../../env.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
   // Enable CORS for all routes
   app.addHook('preHandler', async (request, reply) => {
-    reply.header('Access-Control-Allow-Origin', '*');
+    reply.header('Access-Control-Allow-Origin', env.FRONTEND_URL);
     reply.header(
       'Access-Control-Allow-Methods',
       'GET, POST, PUT, DELETE, OPTIONS'

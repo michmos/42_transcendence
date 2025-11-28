@@ -3,6 +3,7 @@
   "globalDependencies": [".env"],
   "globalEnv": [
     "VITE_PORT",
+    "FRONTEND_URL",
     "API_URL",
     "SOCKET_URL",
     "SOCKET_PORT",

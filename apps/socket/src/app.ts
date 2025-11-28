@@ -36,7 +36,7 @@ const start = async () => {
       dirNameRoutePrefix: true,
     });
 
-    await app.listen({ port: env.SOCKET_PORT });
+    await app.listen({ port: env.SOCKET_PORT, host: '0.0.0.0' });
 
     console.info('🌐 Socket server started on port', env.SOCKET_PORT);
 
