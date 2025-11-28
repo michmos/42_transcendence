@@ -22,8 +22,8 @@ async function fetchUser(sessionCookie: string): Promise<User> {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
-      credentials: 'include',
     },
+    credentials: 'include',
   });
   if (!response.ok) {
     throw new Error(
