@@ -27,23 +27,36 @@ export async function updateTournament(
 
 export async function addUserToTournament(
   userId: string,
-  tournamentId: string
+  tournamentId: string,
+  alias: string
 ): Promise<Tournament> {
   return Database.$transaction(async (tx) => {
     const user = await tx.user.findFirst({
       where: {
         uuid: userId,
-        tournaments: { some: { uuid: tournamentId } },
+        tournaments: { some: { tournamentId } },
       },
     });
-    const incrementValue = user ? 0 : 1;
+    if (!user) {
+      return tx.tournament.findFirstOrThrow({ where: { uuid: tournamentId } });
+    }
+    // create participation
+    await tx.tournamentParticipations.create({
+      data: {
+        alias,
+        tournament: {
+          connect: { uuid: tournamentId },
+        },
+        user: {
+          connect: { uuid: userId },
+        },
+      },
+    });
+    // update playerCount
     return tx.tournament.update({
       where: { uuid: tournamentId },
       data: {
-        playerCount: { increment: incrementValue },
-        participants: {
-          connect: { uuid: userId },
-        },
+        playerCount: { increment: 1 },
       },
     });
   });
@@ -54,20 +67,27 @@ export async function removeUserFromTournament(
   tournamentId: string
 ): Promise<Tournament> {
   return Database.$transaction(async (tx) => {
-    const user = await tx.user.findFirst({
+    const user = await tx.tournamentParticipations.findFirst({
       where: {
-        uuid: userId,
-        tournaments: { some: { uuid: tournamentId } },
+        userId,
+        tournamentId,
       },
     });
-    const decrementValue = user ? 1 : 0;
+    if (!user) {
+      return tx.tournament.findFirstOrThrow({ where: { uuid: tournamentId } });
+    }
+    await tx.tournamentParticipations.delete({
+      where: {
+        tournamentId_userId: {
+          tournamentId,
+          userId,
+        },
+      },
+    });
     return tx.tournament.update({
       where: { uuid: tournamentId },
       data: {
-        playerCount: { decrement: decrementValue },
-        participants: {
-          disconnect: { uuid: userId },
-        },
+        playerCount: { decrement: 1 },
       },
     });
   });
@@ -94,7 +114,7 @@ export async function getTournamentsByParticipant(
   return Database.tournament.findMany({
     where: {
       participants: {
-        some: { uuid },
+        some: { userId: uuid },
       },
       ...(status && { status }),
     },
