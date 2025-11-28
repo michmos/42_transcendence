@@ -21,23 +21,21 @@ export function removeExpiredRoles() {
       now - record.lastSeen < PING_TIMEOUT + PING
     ) {
       console.log(
-        `Client-${clientId} timed out (no input for ${now - record.lastSeen}ms)`
+        `${clientId} timed out (no input for ${now - record.lastSeen}ms)`
       );
       record.connected = false;
       record.webSocket = null;
     }
     if (!record.connected && now - record.lastSeen > ROLE_EXPIRATION) {
       if (record.role === 'player1' || record.role === 'player2') {
-        console.log(
-          `Client-${clientId} role "${record.role}" expired and available`
-        );
+        console.log(`${clientId} role "${record.role}" expired and available`);
         if (record.role === 'player1') {
           convertPlayertoLocal(2);
         } else if (record.role === 'player2') {
           convertPlayertoLocal(1);
         }
       } else if (record.role === 'local') {
-        console.log(`Client-${clientId} has left the game`);
+        console.log(`${clientId} has left the game`);
         resetGame();
       }
       clientRecords.delete(clientId);

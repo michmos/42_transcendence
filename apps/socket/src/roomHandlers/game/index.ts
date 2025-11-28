@@ -86,7 +86,7 @@ function handleInput(
   record: ClientRecord,
   socket: WSocket
 ) {
-  console.log("handle input: ", input);
+  //   console.log("handle input: ", input);
   if (!gameState.gamePaused && !gameState.gameOver) {
     if (
       input.data.action === Action.Up &&
@@ -195,156 +195,87 @@ setInterval(() => {
 // Check roles on ping interval
 setInterval(removeExpiredRoles, PING);
 
+function sendRole(socket: WSocket): ClientRecord {
+  const clientId = socket.uuid;
+  const record = attachClient(clientId, socket);
+  socket.send(
+    JSON.stringify({
+      type: 'message',
+      room: 'game:testRoom',
+      data: {
+        subtype: 'role',
+        role: record.role,
+        clientId: record.clientId,
+      },
+    })
+  );
+  return record;
+}
+
 export default {
-	onStartup: async () => {
-		console.log('This code is being run on server start');
-		// e.g. fetching api for ongoing tournaments
-	},
-	onOpen: async (socket: WSocket) => {
-		console.log('This code is run if a socket connects to the server');
-		// socket.join('tournament:main');
-	},
-	onMessage: async (socket: WSocket, message: SocketMessage) => {
-
-		console.log('This code is run if a socket sends a message TO THIS HANDLER');
-		console.log(message);
-		if (message.type === 'message') {
-      // console.log(socket.uuid);
-      const clientId =
-        socket.uuid ||
-        `anon-${Math.random().toString(36).slice(2, 10)}`;
-      const record = attachClient(clientId, socket);
-      socket.send(
-        JSON.stringify({
-          type: 'message',
-          room: 'game:testRoom',
-          data: {
-            subtype: 'role',
-            role: record.role,
-            clientId: record.clientId,
-          },
-        })
-      );
-      console.log(
-        `Client-${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`
-      );
-      handleInput(message, record, socket);
+  onStartup: async () => {
+    console.log('This code is being run on server start');
+    // e.g. fetching api for ongoing tournaments
+  },
+  onOpen: async (socket: WSocket) => {
+    console.log('This code is run if a socket connects to the server');
+    const record = sendRole(socket);
+    console.log(
+      `${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`
+    );
+    // socket.join('tournament:main');
+  },
+  onMessage: async (socket: WSocket, message: SocketMessage) => {
+    // console.log('This code is run if a socket sends a message TO THIS HANDLER');
+    if (message.data.subtype === 'connect') {
+      sendRole(socket);
     }
-		// onMessage(socket, message);
-	},
-	onClose: async (socket: WSocket) => {
-
+    try {
+      const clientId = socketToClientId.get(socket);
+      if (clientId) {
+        const record = clientRecords.get(clientId);
+        console.log(`Role: "${record?.role}"`);
+        console.log(message);
+        if (record) {
+          record.lastSeen = Date.now();
+          handleInput(message, record, socket);
+        }
+      }
+    } catch (err) {
+      console.error('Error handling client message: ', err);
+    }
+  },
+  onClose: async (socket: WSocket) => {
     // Clean up client from maps when socket closes
-		const clientId = socketToClientId.get(socket);
-		if (clientId) {
-			const record = clientRecords.get(clientId);
-			if (record) {
-				const wasPlayer1 = record.role === 'player1'; // Track if this was player1
-				const wasPlayer2 = record.role === 'player2'; // Track if this was player2
-
-				record.webSocket = null;
-				record.connected = false;
-				record.lastSeen = Date.now();
-				clientRecords.set(clientId, record);
-				if (record.role === 'spectator') {
-				console.log(`Client-${clientId} disconnected`);
-				clientRecords.delete(clientId);
-				} else
-				console.log(
-					`Client-${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
-				);
-				// If player2 disconnected, convert player1 back to local
-				if (wasPlayer2) {
-				convertPlayertoLocal(1);
-				}
-				if (wasPlayer1) {
-				convertPlayertoLocal(2);
-				}
-			}
-			socketToClientId.delete(socket);
-		}
-	console.log('This code is run if a socket disconnects from a server');
-	// e.g. remove him from tournament rooms (or leave him in)
-	},
-};
-
-async function onMessage(
-  socket: WSocket,
-  message: SocketMessage
-): Promise<void> {
-  // handle incoming message
-  try {
-    console.log(message);
-
-    if (message.type === 'connect') {
-      const clientId =
-        message.data.clientId ||
-        `anon-${Math.random().toString(36).slice(2, 10)}`;
-      const record = attachClient(clientId, socket);
-      socket.send(
-        JSON.stringify({
-          type: 'message',
-          room: 'game:testRoom',
-          data: {
-            subtype: 'role',
-            role: record.role,
-            clientId: record.clientId,
-          },
-        })
-      );
-      console.log(
-        `Client-${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`
-      );
-    }
-
     const clientId = socketToClientId.get(socket);
     if (clientId) {
       const record = clientRecords.get(clientId);
       if (record) {
+        const wasPlayer1 = record.role === 'player1'; // Track if this was player1
+        const wasPlayer2 = record.role === 'player2'; // Track if this was player2
+
+        record.webSocket = null;
+        record.connected = false;
         record.lastSeen = Date.now();
-        if (!record.connected) {
-          record.connected = true;
-          record.webSocket = socket;
-          console.log(`Client-${record.clientId} reconnected`);
+        clientRecords.set(clientId, record);
+        if (record.role === 'spectator') {
+          console.log(`Client-${clientId} disconnected`);
+          clientRecords.delete(clientId);
+        } else
+          console.log(
+            `${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
+          );
+        // If player2 disconnected, convert player1 back to local
+        if (wasPlayer2) {
+          convertPlayertoLocal(1);
         }
-      } else return;
-
-      handleInput(message, record, socket);
+        if (wasPlayer1) {
+          convertPlayertoLocal(2);
+        }
+      }
+      socketToClientId.delete(socket);
     }
-  } catch (err) {
-    console.error('Error handling client message: ', err);
-  }
-}
-  // TODO: this logic is general (not game specific) and needs to be externalized
-//   socket.on('close', () => {
-//     // Clean up client from maps when socket closes
-//     const clientId = socketToClientId.get(socket);
-//     if (clientId) {
-//       const record = clientRecords.get(clientId);
-//       if (record) {
-//         const wasPlayer1 = record.role === 'player1'; // Track if this was player1
-//         const wasPlayer2 = record.role === 'player2'; // Track if this was player2
-
-//         record.webSocket = null;
-//         record.connected = false;
-//         record.lastSeen = Date.now();
-//         clientRecords.set(clientId, record);
-//         if (record.role === 'spectator') {
-//           console.log(`Client-${clientId} disconnected`);
-//           clientRecords.delete(clientId);
-//         } else
-//           console.log(
-//             `Client-${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
-//           );
-//         // If player2 disconnected, convert player1 back to local
-//         if (wasPlayer2) {
-//           convertPlayertoLocal(1);
-//         }
-//         if (wasPlayer1) {
-//           convertPlayertoLocal(2);
-//         }
-//       }
-//       socketToClientId.delete(socket);
-//     }
-//   });
-// }
+    console.log('This code is run if a socket disconnects from a server');
+    // e.g. remove him from tournament rooms (or leave him in)
+  },
+};
