@@ -202,39 +202,23 @@ export async function getTournamentRounds(
   });
 }
 
-export async function getTournamentRound(
-  uuid: string
-): Promise<TournamentRound | null>;
-export async function getTournamentRound(
-  tournamentId: string,
-  index: number
-): Promise<TournamentRound | null>;
-export async function getTournamentRound(
-  a: string,
-  b?: number
-): Promise<TournamentRound | null> {
-  if (b !== undefined) {
-    return Database.tournamentRound.findFirst({
-      where: {
-        tournamentId: a,
-        index: b,
+export async function getTournamentRound(tournamentId: string, index: number) {
+  return Database.tournamentRound.findFirst({
+    where: {
+      tournamentId,
+      index,
+    },
+    select: {
+      index: true,
+      status: true,
+      matches: {
+        select: { uuid: true },
       },
-      include: {
-        matches: true,
-      },
-    });
-  }
-  return Database.tournamentRound.findUnique({
-    where: { uuid: a },
-    include: {
-      matches: true,
     },
   });
 }
 
-export async function getCurrentTournamentRound(
-  tournamentId: string
-): Promise<TournamentRound | null> {
+export async function getCurrentTournamentRound(tournamentId: string) {
   const tournament = await Database.tournament.findUnique({
     where: { uuid: tournamentId },
   });

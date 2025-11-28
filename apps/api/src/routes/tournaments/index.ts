@@ -342,6 +342,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           error: `Tournament round with index: ${request.params.roundIndex} not found`,
         });
       }
+
       return reply.status(200).send(round);
     }
   );
