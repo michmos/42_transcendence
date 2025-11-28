@@ -1,7 +1,6 @@
 import { env } from '../../env.js';
-import { type FastifyError } from 'fastify';
 
-export async function messageSocketServer(endpoint: string, data: any) {
+export async function messageSocketServer(endpoint: string, data: unknown) {
   let response;
   try {
     response = await fetch(`http://localhost:3001${endpoint}`, {

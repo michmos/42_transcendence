@@ -20,7 +20,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentCreated,
     },
-    async function (request, reply) {
+    async function (request) {
       RoomManager.get('tournament:main')?.broadcast(
         JSON.stringify({
           event: 'tournament-created',
@@ -39,7 +39,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentStarted,
     },
-    async function (request, reply) {
+    async function (request) {
       RoomManager.get('tournament:main')?.broadcast(
         JSON.stringify({
           event: 'tournament-started',
@@ -61,7 +61,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentJoined,
     },
-    async function (request, reply) {
+    async function (request) {
       const { userUuid, tournamentUuid } = request.body;
 
       RoomManager.get('tournament:main')?.broadcast(
@@ -81,7 +81,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentLeft,
     },
-    async function (request, reply) {
+    async function (request) {
       const { userUuid, tournamentUuid } = request.body;
 
       RoomManager.get('tournament:main')?.broadcast(
@@ -101,7 +101,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentUpdated,
     },
-    async function (request, reply) {
+    async function (request) {
       const { tournamentUuid, status, tournamentName } = request.body;
 
       RoomManager.get('tournament:main')?.broadcast(
