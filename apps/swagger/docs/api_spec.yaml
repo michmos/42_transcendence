@@ -512,7 +512,7 @@ paths:
         - bearerAuth: []
         - x-api-key: []
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
@@ -521,6 +521,10 @@ paths:
                 uuid:
                   type: string
                   format: uuid
+                  required: false
+                alias:
+                  type: string
+                  required: true
 
       responses:
         '200':
@@ -542,7 +546,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: User already in tournament
+          description: User already in tournament or alias taken
           content:
             application/json:
               schema:
