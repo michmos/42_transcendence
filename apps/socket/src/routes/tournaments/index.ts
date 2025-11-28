@@ -1,7 +1,6 @@
 import { type FastifyInstance } from 'fastify';
 import * as schemas from './validation.js';
 import RoomManager from '../../plugins/rooms/WSocket/RoomManager.js';
-// import tournament from '../../roomHandlers/tournament/index.js';
 
 const cachedTournamentParticipations = new Map<string, Set<string>>();
 
@@ -20,7 +19,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentCreated,
     },
-    async function (request) {
+    async function (request, reply) {
       RoomManager.get('tournament:main')?.broadcast(
         JSON.stringify({
           event: 'tournament-created',
@@ -32,6 +31,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         request.body.tournamentUuid,
         new Set<string>()
       );
+      return reply.status(200);
     }
   );
   app.post<{ Body: schemas.tournamentStartedBody }>(
@@ -39,7 +39,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentStarted,
     },
-    async function (request) {
+    async function (request, reply) {
       RoomManager.get('tournament:main')?.broadcast(
         JSON.stringify({
           event: 'tournament-started',
@@ -54,6 +54,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           message: `Join the first match of ${request.body.tournamentName} in the next 60 seconds!`,
         })
       );
+      return reply.status(200);
     }
   );
   app.post<{ Body: schemas.tournamentJoinedBody }>(
@@ -61,7 +62,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentJoined,
     },
-    async function (request) {
+    async function (request, reply) {
       const { userUuid, tournamentUuid } = request.body;
 
       RoomManager.get('tournament:main')?.broadcast(
@@ -73,7 +74,11 @@ export default async function (app: FastifyInstance): Promise<void> {
       );
 
       const participants = cachedTournamentParticipations.get(tournamentUuid);
-      participants?.add(userUuid);
+      if (!participants) {
+        return reply.status(409);
+      }
+      participants.add(userUuid);
+      return reply.status(200);
     }
   );
   app.post<{ Body: schemas.tournamentLeftBody }>(
@@ -81,7 +86,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentLeft,
     },
-    async function (request) {
+    async function (request, reply) {
       const { userUuid, tournamentUuid } = request.body;
 
       RoomManager.get('tournament:main')?.broadcast(
@@ -93,7 +98,11 @@ export default async function (app: FastifyInstance): Promise<void> {
       );
 
       const participants = cachedTournamentParticipations.get(tournamentUuid);
-      participants?.delete(userUuid);
+      if (!participants) {
+        return reply.status(409);
+      }
+      participants.delete(userUuid);
+      return reply.status(200);
     }
   );
   app.post<{ Body: schemas.tournamentUpdatedBody }>(
@@ -101,7 +110,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     {
       schema: schemas.tournamentUpdated,
     },
-    async function (request) {
+    async function (request, reply) {
       const { tournamentUuid, status, tournamentName } = request.body;
 
       RoomManager.get('tournament:main')?.broadcast(
@@ -112,6 +121,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           status,
         })
       );
+      return reply.status(200);
     }
   );
 }
