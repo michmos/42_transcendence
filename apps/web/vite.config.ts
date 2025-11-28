@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
   const apiPort = env.API_PORT || '3002';
   const socketPort = env.SOCKET_PORT || '3001';
   const vitePort = parseInt(env.VITE_PORT || '5173');
+  const cdnPort = env.CDN_PORT || '3008';
 
   return {
     root: 'src',
@@ -28,6 +29,11 @@ export default defineConfig(({ mode }) => {
         },
         '/documentation': {
           target: `http://localhost:${apiPort}`,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/cdn': {
+          target: `http://localhost:${cdnPort}`,
           changeOrigin: true,
           secure: false,
         },

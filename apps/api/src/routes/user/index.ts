@@ -97,12 +97,10 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       // Getting own uuid and extracting filename from file
       const uuidSelf: string = request.user.uuid;
-      const { filename } = file;
 
       // generating new filename for avatar
       const avatarUuid = crypto.randomUUID();
-      const extension = path.extname(filename);
-      const newFilename = `${avatarUuid}${extension}`;
+      const newFilename = `${avatarUuid}`;
 
       // Generating path where avatar will get stored & then then relative path to be stored in DB
       const savePath = path.join(
