@@ -11,7 +11,7 @@ declare global {
 }
 
 // Connect to WebSocket
-window.socket = new Socket(env.CLIENT_SOCKET_URL);
+window.socket = new Socket(env.VITE_SOCKET_URL);
 
 // Initialize router
 const router = new SimpleRouter(document.getElementById('app') as HTMLElement);

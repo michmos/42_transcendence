@@ -2,18 +2,22 @@ import { createEnv } from '@t3-oss/env-core';
 import { z } from 'zod';
 
 export const env = createEnv({
-  clientPrefix: 'CLIENT_',
+  clientPrefix: 'VITE_', // <- changed
   client: {
-    CLIENT_SOCKET_URL: z.string().default('ws://localhost:5173/websocket'),
-    CLIENT_API_URL: z.string().default('http://localhost:5173/api'),
+    VITE_SOCKET_URL: z.string().nonempty({ message: 'SOCKET_URL is required' }),
+    VITE_API_URL: z.string().nonempty({ message: 'API_URL is required' }),
   },
   server: {
-    VITE_PORT: z.coerce.number().default(5173),
-    API_SERVER: z.string().default('http://localhost:3002'),
-    SOCKET_SERVER: z.string().default('http://localhost:3001'),
-    SWAGGER_SERVER: z.string().default('http://localhost:3003'),
-    SOCKET_URL: z.string().default('ws://localhost:5173/websocket'),
-    API_URL: z.string().default('http://localhost:5173/api'),
+    PORT: z.coerce.number().default(5173),
+    API_SERVER: z.string().nonempty({ message: 'API_SERVER is required' }),
+    SOCKET_SERVER: z
+      .string()
+      .nonempty({ message: 'SOCKET_SERVER is required' }),
+    SWAGGER_SERVER: z
+      .string()
+      .nonempty({ message: 'SWAGGER_SERVER is required' }),
+    SOCKET_URL: z.string().nonempty({ message: 'SOCKET_URL is required' }),
+    API_URL: z.string().nonempty({ message: 'API_URL is required' }),
   },
   runtimeEnv: import.meta.env,
 });
