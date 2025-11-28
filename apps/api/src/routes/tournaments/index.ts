@@ -146,18 +146,23 @@ export default async function (app: FastifyInstance): Promise<void> {
       }
 
       // add user
-      const updatedTournament = await app.db.addUserToTournament(
-        userUuid,
-        tournamentUuid
-      );
+      try {
+        const updatedTournament = await app.db.addUserToTournament(
+          userUuid,
+          tournamentUuid,
+          request.body.alias
+        );
 
-      // notify socket server
-      await messageSocketServer(`/tournaments/broadcast/joined`, {
-        tournamentUuid: tournament.uuid,
-        userUuid,
-        playerCount: updatedTournament.playerCount,
-      });
-      return reply.status(200).send(updatedTournament);
+        // notify socket server
+        await messageSocketServer(`/tournaments/broadcast/joined`, {
+          tournamentUuid: tournament.uuid,
+          userUuid,
+          playerCount: updatedTournament.playerCount,
+        });
+        return reply.status(200).send(updatedTournament);
+      } catch (error) {
+        return reply.status(409).send('Alias already taken in this tournament');
+      }
     }
   );
 
