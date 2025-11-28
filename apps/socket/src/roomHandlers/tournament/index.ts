@@ -4,10 +4,10 @@ import { onOpen } from './onOpen.js';
 import { onMessage } from './onMessage.js';
 
 export default {
-  onOpen: (socket: WSocket) => {
-    onOpen(socket);
+  onOpen: async (socket: WSocket) => {
+    await onOpen(socket);
   },
-  onMessage: (socket: WSocket, message: SocketMessage) => {
-    onMessage(socket, message);
+  onMessage: async (socket: WSocket, message: SocketMessage) => {
+    await onMessage(socket, message);
   },
 };
