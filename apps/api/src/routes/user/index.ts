@@ -37,6 +37,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
       const userMatches = await app.db.getUserMatchHistory(uuidSelf);
 
+      // TODO: Please make a type for this response object if we need it like this
       return reply
         .code(200)
         .send({ cleanedUserData, cleanedUserFriends, userMatches });
