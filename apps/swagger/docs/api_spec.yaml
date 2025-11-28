@@ -268,14 +268,21 @@ components:
       required:
         - index
         - matches
+        - status
       properties:
         index:
           type: integer
           example: 0
+        status:
+          $ref: '#/components/schemas/Status'
         matches:
           type: array
           items:
-            $ref: '#/components/schemas/Match'
+            type: object
+            properties:
+              uuid:
+                type: string
+                format: uuid
 
     CreateTournamentInput:
       type: object
