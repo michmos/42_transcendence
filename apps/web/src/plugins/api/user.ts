@@ -2,6 +2,30 @@ import type { User } from 'db/generated/client/index.js';
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
+  async getMe(): Promise<User | null> {
+    try {
+      const response = await fetch('/api/user/me', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const res = await response.json();
+      console.log('Fetched user data:', res.cleanedUserData);
+      // TODO: Weird user data issue fix later
+      return res.cleanedUserData;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  },
   async getUsers(): Promise<User[]> {
     try {
       const response = await fetch('/api/user', {

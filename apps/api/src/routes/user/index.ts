@@ -29,7 +29,6 @@ export default async function (app: FastifyInstance): Promise<void> {
   app.get('/me', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;
-
       const userData = await app.db.getUserMe(uuidSelf);
       const cleanedUserData = cleanSelfUserData(userData);
       const userFriends: fullFriendshipRecord[] =
