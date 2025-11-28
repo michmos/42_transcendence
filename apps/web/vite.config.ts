@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { env } from './src/env.js';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(() => {
   return {
     root: 'src',
     server: {

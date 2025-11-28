@@ -21,7 +21,7 @@ async function fetchUser(sessionCookie: string): Promise<User> {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
-      credentials: 'include',
+      // credentials: 'include',
     },
   });
   if (!response.ok) {
@@ -29,6 +29,10 @@ async function fetchUser(sessionCookie: string): Promise<User> {
       `Authentication failed: ${response.status} ${response.statusText}`
     );
   }
+  console.log(`Session cookie valid, fetching user data...`);
+  console.log(`Response status: ${response.status}`);
+  console.log(`Response headers:`, response.headers);
+  console.log(`Response body:`, await response.clone().text());
   const user = await response.json();
   if (!user || !user.uuid) {
     throw new Error(`Authentication failed: Invalid user data`);
