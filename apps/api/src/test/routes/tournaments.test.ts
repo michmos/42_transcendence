@@ -691,6 +691,32 @@ describe('POST /tournaments/{uuid}/users', () => {
     });
     expect(response.statusCode).toBe(404);
   });
+
+  test('invalid: join with same alias as other player-> 409', async () => {
+    setUserTo('MEMBER');
+    const tournament = await createValidTournament(app);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        alias: 'sameAlias',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    setUserTo('ADMIN');
+    const response2 = await app.inject({
+      method: 'POST',
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        alias: 'sameAlias',
+      },
+    });
+    expect(response2.statusCode).toBe(409);
+    const updatedTournament = await app.db.getTournament(tournament.uuid);
+    assert(updatedTournament);
+    expect(updatedTournament.playerCount).toBe(1);
+  });
 });
 
 describe('DELETE /tournaments/{tournamentId}/users/', () => {
