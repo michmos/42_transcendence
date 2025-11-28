@@ -178,27 +178,6 @@ function renderTournamentHeader(
   const badgesSection = document.createElement('div');
   badgesSection.className = 'flex gap-2';
 
-  const activeBadgeContainer = document.createElement('div');
-  new Badge(activeBadgeContainer, { text: 'Active', variant: 'default' });
-  const activeBadgeElement =
-    activeBadgeContainer.firstElementChild as HTMLElement;
-  if (activeBadgeElement) {
-    activeBadgeElement.className =
-      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-accent text-white';
-  }
-
-  const roundBadgeContainer = document.createElement('div');
-  new Badge(roundBadgeContainer, { text: 'Round of 16', variant: 'default' });
-  const roundBadgeElement =
-    roundBadgeContainer.firstElementChild as HTMLElement;
-  if (roundBadgeElement) {
-    roundBadgeElement.className =
-      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-info text-white';
-  }
-
-  badgesSection.appendChild(activeBadgeContainer);
-  badgesSection.appendChild(roundBadgeContainer);
-
   // Add Join/Start button logic
   const currentUserId = getCurrentUserId();
   const participants = tournament.participants || [];
