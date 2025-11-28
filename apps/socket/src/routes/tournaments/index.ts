@@ -51,7 +51,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       RoomManager.get(`tournament:${request.body.tournamentUuid}`)?.broadcast(
         JSON.stringify({
           event: 'notify',
-          message: `Join the fist match of ${request.body.tournamentName} in the next 60 seconds!`,
+          message: `Join the first match of ${request.body.tournamentName} in the next 60 seconds!`,
         })
       );
     }

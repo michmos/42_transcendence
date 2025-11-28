@@ -81,7 +81,7 @@ describe('POST /tournaments', () => {
     ).toBe(400);
   });
 
-  test('invalid settings: wrong filed names -> 400', async () => {
+  test('invalid settings: wrong field names -> 400', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tournaments',
