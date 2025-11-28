@@ -26,10 +26,11 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.7.0",
     "@types/simple-oauth2": "^5.0.7",
-    "tsx": "^4.20.5"
+    "tsx": "^4.20.5",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

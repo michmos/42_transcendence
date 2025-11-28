@@ -58,7 +58,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
         const { newNickname } = request.body as { newNickname: string };
 
-        const existingUser = await app.db.getUser(newNickname);
+        const existingUser = await app.db.getUserByNickname(newNickname);
         if (existingUser) {
           return reply.code(409).send({
             Error: `Nickname ${newNickname} already exists and must be unique`,
@@ -152,7 +152,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     async function (request, reply) {
       try {
         const { nickname } = request.params;
-        const user = await app.db.getUser(nickname);
+        const user = await app.db.getUserByNickname(nickname);
 
         if (!user) return reply.code(404).send({ Error: 'user not found' });
 

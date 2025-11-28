@@ -10,19 +10,9 @@ export async function createTournament(data: {
   tournamentName: string;
   minPlayers: number;
   maxPlayers: number;
-  userUuid: string;
-  lockTime?: number;
-  gameTime?: number;
 }): Promise<Tournament> {
-  const { userUuid, ...rest } = data;
-
   return Database.tournament.create({
-    data: {
-      ...rest,
-      participants: {
-        connect: { uuid: userUuid },
-      },
-    },
+    data,
   });
 }
 
@@ -53,6 +43,30 @@ export async function addUserToTournament(
         playerCount: { increment: incrementValue },
         participants: {
           connect: { uuid: userId },
+        },
+      },
+    });
+  });
+}
+
+export async function removeUserFromTournament(
+  userId: string,
+  tournamentId: string
+): Promise<Tournament> {
+  return Database.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({
+      where: {
+        uuid: userId,
+        tournaments: { some: { uuid: tournamentId } },
+      },
+    });
+    const decrementValue = user ? 1 : 0;
+    return tx.tournament.update({
+      where: { uuid: tournamentId },
+      data: {
+        playerCount: { decrement: decrementValue },
+        participants: {
+          disconnect: { uuid: userId },
         },
       },
     });

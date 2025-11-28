@@ -1,5 +1,8 @@
 import { Navbar, Card, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
+import { handleLogout } from '../../utils/logout-handler.js';
+import { handleApiError, showApiError } from '../../utils/api-helpers.js';
+import UserAPI from '../../plugins/api/user.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -8,7 +11,7 @@ declare global {
   }
 }
 
-export default function initRoute() {
+export default async function initRoute() {
   const pageRoot = document.querySelector(
     '.settings-page'
   ) as HTMLElement | null;
@@ -23,19 +26,38 @@ export default function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
+  
+  // Fetch user data for navbar
+  const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
+    userNickname: userInfo?.nickname,
+    userAvatar: userInfo?.avatar || undefined,
     onSettingsClick: () => {
       navigateTo('/settings');
     },
-    onLogoutClick: () => {
-      navigateTo('/login');
-    },
+    onLogoutClick: handleLogout,
   });
+
+  // Fetch full user profile data
+  const profileData = await UserAPI.getUserProfile();
+  if (!profileData) {
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'text-center text-white py-8';
+    errorMsg.textContent = 'Failed to load user data. Please try again.';
+    mainWrapper.appendChild(errorMsg);
+    return;
+  }
+
+  const userData = profileData.cleanedUserData;
+  const currentNickname = userData.nickname || '';
+  const currentAvatar = userData.avatar || null;
+  // Email is not included in cleanedUserData for security reasons
+  const userEmail = '';
 
   // ===== MAIN CONTENT =====
   const mainContent = document.createElement('div');
@@ -70,57 +92,106 @@ export default function initRoute() {
   // Profile Picture Section
   const profilePicSection = document.createElement('div');
   profilePicSection.className = 'mb-8 pb-8 border-b border-white/20';
-  profilePicSection.innerHTML = `
-    <div class="flex items-center gap-6">
-      <div class="relative">
-        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20">
-          <svg class="w-12 h-12 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-        </div>
-        <label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-accent flex items-center justify-center cursor-pointer hover:bg-accent/80 transition-colors border-2 border-white">
-          <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" x2="12" y1="3" y2="15"/>
-          </svg>
-          <input type="file" id="avatar-upload" accept="image/*" class="hidden" />
-        </label>
-      </div>
-      <div>
-        <h3 class="text-lg font-semibold text-white mb-1">Profile Picture</h3>
-        <p class="text-sm text-white/60">Upload a new profile picture</p>
-      </div>
-    </div>
+  
+  const profilePicContent = document.createElement('div');
+  profilePicContent.className = 'flex items-center gap-6';
+  
+  const avatarContainer = document.createElement('div');
+  avatarContainer.className = 'relative';
+  
+  const avatarDisplay = document.createElement('div');
+  avatarDisplay.className = 'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden';
+  
+  // Display current avatar or initials
+  if (currentAvatar) {
+    const avatarImg = document.createElement('img');
+    avatarImg.src = currentAvatar;
+    avatarImg.alt = currentNickname;
+    avatarImg.className = 'w-full h-full object-cover';
+    avatarDisplay.appendChild(avatarImg);
+  } else {
+    const initials = currentNickname
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    avatarDisplay.innerHTML = `
+      <svg class="w-12 h-12 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    `;
+  }
+  
+  const uploadLabel = document.createElement('label');
+  uploadLabel.className = 'absolute bottom-0 right-0 w-8 h-8 rounded-full bg-accent flex items-center justify-center cursor-pointer hover:bg-accent/80 transition-colors border-2 border-white';
+  uploadLabel.innerHTML = `
+    <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" x2="12" y1="3" y2="15"/>
+    </svg>
+    <input type="file" id="avatar-upload" accept="image/png,image/jpeg,image/jpg" class="hidden" />
   `;
-
+  
+  const infoDiv = document.createElement('div');
+  infoDiv.innerHTML = `
+    <h3 class="text-lg font-semibold text-white mb-1">Profile Picture</h3>
+    <p class="text-sm text-white/60">Upload a new profile picture (max 2MB)</p>
+    <p id="avatar-error" class="text-sm text-red-400 mt-1 hidden"></p>
+  `;
+  
+  avatarContainer.appendChild(avatarDisplay);
+  avatarContainer.appendChild(uploadLabel);
+  profilePicContent.appendChild(avatarContainer);
+  profilePicContent.appendChild(infoDiv);
+  profilePicSection.appendChild(profilePicContent);
+  
   // Handle avatar upload
-  const avatarInput = profilePicSection.querySelector(
-    '#avatar-upload'
-  ) as HTMLInputElement;
+  const avatarInput = uploadLabel.querySelector('#avatar-upload') as HTMLInputElement;
+  const avatarError = infoDiv.querySelector('#avatar-error') as HTMLElement;
+  let selectedAvatarFile: File | null = null;
+  
   if (avatarInput) {
     avatarInput.addEventListener('change', (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        // TODO: Implement actual upload logic when backend is ready
-        console.log('Profile picture selected:', file.name);
-        // Preview the image
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = event.target?.result as string;
-          const avatarDiv = profilePicSection.querySelector(
-            '.rounded-full'
-          ) as HTMLElement;
-          if (avatarDiv && img) {
-            avatarDiv.style.backgroundImage = `url(${img})`;
-            avatarDiv.style.backgroundSize = 'cover';
-            avatarDiv.style.backgroundPosition = 'center';
-            avatarDiv.innerHTML = '';
-          }
-        };
-        reader.readAsDataURL(file);
+      if (!file) return;
+      
+      // Validate file size (2MB = 2 * 1024 * 1024 bytes)
+      const maxSize = 2 * 1024 * 1024;
+      if (file.size > maxSize) {
+        avatarError.textContent = 'File size must be less than 2MB';
+        avatarError.classList.remove('hidden');
+        avatarInput.value = '';
+        return;
       }
+      
+      // Validate file type
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+      if (!validTypes.includes(file.type)) {
+        avatarError.textContent = 'File must be PNG or JPEG';
+        avatarError.classList.remove('hidden');
+        avatarInput.value = '';
+        return;
+      }
+      
+      // Clear error
+      avatarError.classList.add('hidden');
+      selectedAvatarFile = file;
+      
+      // Preview the image
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = event.target?.result as string;
+        avatarDisplay.innerHTML = '';
+        const previewImg = document.createElement('img');
+        previewImg.src = img;
+        previewImg.alt = currentNickname;
+        previewImg.className = 'w-full h-full object-cover';
+        avatarDisplay.appendChild(previewImg);
+      };
+      reader.readAsDataURL(file);
     });
   }
 
@@ -145,32 +216,22 @@ export default function initRoute() {
   const displayNameGroup = document.createElement('div');
   displayNameGroup.className = 'space-y-2';
   displayNameGroup.innerHTML = `
-    <label for="display-name" class="block text-sm font-medium text-white">Display Name</label>
+    <label for="display-name" class="block text-sm font-medium text-white">Display Name (Nickname)</label>
     <input
       type="text"
       id="display-name"
-      value="PongMaster2024"
+      value="${currentNickname}"
+      maxlength="30"
       class="w-full px-4 py-3 border border-white/20 bg-white/5 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
       placeholder="Enter your display name"
     />
+    <p class="text-xs text-white/50">3-30 characters, letters, numbers, underscores, and hyphens only</p>
+    <p id="nickname-error" class="text-sm text-red-400 hidden"></p>
   `;
   profileSection.appendChild(displayNameGroup);
 
-  // Email Input
-  const emailGroup = document.createElement('div');
-  emailGroup.className = 'space-y-2';
-  emailGroup.innerHTML = `
-    <label for="email" class="block text-sm font-medium text-white">Email</label>
-    <input
-      type="email"
-      id="email"
-      value="player@example.com"
-      readonly
-      class="w-full px-4 py-3 border border-white/20 bg-white/5 rounded-lg text-white/60 cursor-not-allowed"
-    />
-    <p class="text-xs text-white/50">Email cannot be changed</p>
-  `;
-  profileSection.appendChild(emailGroup);
+  // Email Input (if needed - email is not returned from API for security)
+  // Email is managed through OAuth providers, not directly editable
 
   cardBody.appendChild(profileSection);
 
@@ -230,25 +291,87 @@ export default function initRoute() {
   }
 
   const saveBtnWrapper = document.createElement('div');
-  new Button(saveBtnWrapper, {
-    text: 'Save Changes',
-    variant: 'primary',
-    onClick: () => {
-      // TODO: Implement save logic when backend is ready
-      const displayName = (
-        document.getElementById('display-name') as HTMLInputElement
-      )?.value;
-      console.log('Saving settings:', { displayName });
-      // Show success message
-      alert('Settings saved successfully!');
-      navigateTo('/profile');
-    },
+  const saveButton = document.createElement('button');
+  saveButton.textContent = 'Save Changes';
+  saveButton.className =
+    'ml-auto px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+  
+  saveButton.addEventListener('click', async () => {
+    const displayNameInput = document.getElementById('display-name') as HTMLInputElement;
+    const nicknameError = document.getElementById('nickname-error') as HTMLElement;
+    const newNickname = displayNameInput?.value.trim();
+    
+    // Validate nickname
+    if (!newNickname || newNickname.length < 3 || newNickname.length > 30) {
+      nicknameError.textContent = 'Nickname must be between 3 and 30 characters';
+      nicknameError.classList.remove('hidden');
+      return;
+    }
+    
+    // Validate nickname pattern (letters, numbers, underscores, hyphens)
+    if (!/^[a-zA-Z0-9_-]+$/.test(newNickname)) {
+      nicknameError.textContent = 'Nickname can only contain letters, numbers, underscores, and hyphens';
+      nicknameError.classList.remove('hidden');
+      return;
+    }
+    
+    nicknameError.classList.add('hidden');
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    
+    let hasError = false;
+    let errorMessage = 'Failed to save settings';
+    
+    try {
+      // Update nickname if changed
+      if (newNickname !== currentNickname) {
+        try {
+          const result = await UserAPI.updateNickname(newNickname);
+          if (!result) {
+            hasError = true;
+            errorMessage = 'Failed to update nickname';
+          }
+        } catch (error) {
+          hasError = true;
+          errorMessage = error instanceof Error ? error.message : 'Failed to update nickname';
+          console.error('Error updating nickname:', error);
+        }
+      }
+      
+      // Upload avatar if selected (only if nickname update succeeded or wasn't needed)
+      if (selectedAvatarFile && !hasError) {
+        try {
+          const result = await UserAPI.uploadAvatar(selectedAvatarFile);
+          if (!result) {
+            hasError = true;
+            errorMessage = 'Failed to upload avatar';
+          }
+        } catch (error) {
+          hasError = true;
+          errorMessage = error instanceof Error ? error.message : 'Failed to upload avatar';
+          console.error('Error uploading avatar:', error);
+        }
+      }
+      
+      if (hasError) {
+        alert(`Error: ${errorMessage}`);
+        saveButton.disabled = false;
+        saveButton.textContent = 'Save Changes';
+      } else {
+        // Show success message
+        alert('Settings saved successfully!');
+        navigateTo('/profile');
+      }
+    } catch (error) {
+      const finalErrorMessage = error instanceof Error ? error.message : 'Failed to save settings';
+      alert(`Error: ${finalErrorMessage}`);
+      console.error('Unexpected error saving settings:', error);
+      saveButton.disabled = false;
+      saveButton.textContent = 'Save Changes';
+    }
   });
-  const saveBtn = saveBtnWrapper.querySelector('button');
-  if (saveBtn) {
-    saveBtn.className =
-      'ml-auto px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer';
-  }
+  
+  saveBtnWrapper.appendChild(saveButton);
 
   actionsSection.appendChild(cancelBtnWrapper);
   actionsSection.appendChild(saveBtnWrapper);

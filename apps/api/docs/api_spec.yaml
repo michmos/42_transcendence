@@ -230,8 +230,6 @@ components:
         - tournamentName
         - maxPlayers
         - minPlayers
-        - lockTime
-        - gameTime
         - playerCount
         - status
       properties:
@@ -250,12 +248,6 @@ components:
         playerCount:
           type: integer
           example: 5
-        lockTime:
-          type: integer
-          example: 3
-        gameTime:
-          type: integer
-          example: 3
         winner:
           $ref: '#/components/schemas/User'
         status:
@@ -287,8 +279,6 @@ components:
         - tournamentName
         - maxPlayers
         - minPlayers
-        - lockTime
-        - gameTime
       properties:
         tournamentName:
           type: string
@@ -299,12 +289,6 @@ components:
         minPlayers:
           type: integer
           example: 4
-        lockTime:
-          type: integer
-          example: 3
-        gameTime:
-          type: integer
-          example: 3
 
     Match:
       type: object
@@ -438,6 +422,76 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+    patch:
+      tags:
+        - Tournament
+      summary: Update tournament
+      description: Update a tournament as admin
+      responses:
+        '200':
+          description: Tournament updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}/start:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    patch:
+      tags:
+        - Tournament
+      summary: Start tournament
+      description: |
+        Start a tournament as participant
+
+        Tournament must have enough players to start
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tournament started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Not enough players to start tournament
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /tournaments/{uuid}/users:
     parameters:
       - $ref: '#/components/parameters/uuid'
@@ -463,8 +517,65 @@ paths:
                   format: uuid
 
       responses:
-        '204':
+        '200':
           description: User added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already in tournament
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Tournament full, locked or canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Tournament
+      summary: Remove user from tournament
+      description: |
+        JWT required to authenticate and identify user - you can only rmv yourself
+
+        Admin users can also remove other users from a tournament
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+
+      responses:
+        '200':
+          description: User removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
         '401':
           description: Missing or invalid auth
           content:
@@ -478,7 +589,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: Tournament full, locked or canceled
+          description: Tournament already locked
           content:
             application/json:
               schema:
@@ -726,7 +837,7 @@ paths:
                     $ref: '#/components/schemas/CleanedUser'
                   userFriends:
                     type: array
-                    items: 
+                    items:
                       $ref: '#/components/schemas/Friend'
                 required:
                   - CleanedUser
@@ -880,7 +991,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error' 
+                $ref: '#/components/schemas/Error'
 
   /friends/:nickname:
     post: # Maybe make this a separate API link

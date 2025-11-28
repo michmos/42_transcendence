@@ -1,6 +1,20 @@
 import { Card, Button } from '../../components/index.js';
+import { getSession } from '../../plugins/api/auth.js';
+import { setSession } from '../../utils/auth-state.js';
+import { navigateTo } from '../../utils/navigation.js';
 
-export default function initRoute() {
+export default async function initRoute() {
+  // Check if user is already logged in (e.g., after OAuth callback)
+  const session = await getSession();
+  if (session) {
+    setSession(session);
+    // User is logged in, redirect to profile
+    navigateTo('/profile');
+    return;
+  }
+
+  // Clear any stale session
+  setSession(null);
   const pageRoot = document.querySelector('.root-page') as HTMLElement | null;
   if (!pageRoot) return;
   pageRoot.classList.add('overflow-hidden', 'h-screen', 'bg-gradient-primary');

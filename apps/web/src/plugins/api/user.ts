@@ -1,4 +1,29 @@
 import type { User } from 'db/generated/client/index.js';
+import { handleApiError } from '../../utils/api-helpers.js';
+
+// Profile API response types
+export interface ProfileMatch {
+  date: string;
+  score1: number;
+  score2: number;
+  player1: string;
+  player2: string;
+  result: 'WON' | 'LOST';
+  gameType: string;
+}
+
+export interface ProfileFriend {
+  otherUser: string;
+  avatar: string | null;
+  state: 'REQUESTED' | 'ACCEPTED' | 'REJECTED';
+  isRequester: boolean;
+}
+
+export interface UserProfileData {
+  cleanedUserData: Partial<User>;
+  cleanedUserFriends: ProfileFriend[];
+  userMatches: ProfileMatch[];
+}
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
@@ -22,6 +47,36 @@ const UserAPI = {
     } catch (error) {
       console.error('Error fetching users:', error);
       return [];
+    }
+  },
+
+  /**
+   * Get user by nickname (exact match)
+   * @param nickname - The nickname to search for
+   * @returns Promise<User | null> - User data or null if not found
+   */
+  async getUserByNickname(nickname: string): Promise<Partial<User> | null> {
+    try {
+      const response = await fetch(
+        `/api/user/${encodeURIComponent(nickname)}`,
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        await handleApiError(response);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching user by nickname:', error);
+      return null;
     }
   },
 
@@ -67,6 +122,120 @@ const UserAPI = {
     } catch (error) {
       console.error('Error deleting user:', error);
       return false;
+    }
+  },
+
+  /**
+   * Get current user's profile data including user info, friends, and match history
+   * @returns Promise<UserProfileData | null> - Profile data or null if error/unauthorized
+   */
+  async getUserProfile(): Promise<UserProfileData | null> {
+    try {
+      const response = await fetch('/api/user/me', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        await handleApiError(response);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get current user's basic info (nickname and avatar) for navbar display
+   * Uses cached data if available, otherwise fetches from API
+   * @returns Promise<{ nickname: string; avatar: string | null } | null>
+   */
+  async getUserBasicInfo(): Promise<{
+    nickname: string;
+    avatar: string | null;
+  } | null> {
+    try {
+      const response = await fetch('/api/user/me', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        // Don't show error for navbar - just return null
+        return null;
+      }
+
+      const data: UserProfileData = await response.json();
+      return {
+        nickname: data.cleanedUserData.nickname || 'User',
+        avatar: data.cleanedUserData.avatar || null,
+      };
+    } catch (error) {
+      // Silently fail for navbar - don't log errors
+      console.error('Error fetching user basic info:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Update user nickname
+   * @param newNickname - New nickname (3-30 characters, alphanumeric, underscores, hyphens)
+   * @returns Promise<Partial<User> | null>
+   */
+  async updateNickname(newNickname: string): Promise<Partial<User> | null> {
+    try {
+      const response = await fetch('/api/user/me/nickname', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ newNickname }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.Error || `Failed to update nickname: ${response.status}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating nickname:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Upload user avatar
+   * @param file - Image file (PNG/JPEG, max 2MB)
+   * @returns Promise<string | null> - Avatar URL or null if error
+   */
+  async uploadAvatar(file: File): Promise<string | null> {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response = await fetch('/api/user/me/avatar', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.Error || `Failed to upload avatar: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return typeof result === 'string' ? result : result.avatarUrl || null;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      throw error;
     }
   },
 };

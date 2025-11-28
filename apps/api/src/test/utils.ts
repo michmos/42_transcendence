@@ -36,8 +36,6 @@ export const validTournamentBody = {
   tournamentName: 'TestTournament',
   maxPlayers: 4,
   minPlayers: 2,
-  lockTime: 1,
-  gameTime: 1,
 };
 
 export async function createValidTournament(
