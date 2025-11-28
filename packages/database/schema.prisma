@@ -70,8 +70,8 @@ model TournamentParticipations {
   userId            String
 
   // Relations
-  tournament      Tournament    @relation(fields: [tournamentId], references: [uuid])
-  user            User          @relation(fields: [userId], references: [uuid])
+  tournament      Tournament    @relation(fields: [tournamentId], references: [uuid], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [uuid], onDelete: Cascade)
 
   @@unique([tournamentId, userId])
   @@unique([alias, tournamentId])
