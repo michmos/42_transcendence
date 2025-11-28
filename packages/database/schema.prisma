@@ -74,6 +74,7 @@ model TournamentParticipations {
   user            User          @relation(fields: [userId], references: [uuid])
 
   @@unique([tournamentId, userId])
+  @@unique([alias, tournamentId])
 }
 
 model Friendship {
