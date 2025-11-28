@@ -4,6 +4,7 @@ import type {
   Tournament,
   TournamentRound,
   status,
+  User,
 } from 'db/generated/client/index.js';
 
 export async function createTournament(data: {
@@ -104,6 +105,14 @@ export async function getAllTournaments(): Promise<Tournament[]> {
       },
     },
   });
+}
+
+export async function getTournamentParticipants(uuid: string): Promise<User[]> {
+  const tournament = await Database.tournament.findUnique({
+    where: { uuid },
+    include: { participants: true },
+  });
+  return tournament?.participants || [];
 }
 
 export async function getTournament(uuid: string): Promise<Tournament | null> {

@@ -169,6 +169,7 @@ const TournamentAPI = {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({}),
       });
 
       if (response.status === 401) {
