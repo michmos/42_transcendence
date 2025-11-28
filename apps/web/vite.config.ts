@@ -6,7 +6,7 @@ export default defineConfig(() => {
     root: 'src',
     server: {
       host: '0.0.0.0',
-      port: env.VITE_PORT,
+      port: env.PORT,
       proxy: {
         '/api': {
           target: env.API_SERVER,
@@ -29,7 +29,7 @@ export default defineConfig(() => {
       },
     },
     preview: {
-      port: env.VITE_PORT,
+      port: env.PORT,
     },
     build: {
       outDir: '../out',
