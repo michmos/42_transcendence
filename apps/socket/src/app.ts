@@ -45,6 +45,8 @@ const start = async () => {
 
     // Timeout
     await new Promise((resolve) => setTimeout(resolve, 10000));
+    console.log('📡 Making demo API call to fetch users with ADMIN_API_KEY');
+    console.log('url :', `${env.API_URL}/user`);
     const response = await fetch(`${env.API_URL}/user`, {
       method: 'GET',
       headers: {

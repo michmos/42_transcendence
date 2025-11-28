@@ -1,15 +1,16 @@
 import { defineConfig } from 'vite';
 import { env } from './src/env.js';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
   return {
     root: 'src',
     server: {
+      host: '0.0.0.0',
       port: env.VITE_PORT,
       proxy: {
-        '^/api(/.*)?$': {
+        '/api': {
           target: env.API_SERVER,
-          changeOrigin: false,
+          changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
