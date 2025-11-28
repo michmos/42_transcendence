@@ -31,7 +31,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         request.body.tournamentUuid,
         new Set<string>()
       );
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentStartedBody }>(
@@ -54,7 +54,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           message: `Join the first match of ${request.body.tournamentName} in the next 60 seconds!`,
         })
       );
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentJoinedBody }>(
@@ -78,7 +78,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         return reply.status(409);
       }
       participants.add(userUuid);
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentLeftBody }>(
@@ -99,10 +99,10 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       const participants = cachedTournamentParticipations.get(tournamentUuid);
       if (!participants) {
-        return reply.status(409);
+        return reply.status(409).send();
       }
       participants.delete(userUuid);
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentUpdatedBody }>(
@@ -121,7 +121,7 @@ export default async function (app: FastifyInstance): Promise<void> {
           status,
         })
       );
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
 }
