@@ -46,7 +46,7 @@ model User {
   role              userRole    @default(MEMBER)
 
   // Games
-  tournaments       Tournament[]
+  tournaments       TournamentParticipations[]
   matches1          Match[]    @relation("MatchesAsPlayer1")
   matches2          Match[]    @relation("MatchesAsPlayer2")
 
@@ -60,6 +60,20 @@ model User {
   // Relations / Friendships
   friendsA          Friendship[]  @relation(name: "friendsA")
   friendsB          Friendship[]  @relation(name: "friendsB")
+}
+
+model TournamentParticipations {
+  alias             String
+
+  // Scalar fields
+  tournamentId      String
+  userId            String
+
+  // Relations
+  tournament      Tournament    @relation(fields: [tournamentId], references: [uuid])
+  user            User          @relation(fields: [userId], references: [uuid])
+
+  @@unique([tournamentId, userId])
 }
 
 model Friendship {
@@ -97,7 +111,7 @@ model Tournament {
   currentRound      Int       @default(0)
 
   // Relations
-  participants      User[]
+  participants      TournamentParticipations[]
   rounds            TournamentRound[]
 }
 
