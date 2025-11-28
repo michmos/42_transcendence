@@ -9,8 +9,8 @@ export async function createTournament(specs: {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      credentials: 'include',
     },
+    credentials: 'include',
     body: JSON.stringify({
       ...specs,
     }),
@@ -31,8 +31,8 @@ export async function joinTournament(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      credentials: 'include',
     },
+    credentials: 'include',
     body: JSON.stringify({
       alias,
     }),
@@ -52,8 +52,8 @@ export async function leaveTournament(
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      credentials: 'include',
     },
+    credentials: 'include',
     body: JSON.stringify({}),
   });
   if (!response.ok) {
@@ -71,8 +71,8 @@ export async function startTournament(
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      credentials: 'include',
     },
+    credentials: 'include',
   });
   if (!response.ok) {
     // TODO: handle error

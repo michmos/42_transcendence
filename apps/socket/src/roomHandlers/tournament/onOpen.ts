@@ -11,8 +11,8 @@ async function fetchTournaments(socket: WSocket, queryString: string) {
       headers: {
         'Content-Type': 'application/json',
         Cookie: `session=${socket.jwt}`,
-        credentials: 'include',
       },
+      credentials: 'include',
     }
   );
   if (!response.ok) {
