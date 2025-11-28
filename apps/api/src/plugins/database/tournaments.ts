@@ -37,7 +37,7 @@ export async function addUserToTournament(
         tournaments: { some: { tournamentId } },
       },
     });
-    if (!user) {
+    if (user) {
       return tx.tournament.findFirstOrThrow({ where: { uuid: tournamentId } });
     }
     // create participation
