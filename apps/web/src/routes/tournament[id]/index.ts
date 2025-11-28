@@ -1,19 +1,33 @@
 import { Navbar, Card, Badge } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
+import { handleLogout } from '../../utils/logout-handler.js';
+import TournamentAPI from '../../plugins/api/tournaments.js';
+import UserAPI from '../../plugins/api/user.js';
+import type {
+  Tournament as BackendTournament,
+  TournamentRound,
+  Match,
+  status,
+} from '../../types/api.js';
+import { handleApiError, showApiError } from '../../utils/api-helpers.js';
+import tournamentSocket from '../../plugins/websocket/tournament.js';
 
 // Extend Window interface for SPA navigation
 declare global {
   interface Window {
     navigateToRoute?: (href: string) => void;
+    routeParams?: Record<string, string>;
   }
 }
 
+// UI Round interface (mapped from backend)
 interface Round {
   id: number;
   name: string;
   status: 'completed' | 'in-progress' | 'upcoming';
 }
 
+// UI LeaderboardEntry interface
 interface LeaderboardEntry {
   rank: number;
   player: string;
@@ -21,19 +35,112 @@ interface LeaderboardEntry {
   scoreDiff: number;
 }
 
-const mockRounds: Round[] = [
-  { id: 1, name: 'Round 1', status: 'completed' },
-  { id: 2, name: 'Round 2', status: 'completed' },
-  { id: 3, name: 'Round 3', status: 'in-progress' },
-  { id: 4, name: 'Round 4', status: 'upcoming' },
-];
+/**
+ * Map backend status to UI round status
+ */
+function mapRoundStatusToUI(round: TournamentRound): 'completed' | 'in-progress' | 'upcoming' {
+  // Check if all matches are finished
+  const allMatchesFinished = round.matches.every(
+    (match) => match.status === 'finished'
+  );
+  const anyMatchOngoing = round.matches.some(
+    (match) => match.status === 'ongoing'
+  );
 
-const mockLeaderboard: LeaderboardEntry[] = [
-  { rank: 1, player: 'PoPo', points: 4, scoreDiff: 23 },
-  { rank: 2, player: 'MichPich', points: 2, scoreDiff: 25 },
-  { rank: 3, player: 'Lightning', points: 4, scoreDiff: 18 },
-  { rank: 4, player: 'Thunder', points: 3, scoreDiff: 15 },
-];
+  if (allMatchesFinished && round.matches.length > 0) {
+    return 'completed';
+  }
+  if (anyMatchOngoing) {
+    return 'in-progress';
+  }
+  return 'upcoming';
+}
+
+/**
+ * Build leaderboard from tournament rounds and matches
+ */
+function buildLeaderboard(
+  tournament: BackendTournament,
+  rounds: TournamentRound[]
+): LeaderboardEntry[] {
+  // Get all participants
+  const participants = tournament.participants || [];
+  
+  // Calculate stats per player
+  const playerStats = new Map<
+    string,
+    { wins: number; losses: number; scoreDiff: number; nickname: string }
+  >();
+
+  // Initialize player stats
+  participants.forEach((participant) => {
+    playerStats.set(participant.uuid, {
+      wins: 0,
+      losses: 0,
+      scoreDiff: 0,
+      nickname: participant.nickname || participant.email || 'Unknown',
+    });
+  });
+
+  // Process all matches from all rounds
+  rounds.forEach((round) => {
+    round.matches.forEach((match) => {
+      if (match.status !== 'finished') return;
+
+      const player1Id = match.player1Id;
+      const player2Id = match.player2Id;
+
+      if (!player1Id || !player2Id) return;
+
+      const score1 = match.Score1 || 0;
+      const score2 = match.Score2 || 0;
+
+      // Update player 1 stats
+      const player1Stats = playerStats.get(player1Id);
+      if (player1Stats) {
+        player1Stats.scoreDiff += score1 - score2;
+        if (score1 > score2) {
+          player1Stats.wins++;
+        } else if (score1 < score2) {
+          player1Stats.losses++;
+        }
+      }
+
+      // Update player 2 stats
+      const player2Stats = playerStats.get(player2Id);
+      if (player2Stats) {
+        player2Stats.scoreDiff += score2 - score1;
+        if (score2 > score1) {
+          player2Stats.wins++;
+        } else if (score2 < score1) {
+          player2Stats.losses++;
+        }
+      }
+    });
+  });
+
+  // Convert to leaderboard entries
+  const leaderboard: LeaderboardEntry[] = Array.from(playerStats.entries())
+    .map(([uuid, stats]) => ({
+      rank: 0, // Will be set after sorting
+      player: stats.nickname,
+      points: stats.wins * 2 + stats.losses, // 2 points for win, 1 for loss
+      scoreDiff: stats.scoreDiff,
+    }))
+    .sort((a, b) => {
+      // Sort by points (desc), then by scoreDiff (desc)
+      if (b.points !== a.points) {
+        return b.points - a.points;
+      }
+      return b.scoreDiff - a.scoreDiff;
+    })
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
+
+  return leaderboard;
+}
 
 function getRoundColor(status: string): string {
   switch (status) {
@@ -48,15 +155,18 @@ function getRoundColor(status: string): string {
   }
 }
 
-function renderTournamentHeader(container: HTMLElement) {
+function renderTournamentHeader(
+  container: HTMLElement,
+  tournament: BackendTournament
+) {
   const tournamentHeader = document.createElement('div');
   tournamentHeader.className =
     'mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between';
 
   const titleSection = document.createElement('div');
   titleSection.innerHTML = `
-    <h1 class="mb-2 text-4xl font-bold text-white">Summer Championship 2024</h1>
-    <p class="text-white/80">Elite tournament featuring the best ping players worldwide</p>
+    <h1 class="mb-2 text-4xl font-bold text-white">${tournament.tournamentName}</h1>
+    <p class="text-white/80">Tournament details and progress</p>
   `;
 
   const badgesSection = document.createElement('div');
@@ -88,7 +198,10 @@ function renderTournamentHeader(container: HTMLElement) {
   container.appendChild(tournamentHeader);
 }
 
-function renderStatsCards(container: HTMLElement) {
+function renderStatsCards(
+  container: HTMLElement,
+  tournament: BackendTournament
+) {
   const statsGrid = document.createElement('div');
   statsGrid.className = 'grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8';
 
@@ -100,7 +213,7 @@ function renderStatsCards(container: HTMLElement) {
         <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>`,
-      value: '64',
+      value: `${tournament.playerCount}/${tournament.maxPlayers}`,
       label: 'Reg. Players',
       bgColor: 'bg-accent/20',
     },
@@ -113,8 +226,8 @@ function renderStatsCards(container: HTMLElement) {
         <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
       </svg>`,
-      value: '16',
-      label: 'Bracket #',
+      value: `${tournament.numberOfRounds}`,
+      label: 'Total Rounds',
       bgColor: 'bg-secondary/20',
     },
     {
@@ -122,8 +235,8 @@ function renderStatsCards(container: HTMLElement) {
         <circle cx="12" cy="12" r="10"/>
         <polyline points="12 6 12 12 16 14"/>
       </svg>`,
-      value: '2:45',
-      label: 'Avg Match Time',
+      value: `${tournament.gameTime} min`,
+      label: 'Game Time',
       bgColor: 'bg-accent/20',
     },
   ];
@@ -149,7 +262,11 @@ function renderStatsCards(container: HTMLElement) {
   container.appendChild(statsGrid);
 }
 
-function renderTournamentProgress(container: HTMLElement) {
+function renderTournamentProgress(
+  container: HTMLElement,
+  rounds: Round[],
+  tournamentUuid: string
+) {
   const cardContainer = document.createElement('div');
   const card = new Card(cardContainer, {
     title: 'Tournament Progress',
@@ -166,7 +283,7 @@ function renderTournamentProgress(container: HTMLElement) {
   const roundsContainer = document.createElement('div');
   roundsContainer.className = 'space-y-3';
 
-  mockRounds.forEach((round) => {
+  rounds.forEach((round) => {
     const roundItem = document.createElement('div');
     roundItem.className = `flex items-center justify-between rounded-lg border p-4 transition-all hover:scale-105 cursor-pointer ${getRoundColor(round.status)}`;
 
@@ -194,13 +311,8 @@ function renderTournamentProgress(container: HTMLElement) {
       roundItem.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Get tournamentId from route params
-        const routeParams = window.routeParams || {};
-        const tournamentId = routeParams.id;
         // Store tournamentId in sessionStorage for round page to use
-        if (tournamentId) {
-          sessionStorage.setItem('lastTournamentId', tournamentId);
-        }
+        sessionStorage.setItem('lastTournamentId', tournamentUuid);
         navigateTo(`/round/${round.id}`);
       });
     }
@@ -216,7 +328,7 @@ function renderTournamentProgress(container: HTMLElement) {
   container.appendChild(cardContainer);
 }
 
-function renderLeaderboard(container: HTMLElement) {
+function renderLeaderboard(container: HTMLElement, leaderboard: LeaderboardEntry[]) {
   const cardContainer = document.createElement('div');
   const card = new Card(cardContainer, {
     title: 'Leaderboard',
@@ -243,18 +355,20 @@ function renderLeaderboard(container: HTMLElement) {
       </tr>
     </thead>
     <tbody>
-      ${mockLeaderboard
-        .map(
-          (entry) => `
+      ${leaderboard.length === 0
+        ? '<tr><td colspan="4" class="py-8 text-center text-white/60">No matches played yet</td></tr>'
+        : leaderboard
+            .map(
+              (entry) => `
         <tr class="border-b border-white/20 hover:bg-white/5 transition-colors">
           <td class="py-3 px-4 text-white font-medium">${entry.rank}</td>
           <td class="py-3 px-4 text-white">${entry.player}</td>
           <td class="py-3 px-4 text-white">${entry.points}</td>
-          <td class="py-3 px-4 text-white">${entry.scoreDiff}</td>
+          <td class="py-3 px-4 text-white">${entry.scoreDiff > 0 ? '+' : ''}${entry.scoreDiff}</td>
         </tr>
       `
-        )
-        .join('')}
+            )
+            .join('')}
     </tbody>
   `;
 
@@ -266,11 +380,54 @@ function renderLeaderboard(container: HTMLElement) {
   container.appendChild(cardContainer);
 }
 
-export default function initRoute() {
+function renderLoadingState(container: HTMLElement) {
+  const loadingState = document.createElement('div');
+  loadingState.className = 'py-16 text-center';
+  loadingState.innerHTML = `
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+    <p class="mt-4 text-white/60">Loading tournament...</p>
+  `;
+  container.appendChild(loadingState);
+}
+
+function renderErrorState(container: HTMLElement, message: string) {
+  const errorState = document.createElement('div');
+  errorState.className = 'py-16 text-center';
+  errorState.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4 text-red-400">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <h3 class="mb-2 text-xl font-semibold text-white">Error loading tournament</h3>
+    <p class="text-white/60">${message}</p>
+    <button class="mt-4 px-6 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors cursor-pointer" id="retry-btn">
+      Retry
+    </button>
+  `;
+  const retryBtn = errorState.querySelector('#retry-btn');
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => {
+      window.location.reload();
+    });
+  }
+  container.appendChild(errorState);
+}
+
+export default async function initRoute() {
   const pageRoot = document.querySelector(
     '.tournament-page'
   ) as HTMLElement | null;
   if (!pageRoot) return;
+
+  // Get tournament UUID from route params
+  const routeParams = window.routeParams || {};
+  const tournamentUuid = routeParams.id;
+
+  if (!tournamentUuid) {
+    pageRoot.innerHTML = '<div class="p-8 text-white">Tournament ID not found</div>';
+    return;
+  }
 
   pageRoot.innerHTML = '';
 
@@ -282,18 +439,21 @@ export default function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
+  
+  // Fetch user data for navbar
+  const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
+    userNickname: userInfo?.nickname,
+    userAvatar: userInfo?.avatar || undefined,
     onSettingsClick: () => {
       navigateTo('/settings');
     },
-    onLogoutClick: () => {
-      navigateTo('/login');
-    },
+    onLogoutClick: handleLogout,
   });
 
   // Add back button
@@ -324,23 +484,286 @@ export default function initRoute() {
   // ===== MAIN CONTENT =====
   const innerContainer = document.createElement('div');
   innerContainer.className = 'max-w-7xl mx-auto px-6 py-8';
-
-  // Render sections
-  renderTournamentHeader(innerContainer);
-  renderStatsCards(innerContainer);
-
-  // Two-column grid for progress and leaderboard
-  const gridContainer = document.createElement('div');
-  gridContainer.className = 'grid gap-6 lg:grid-cols-2';
-
-  const progressColumn = document.createElement('div');
-  renderTournamentProgress(progressColumn);
-  gridContainer.appendChild(progressColumn);
-
-  const leaderboardColumn = document.createElement('div');
-  renderLeaderboard(leaderboardColumn);
-  gridContainer.appendChild(leaderboardColumn);
-
-  innerContainer.appendChild(gridContainer);
   mainWrapper.appendChild(innerContainer);
+
+  // Show loading state initially
+  renderLoadingState(innerContainer);
+
+  // Map tournament status for badge (defined early for use in refresh function)
+  const statusMap: Record<status, string> = {
+    outstanding: 'Upcoming',
+    ongoing: 'Active',
+    finished: 'Completed',
+    canceled: 'Canceled',
+  };
+
+  // Store tournament and rounds for socket updates
+  let currentTournament: BackendTournament | null = null;
+  let currentRounds: TournamentRound[] = [];
+  let currentLeaderboard: LeaderboardEntry[] = [];
+  let currentUIRounds: Round[] = [];
+
+  // Function to refresh tournament data
+  const refreshTournamentData = async () => {
+    if (!currentTournament) return;
+    
+    try {
+      const updatedTournament = await TournamentAPI.getTournament(tournamentUuid);
+      if (updatedTournament) {
+        currentTournament = updatedTournament;
+        // Re-fetch rounds if needed
+        const updatedRounds: TournamentRound[] = [];
+        for (let i = 0; i < updatedTournament.numberOfRounds; i++) {
+          try {
+            const round = await TournamentAPI.getTournamentRound(tournamentUuid, i);
+            if (round) {
+              updatedRounds.push(round);
+            }
+          } catch (error) {
+            console.error(`Error fetching round ${i}:`, error);
+          }
+        }
+        currentRounds = updatedRounds;
+        currentUIRounds = updatedRounds.map((round) => ({
+          id: round.index,
+          name: `Round ${round.index + 1}`,
+          status: mapRoundStatusToUI(round),
+        }));
+        currentLeaderboard = buildLeaderboard(updatedTournament, updatedRounds);
+        
+        // Re-render the page with updated data
+        innerContainer.innerHTML = '';
+        const headerDiv = document.createElement('div');
+        renderTournamentHeader(headerDiv, updatedTournament);
+        innerContainer.appendChild(headerDiv);
+        
+        // Re-add status badge
+        const tournamentHeader = headerDiv.firstElementChild as HTMLElement;
+        if (tournamentHeader) {
+          const badgesSection = tournamentHeader.querySelector('.flex.gap-2');
+          if (badgesSection) {
+            const statusBadgeContainer = document.createElement('div');
+            new Badge(statusBadgeContainer, {
+              text: statusMap[updatedTournament.status] || 'Unknown',
+              variant: 'default',
+            });
+            const statusBadgeElement = statusBadgeContainer.firstElementChild as HTMLElement;
+            if (statusBadgeElement) {
+              const statusColors: Record<status, string> = {
+                outstanding: 'bg-warning text-white',
+                ongoing: 'bg-accent text-white',
+                finished: 'bg-muted text-muted-foreground',
+                canceled: 'bg-red-500 text-white',
+              };
+              statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[updatedTournament.status] || 'bg-muted'}`;
+            }
+            badgesSection.insertBefore(statusBadgeContainer, badgesSection.firstChild);
+          }
+        }
+        
+        renderStatsCards(innerContainer, updatedTournament);
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'grid gap-6 lg:grid-cols-2';
+        const progressColumn = document.createElement('div');
+        renderTournamentProgress(progressColumn, currentUIRounds, tournamentUuid);
+        gridContainer.appendChild(progressColumn);
+        const leaderboardColumn = document.createElement('div');
+        renderLeaderboard(leaderboardColumn, currentLeaderboard);
+        gridContainer.appendChild(leaderboardColumn);
+        innerContainer.appendChild(gridContainer);
+      }
+    } catch (error) {
+      console.error('Error refreshing tournament data:', error);
+    }
+  };
+
+  try {
+    // Fetch tournament
+    const tournament = await TournamentAPI.getTournament(tournamentUuid);
+    if (!tournament) {
+      renderErrorState(innerContainer, 'Tournament not found');
+      return;
+    }
+
+    currentTournament = tournament;
+
+    // Fetch all rounds
+    const rounds: TournamentRound[] = [];
+    for (let i = 0; i < tournament.numberOfRounds; i++) {
+      try {
+        const round = await TournamentAPI.getTournamentRound(tournamentUuid, i);
+        if (round) {
+          rounds.push(round);
+        }
+      } catch (error) {
+        // Handle 403 (not participant) or other errors
+        if (error instanceof Error && error.message.includes('Forbidden')) {
+          innerContainer.innerHTML = '';
+          renderErrorState(
+            innerContainer,
+            'You must be a participant to view this tournament'
+          );
+          return;
+        }
+        console.error(`Error fetching round ${i}:`, error);
+      }
+    }
+    
+    currentRounds = rounds;
+
+    // Map rounds to UI format
+    currentUIRounds = rounds.map((round) => ({
+      id: round.index,
+      name: `Round ${round.index + 1}`,
+      status: mapRoundStatusToUI(round),
+    }));
+
+    // Build leaderboard
+    currentLeaderboard = buildLeaderboard(tournament, rounds);
+
+    // Clear loading state and render content
+    innerContainer.innerHTML = '';
+
+    // Render header with tournament data
+    const headerDiv = document.createElement('div');
+    renderTournamentHeader(headerDiv, tournament);
+    innerContainer.appendChild(headerDiv);
+
+    // Add status badge to header
+    const tournamentHeader = headerDiv.firstElementChild as HTMLElement;
+    if (tournamentHeader) {
+      const badgesSection = tournamentHeader.querySelector('.flex.gap-2');
+      if (badgesSection) {
+        const statusBadgeContainer = document.createElement('div');
+        new Badge(statusBadgeContainer, {
+          text: statusMap[tournament.status] || 'Unknown',
+          variant: 'default',
+        });
+        const statusBadgeElement =
+          statusBadgeContainer.firstElementChild as HTMLElement;
+        if (statusBadgeElement) {
+          const statusColors: Record<status, string> = {
+            outstanding: 'bg-warning text-white',
+            ongoing: 'bg-accent text-white',
+            finished: 'bg-muted text-muted-foreground',
+            canceled: 'bg-red-500 text-white',
+          };
+          statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[tournament.status] || 'bg-muted'}`;
+        }
+        badgesSection.insertBefore(statusBadgeContainer, badgesSection.firstChild);
+      }
+    }
+
+    // Render stats cards
+    renderStatsCards(innerContainer, tournament);
+
+    // Two-column grid for progress and leaderboard
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'grid gap-6 lg:grid-cols-2';
+
+    const progressColumn = document.createElement('div');
+    renderTournamentProgress(progressColumn, currentUIRounds, tournamentUuid);
+    gridContainer.appendChild(progressColumn);
+
+    const leaderboardColumn = document.createElement('div');
+    renderLeaderboard(leaderboardColumn, currentLeaderboard);
+    gridContainer.appendChild(leaderboardColumn);
+
+    innerContainer.appendChild(gridContainer);
+
+    // ===== TOURNAMENT SOCKET INTEGRATION =====
+    // Initialize tournament socket for real-time updates
+    tournamentSocket.initialize();
+
+    // Set up socket listeners for tournament-specific updates
+    const handleTournamentUpdated = (data: {
+      uuid: string;
+      status?: status;
+      playerCount?: number;
+    }) => {
+      if (data.uuid === tournamentUuid && currentTournament) {
+        // Update tournament data
+        if (data.status) {
+          currentTournament.status = data.status;
+        }
+        if (data.playerCount !== undefined) {
+          currentTournament.playerCount = data.playerCount;
+        }
+        // Refresh the page to show updates
+        refreshTournamentData();
+      }
+    };
+
+    const handleUserJoined = (data: { tournamentUuid: string; user: any }) => {
+      if (data.tournamentUuid === tournamentUuid) {
+        // Refresh tournament to show updated player count
+        refreshTournamentData();
+      }
+    };
+
+    const handleUserLeft = (data: { tournamentUuid: string; userUuid: string }) => {
+      if (data.tournamentUuid === tournamentUuid) {
+        // Refresh tournament to show updated player count
+        refreshTournamentData();
+      }
+    };
+
+    const handleTournamentStarted = (data: { uuid: string; rounds: TournamentRound[] }) => {
+      if (data.uuid === tournamentUuid) {
+        // Tournament started - refresh to show rounds
+        refreshTournamentData();
+      }
+    };
+
+    const handleMatchUpdated = (data: {
+      tournamentUuid: string;
+      roundIndex: number;
+      match: Match;
+    }) => {
+      if (data.tournamentUuid === tournamentUuid) {
+        // Match updated - refresh to show updated scores
+        refreshTournamentData();
+      }
+    };
+
+    const handleRoundCompleted = (data: {
+      tournamentUuid: string;
+      roundIndex: number;
+    }) => {
+      if (data.tournamentUuid === tournamentUuid) {
+        // Round completed - refresh to show updated status
+        refreshTournamentData();
+      }
+    };
+
+    // Register socket listeners
+    tournamentSocket.on('tournament-updated', handleTournamentUpdated);
+    tournamentSocket.on('user-joined', handleUserJoined);
+    tournamentSocket.on('user-left', handleUserLeft);
+    tournamentSocket.on('tournament-started', handleTournamentStarted);
+    tournamentSocket.on('match-updated', handleMatchUpdated);
+    tournamentSocket.on('round-completed', handleRoundCompleted);
+
+    // Join specific tournament room (will fail gracefully if backend not ready)
+    tournamentSocket.joinTournament(tournamentUuid);
+  } catch (error) {
+    innerContainer.innerHTML = '';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to load tournament';
+    
+    if (errorMessage.includes('Forbidden')) {
+      renderErrorState(
+        innerContainer,
+        'You must be a participant to view this tournament'
+      );
+    } else {
+      renderErrorState(innerContainer, errorMessage);
+    }
+    
+    showApiError({
+      message: errorMessage,
+      status: 0,
+      shouldRedirect: false,
+    });
+  }
 }

@@ -1,18 +1,37 @@
 import { generateUserLogic, userTableLogic } from './userTable.js';
 import { fetchSessionData } from 'fastify-oauth/client';
+import { setSession } from '../utils/auth-state.js';
+import { navigateTo } from '../utils/navigation.js';
 
 export default async function initRoute() {
   console.log('🏠 Home route initializing...');
 
-  let user = await fetchSessionData();
+  // Check if user is logged in (after OAuth callback, user lands here)
+  const user = await fetchSessionData();
 
   if (user) {
     console.log('User is logged in:', user);
-    userTableLogic();
-    generateUserLogic();
+    // Store session in auth state
+    setSession({
+      uuid: user.uuid,
+      role: 'USER', // TODO: Fetch actual role if needed
+    });
+    
+    // Redirect to profile page after successful login
+    navigateTo('/profile');
+    return;
   } else {
     console.log('No user is logged in');
+    // Clear any stale session
+    setSession(null);
+    // Redirect to login if not authenticated
+    navigateTo('/login');
+    return;
   }
+  
+  // Note: The code below is unreachable due to redirects above
+  // Keeping it commented for reference in case we need home route functionality later
+  /*
   // Logout button logic
   const logoutBtn = document.getElementById('logout');
   if (!logoutBtn) {
@@ -45,4 +64,5 @@ export default async function initRoute() {
     logoutBtn.textContent = 'Login';
     logoutBtn.addEventListener('click', handleLoginClick);
   }
+  */
 }
