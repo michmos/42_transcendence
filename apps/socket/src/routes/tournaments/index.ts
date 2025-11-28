@@ -65,6 +65,12 @@ export default async function (app: FastifyInstance): Promise<void> {
     async function (request, reply) {
       const { userUuid, tournamentUuid } = request.body;
 
+      const participants = cachedTournamentParticipations.get(tournamentUuid);
+      if (!participants) {
+        return reply.status(409).send();
+      }
+
+      participants.add(userUuid);
       RoomManager.get('tournament:main')?.broadcast(
         JSON.stringify({
           event: 'tournament-joined',
@@ -73,11 +79,6 @@ export default async function (app: FastifyInstance): Promise<void> {
         })
       );
 
-      const participants = cachedTournamentParticipations.get(tournamentUuid);
-      if (!participants) {
-        return reply.status(409);
-      }
-      participants.add(userUuid);
       return reply.status(200).send();
     }
   );
