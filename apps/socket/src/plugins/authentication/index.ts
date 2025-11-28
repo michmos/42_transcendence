@@ -17,11 +17,13 @@ function getSessionCookie(request: FastifyRequest): string | null {
 }
 
 async function fetchUser(sessionCookie: string): Promise<User> {
-  const response = await fetch(`${env.API_URL}/auth/session`, {
+  console.log(`Fetching user with session cookie: ${sessionCookie}`);
+  // TODO: @michmoser - I replaced this from auth/session with  API call do we need the UUID? Then we shoul make a endpoint to get this.
+  const response = await fetch(`${env.API_URL}/user/me`, {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
-      // credentials: 'include',
+      credentials: 'include',
     },
   });
   if (!response.ok) {
@@ -29,10 +31,6 @@ async function fetchUser(sessionCookie: string): Promise<User> {
       `Authentication failed: ${response.status} ${response.statusText}`
     );
   }
-  console.log(`Session cookie valid, fetching user data...`);
-  console.log(`Response status: ${response.status}`);
-  console.log(`Response headers:`, response.headers);
-  console.log(`Response body:`, await response.clone().text());
   const user = await response.json();
   if (!user || !user.uuid) {
     throw new Error(`Authentication failed: Invalid user data`);
