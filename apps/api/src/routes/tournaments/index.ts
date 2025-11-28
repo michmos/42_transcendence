@@ -23,7 +23,15 @@ export default async function (app: FastifyInstance): Promise<void> {
       const tournament = await app.db.createTournament({
         ...request.body,
       });
-      reply.status(201).send(tournament);
+      
+      // Automatically add the creator as a participant
+      const creatorUuid = getUuid(request);
+      const updatedTournament = await app.db.addUserToTournament(
+        creatorUuid,
+        tournament.uuid
+      );
+      
+      reply.status(201).send(updatedTournament);
       await messageSocketServer('/tournaments/broadcast/created', {
         tournamentUuid: tournament.uuid,
       });

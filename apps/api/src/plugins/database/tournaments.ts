@@ -28,7 +28,9 @@ export async function updateTournament(
 export async function addUserToTournament(
   userId: string,
   tournamentId: string
-): Promise<Tournament> {
+): Promise<
+  Tournament & { participants: { uuid: string; nickname: string }[] }
+> {
   return Database.$transaction(async (tx) => {
     const user = await tx.user.findFirst({
       where: {
@@ -37,7 +39,7 @@ export async function addUserToTournament(
       },
     });
     const incrementValue = user ? 0 : 1;
-    return tx.tournament.update({
+    await tx.tournament.update({
       where: { uuid: tournamentId },
       data: {
         playerCount: { increment: incrementValue },
@@ -46,6 +48,24 @@ export async function addUserToTournament(
         },
       },
     });
+    // Return tournament with participants included
+    const tournament = await tx.tournament.findUnique({
+      where: { uuid: tournamentId },
+      include: {
+        participants: {
+          select: {
+            uuid: true,
+            nickname: true,
+          },
+        },
+      },
+    });
+    if (!tournament) {
+      throw new Error(`Tournament ${tournamentId} not found`);
+    }
+    return tournament as Tournament & {
+      participants: { uuid: string; nickname: string }[];
+    };
   });
 }
 
@@ -74,17 +94,46 @@ export async function removeUserFromTournament(
 }
 
 export async function getAllTournaments(): Promise<Tournament[]> {
-  return Database.tournament.findMany();
+  return Database.tournament.findMany({
+    include: {
+      participants: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getTournament(uuid: string): Promise<Tournament | null> {
-  return Database.tournament.findUnique({ where: { uuid } });
+  return Database.tournament.findUnique({
+    where: { uuid },
+    include: {
+      participants: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getTournamentsByStatus(
   status: status
 ): Promise<Tournament[]> {
-  return Database.tournament.findMany({ where: { status } });
+  return Database.tournament.findMany({
+    where: { status },
+    include: {
+      participants: {
+        select: {
+          uuid: true,
+          nickname: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getTournamentsByParticipant(

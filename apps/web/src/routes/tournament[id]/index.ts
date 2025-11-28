@@ -1,4 +1,4 @@
-import { Navbar, Card, Badge } from '../../components/index.js';
+import { Navbar, Card, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import TournamentAPI from '../../plugins/api/tournaments.js';
@@ -9,7 +9,8 @@ import type {
   Match,
   status,
 } from '../../types/api.js';
-import { handleApiError, showApiError } from '../../utils/api-helpers.js';
+import { showApiError } from '../../utils/api-helpers.js';
+import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 
 // Extend Window interface for SPA navigation
@@ -38,7 +39,9 @@ interface LeaderboardEntry {
 /**
  * Map backend status to UI round status
  */
-function mapRoundStatusToUI(round: TournamentRound): 'completed' | 'in-progress' | 'upcoming' {
+function mapRoundStatusToUI(
+  round: TournamentRound
+): 'completed' | 'in-progress' | 'upcoming' {
   // Check if all matches are finished
   const allMatchesFinished = round.matches.every(
     (match) => match.status === 'finished'
@@ -65,7 +68,7 @@ function buildLeaderboard(
 ): LeaderboardEntry[] {
   // Get all participants
   const participants = tournament.participants || [];
-  
+
   // Calculate stats per player
   const playerStats = new Map<
     string,
@@ -121,7 +124,7 @@ function buildLeaderboard(
 
   // Convert to leaderboard entries
   const leaderboard: LeaderboardEntry[] = Array.from(playerStats.entries())
-    .map(([uuid, stats]) => ({
+    .map(([, stats]) => ({
       rank: 0, // Will be set after sorting
       player: stats.nickname,
       points: stats.wins * 2 + stats.losses, // 2 points for win, 1 for loss
@@ -169,6 +172,9 @@ function renderTournamentHeader(
     <p class="text-white/80">Tournament details and progress</p>
   `;
 
+  const actionsSection = document.createElement('div');
+  actionsSection.className = 'flex flex-col sm:flex-row gap-3 items-center';
+
   const badgesSection = document.createElement('div');
   badgesSection.className = 'flex gap-2';
 
@@ -193,8 +199,65 @@ function renderTournamentHeader(
   badgesSection.appendChild(activeBadgeContainer);
   badgesSection.appendChild(roundBadgeContainer);
 
+  // Add Join/Start button logic
+  const currentUserId = getCurrentUserId();
+  const participants = tournament.participants || [];
+  let isParticipant = false;
+  if (currentUserId && participants.length > 0) {
+    isParticipant = participants.some((p) => p.uuid === currentUserId);
+  }
+
+  const isOutstanding = tournament.status === 'outstanding';
+  const isFull = tournament.playerCount >= tournament.maxPlayers;
+  const hasMinPlayers = tournament.playerCount >= tournament.minPlayers;
+
+  const buttonContainer = document.createElement('div');
+
+  // Logic matched with tournaments/index.ts
+  if (isParticipant) {
+    if (hasMinPlayers && isOutstanding) {
+      // Start button
+      new Button(buttonContainer, {
+        text: 'Start Tournament',
+        variant: 'primary',
+        onClick: async () => {
+          try {
+            await TournamentAPI.startTournament(tournament.uuid);
+            // Will refresh via socket
+          } catch (error) {
+            alert(error instanceof Error ? error.message : 'Failed to start');
+          }
+        },
+        className: '!bg-green-600 hover:!bg-green-700',
+      });
+    }
+    // If participant but cannot start, show nothing or maybe "Waiting for players" label?
+    // For now, just show badges.
+  } else if (currentUserId && isOutstanding && !isFull) {
+    // Join button
+    new Button(buttonContainer, {
+      text: 'Join Tournament',
+      variant: 'secondary',
+      onClick: async () => {
+        try {
+          await TournamentAPI.joinTournament(tournament.uuid);
+          // Will refresh via socket or manual reload if needed
+          window.location.reload();
+        } catch (error) {
+          alert(error instanceof Error ? error.message : 'Failed to join');
+        }
+      },
+      className: '!bg-accent !text-white hover:!bg-accent/90',
+    });
+  }
+
+  actionsSection.appendChild(badgesSection);
+  if (buttonContainer.hasChildNodes()) {
+    actionsSection.appendChild(buttonContainer);
+  }
+
   tournamentHeader.appendChild(titleSection);
-  tournamentHeader.appendChild(badgesSection);
+  tournamentHeader.appendChild(actionsSection);
   container.appendChild(tournamentHeader);
 }
 
@@ -203,7 +266,7 @@ function renderStatsCards(
   tournament: BackendTournament
 ) {
   const statsGrid = document.createElement('div');
-  statsGrid.className = 'grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8';
+  statsGrid.className = 'grid gap-4 md:grid-cols-2 mb-8';
 
   const stats = [
     {
@@ -229,15 +292,6 @@ function renderStatsCards(
       value: `${tournament.numberOfRounds}`,
       label: 'Total Rounds',
       bgColor: 'bg-secondary/20',
-    },
-    {
-      icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>`,
-      value: `${tournament.gameTime} min`,
-      label: 'Game Time',
-      bgColor: 'bg-accent/20',
     },
   ];
 
@@ -328,7 +382,10 @@ function renderTournamentProgress(
   container.appendChild(cardContainer);
 }
 
-function renderLeaderboard(container: HTMLElement, leaderboard: LeaderboardEntry[]) {
+function renderLeaderboard(
+  container: HTMLElement,
+  leaderboard: LeaderboardEntry[]
+) {
   const cardContainer = document.createElement('div');
   const card = new Card(cardContainer, {
     title: 'Leaderboard',
@@ -355,11 +412,12 @@ function renderLeaderboard(container: HTMLElement, leaderboard: LeaderboardEntry
       </tr>
     </thead>
     <tbody>
-      ${leaderboard.length === 0
-        ? '<tr><td colspan="4" class="py-8 text-center text-white/60">No matches played yet</td></tr>'
-        : leaderboard
-            .map(
-              (entry) => `
+      ${
+        leaderboard.length === 0
+          ? '<tr><td colspan="4" class="py-8 text-center text-white/60">No matches played yet</td></tr>'
+          : leaderboard
+              .map(
+                (entry) => `
         <tr class="border-b border-white/20 hover:bg-white/5 transition-colors">
           <td class="py-3 px-4 text-white font-medium">${entry.rank}</td>
           <td class="py-3 px-4 text-white">${entry.player}</td>
@@ -367,8 +425,9 @@ function renderLeaderboard(container: HTMLElement, leaderboard: LeaderboardEntry
           <td class="py-3 px-4 text-white">${entry.scoreDiff > 0 ? '+' : ''}${entry.scoreDiff}</td>
         </tr>
       `
-            )
-            .join('')}
+              )
+              .join('')
+      }
     </tbody>
   `;
 
@@ -425,7 +484,8 @@ export default async function initRoute() {
   const tournamentUuid = routeParams.id;
 
   if (!tournamentUuid) {
-    pageRoot.innerHTML = '<div class="p-8 text-white">Tournament ID not found</div>';
+    pageRoot.innerHTML =
+      '<div class="p-8 text-white">Tournament ID not found</div>';
     return;
   }
 
@@ -439,7 +499,7 @@ export default async function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
@@ -448,8 +508,8 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userInfo?.nickname,
-    userAvatar: userInfo?.avatar || undefined,
+    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
+    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
       navigateTo('/settings');
     },
@@ -499,23 +559,26 @@ export default async function initRoute() {
 
   // Store tournament and rounds for socket updates
   let currentTournament: BackendTournament | null = null;
-  let currentRounds: TournamentRound[] = [];
   let currentLeaderboard: LeaderboardEntry[] = [];
   let currentUIRounds: Round[] = [];
 
   // Function to refresh tournament data
   const refreshTournamentData = async () => {
     if (!currentTournament) return;
-    
+
     try {
-      const updatedTournament = await TournamentAPI.getTournament(tournamentUuid);
+      const updatedTournament =
+        await TournamentAPI.getTournament(tournamentUuid);
       if (updatedTournament) {
         currentTournament = updatedTournament;
         // Re-fetch rounds if needed
         const updatedRounds: TournamentRound[] = [];
         for (let i = 0; i < updatedTournament.numberOfRounds; i++) {
           try {
-            const round = await TournamentAPI.getTournamentRound(tournamentUuid, i);
+            const round = await TournamentAPI.getTournamentRound(
+              tournamentUuid,
+              i
+            );
             if (round) {
               updatedRounds.push(round);
             }
@@ -523,31 +586,35 @@ export default async function initRoute() {
             console.error(`Error fetching round ${i}:`, error);
           }
         }
-        currentRounds = updatedRounds;
         currentUIRounds = updatedRounds.map((round) => ({
           id: round.index,
           name: `Round ${round.index + 1}`,
           status: mapRoundStatusToUI(round),
         }));
         currentLeaderboard = buildLeaderboard(updatedTournament, updatedRounds);
-        
+
         // Re-render the page with updated data
         innerContainer.innerHTML = '';
         const headerDiv = document.createElement('div');
         renderTournamentHeader(headerDiv, updatedTournament);
         innerContainer.appendChild(headerDiv);
-        
+
         // Re-add status badge
         const tournamentHeader = headerDiv.firstElementChild as HTMLElement;
         if (tournamentHeader) {
-          const badgesSection = tournamentHeader.querySelector('.flex.gap-2');
+          // The badges section is now nested inside actionsSection
+          const actionsSection =
+            tournamentHeader.lastElementChild as HTMLElement;
+          const badgesSection = actionsSection?.querySelector('.flex.gap-2');
+
           if (badgesSection) {
             const statusBadgeContainer = document.createElement('div');
             new Badge(statusBadgeContainer, {
               text: statusMap[updatedTournament.status] || 'Unknown',
               variant: 'default',
             });
-            const statusBadgeElement = statusBadgeContainer.firstElementChild as HTMLElement;
+            const statusBadgeElement =
+              statusBadgeContainer.firstElementChild as HTMLElement;
             if (statusBadgeElement) {
               const statusColors: Record<status, string> = {
                 outstanding: 'bg-warning text-white',
@@ -557,15 +624,22 @@ export default async function initRoute() {
               };
               statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[updatedTournament.status] || 'bg-muted'}`;
             }
-            badgesSection.insertBefore(statusBadgeContainer, badgesSection.firstChild);
+            badgesSection.insertBefore(
+              statusBadgeContainer,
+              badgesSection.firstChild
+            );
           }
         }
-        
+
         renderStatsCards(innerContainer, updatedTournament);
         const gridContainer = document.createElement('div');
         gridContainer.className = 'grid gap-6 lg:grid-cols-2';
         const progressColumn = document.createElement('div');
-        renderTournamentProgress(progressColumn, currentUIRounds, tournamentUuid);
+        renderTournamentProgress(
+          progressColumn,
+          currentUIRounds,
+          tournamentUuid
+        );
         gridContainer.appendChild(progressColumn);
         const leaderboardColumn = document.createElement('div');
         renderLeaderboard(leaderboardColumn, currentLeaderboard);
@@ -608,8 +682,6 @@ export default async function initRoute() {
         console.error(`Error fetching round ${i}:`, error);
       }
     }
-    
-    currentRounds = rounds;
 
     // Map rounds to UI format
     currentUIRounds = rounds.map((round) => ({
@@ -632,7 +704,10 @@ export default async function initRoute() {
     // Add status badge to header
     const tournamentHeader = headerDiv.firstElementChild as HTMLElement;
     if (tournamentHeader) {
-      const badgesSection = tournamentHeader.querySelector('.flex.gap-2');
+      // The badges section is now nested inside actionsSection
+      const actionsSection = tournamentHeader.lastElementChild as HTMLElement;
+      const badgesSection = actionsSection?.querySelector('.flex.gap-2');
+
       if (badgesSection) {
         const statusBadgeContainer = document.createElement('div');
         new Badge(statusBadgeContainer, {
@@ -650,7 +725,10 @@ export default async function initRoute() {
           };
           statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[tournament.status] || 'bg-muted'}`;
         }
-        badgesSection.insertBefore(statusBadgeContainer, badgesSection.firstChild);
+        badgesSection.insertBefore(
+          statusBadgeContainer,
+          badgesSection.firstChild
+        );
       }
     }
 
@@ -694,21 +772,30 @@ export default async function initRoute() {
       }
     };
 
-    const handleUserJoined = (data: { tournamentUuid: string; user: any }) => {
+    const handleUserJoined = (data: {
+      tournamentUuid: string;
+      user: unknown;
+    }) => {
       if (data.tournamentUuid === tournamentUuid) {
         // Refresh tournament to show updated player count
         refreshTournamentData();
       }
     };
 
-    const handleUserLeft = (data: { tournamentUuid: string; userUuid: string }) => {
+    const handleUserLeft = (data: {
+      tournamentUuid: string;
+      userUuid: string;
+    }) => {
       if (data.tournamentUuid === tournamentUuid) {
         // Refresh tournament to show updated player count
         refreshTournamentData();
       }
     };
 
-    const handleTournamentStarted = (data: { uuid: string; rounds: TournamentRound[] }) => {
+    const handleTournamentStarted = (data: {
+      uuid: string;
+      rounds: TournamentRound[];
+    }) => {
       if (data.uuid === tournamentUuid) {
         // Tournament started - refresh to show rounds
         refreshTournamentData();
@@ -738,8 +825,8 @@ export default async function initRoute() {
 
     // Register socket listeners
     tournamentSocket.on('tournament-updated', handleTournamentUpdated);
-    tournamentSocket.on('user-joined', handleUserJoined);
-    tournamentSocket.on('user-left', handleUserLeft);
+    tournamentSocket.on('tournament-joined', handleUserJoined);
+    tournamentSocket.on('tournament-left', handleUserLeft);
     tournamentSocket.on('tournament-started', handleTournamentStarted);
     tournamentSocket.on('match-updated', handleMatchUpdated);
     tournamentSocket.on('round-completed', handleRoundCompleted);
@@ -750,7 +837,7 @@ export default async function initRoute() {
     innerContainer.innerHTML = '';
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to load tournament';
-    
+
     if (errorMessage.includes('Forbidden')) {
       renderErrorState(
         innerContainer,
@@ -759,7 +846,7 @@ export default async function initRoute() {
     } else {
       renderErrorState(innerContainer, errorMessage);
     }
-    
+
     showApiError({
       message: errorMessage,
       status: 0,

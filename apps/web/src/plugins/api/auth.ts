@@ -17,17 +17,15 @@ export interface Session {
  */
 export async function getSession(): Promise<Session | null> {
   try {
-    const user = await fetchSessionData();
+    const userUuid = await fetchSessionData();
 
-    if (!user) {
+    if (!userUuid) {
       return null;
     }
 
-    // fetchSessionData returns user object with uuid
-    // We need to get the role from somewhere - might need to call /user/me or another endpoint
-    // For now, assume USER role (can be enhanced later)
+    // fetchSessionData returns the uuid string directly
     return {
-      uuid: user.uuid,
+      uuid: userUuid,
       role: 'USER' as const, // TODO: Fetch actual role from backend if needed
     };
   } catch (error) {

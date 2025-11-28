@@ -158,6 +158,54 @@ const TournamentAPI = {
   },
 
   /**
+   * Start a tournament (only if user is participant and min players reached)
+   * @param tournamentUuid - Tournament UUID
+   * @returns Promise<Tournament> - Updated tournament
+   * @throws Error if start fails (401, 403 not participant, 404, 422 validation)
+   */
+  async startTournament(tournamentUuid: string): Promise<Tournament> {
+    try {
+      const response = await fetch(`/api/tournaments/${tournamentUuid}/start`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in to start a tournament');
+      }
+
+      if (response.status === 403) {
+        throw new Error(
+          'Forbidden - You must be a participant to start this tournament'
+        );
+      }
+
+      if (response.status === 404) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Tournament not found');
+      }
+
+      if (response.status === 422) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            'Tournament cannot be started (not enough players or wrong status)'
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to start tournament: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error starting tournament:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Get a tournament round by tournament UUID and round index
    * @param tournamentUuid - Tournament UUID
    * @param roundIndex - Round index (0-based)
