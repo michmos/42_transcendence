@@ -70,7 +70,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         ))
       ) {
         return reply.status(403).send({
-          error: 'Unauthorized: User does not participate in Tournamet',
+          error: 'Unauthorized: User does not participate in Tournament',
         });
       }
 

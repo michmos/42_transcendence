@@ -33,7 +33,7 @@ const errorHandler = (
 
   if (error.validation) {
     response = {
-      message: `Valiation error in ${error.validationContext}`,
+      message: `Validation error in ${error.validationContext}`,
       errors: error.validation,
     };
   }

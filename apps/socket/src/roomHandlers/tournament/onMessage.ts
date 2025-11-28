@@ -6,7 +6,7 @@ async function handleJoinRoom(room: string, socket: WSocket) {
   const tournamentUuid = room.split(':')[1] as string;
   // check participation
   if (!participatesInTournament(socket.uuid, tournamentUuid)) {
-    socket.consoleError(`tried to join tournament room without partipation`);
+    socket.consoleError(`tried to join tournament room without participation`);
     return;
   }
 
