@@ -45,8 +45,19 @@ export const updateTournament = {
 export type updateTournamentBody = Static<typeof updateTournament.body>;
 
 // POST /tournaments/:tournamentId/users
+export const joinTournament = {
+  params: Type.Object({
+    uuid: Type.String(),
+  }),
+  body: Type.Object({
+    uuid: Type.Optional(Type.String()),
+    alias: Type.String(),
+  }),
+};
+export type joinTournamentBody = Static<typeof joinTournament.body>;
+
 // DELETE /tournaments/:tournamentId/users
-export const joinOrLeave = {
+export const leaveTournament = {
   params: Type.Object({
     uuid: Type.String(),
   }),
@@ -54,8 +65,7 @@ export const joinOrLeave = {
     uuid: Type.Optional(Type.String()),
   }),
 };
-export type addUserBody = Static<typeof joinOrLeave.body>;
-export type rmvUserBody = Static<typeof joinOrLeave.body>;
+export type leaveTournamentBody = Static<typeof leaveTournament.body>;
 
 // GET /tournaments
 export const getTournaments = {

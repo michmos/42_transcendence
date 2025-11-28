@@ -94,10 +94,13 @@ export default async function (app: FastifyInstance): Promise<void> {
   );
 
   // join tournament
-  app.post<{ Params: schemas.singleUuidParam; Body: schemas.addUserBody }>(
+  app.post<{
+    Params: schemas.singleUuidParam;
+    Body: schemas.joinTournamentBody;
+  }>(
     '/:uuid/users',
     {
-      schema: schemas.joinOrLeave,
+      schema: schemas.joinTournament,
       preHandler: async (request, reply) => {
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
       },
@@ -159,10 +162,13 @@ export default async function (app: FastifyInstance): Promise<void> {
   );
 
   // leave tournament
-  app.delete<{ Params: schemas.singleUuidParam; Body: schemas.rmvUserBody }>(
+  app.delete<{
+    Params: schemas.singleUuidParam;
+    Body: schemas.leaveTournamentBody;
+  }>(
     '/:uuid/users',
     {
-      schema: schemas.joinOrLeave,
+      schema: schemas.leaveTournament,
       preHandler: async (request, reply) => {
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
       },
