@@ -106,7 +106,7 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       RoomManager.get('tournament:main')?.broadcast(
         JSON.stringify({
-          event: 'tournament-left',
+          event: 'tournament-updated',
           uuid: tournamentUuid,
           tournamentName,
           status,
