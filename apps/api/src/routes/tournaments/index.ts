@@ -107,7 +107,6 @@ export default async function (app: FastifyInstance): Promise<void> {
       // is existing tournament
       const tournament = await app.db.getTournament(tournamentUuid);
       if (!tournament) {
-        console.log('tournament not found');
         return reply.status(404).send({
           error: `Tournament with ${tournamentUuid} does not exist`,
         });
@@ -125,7 +124,6 @@ export default async function (app: FastifyInstance): Promise<void> {
         userUuid = request.body.uuid;
         // user exists
         if (!(await app.db.getUser(userUuid))) {
-          console.log('user not found');
           return reply.status(404).send({ error: 'User not found' });
         }
       }
