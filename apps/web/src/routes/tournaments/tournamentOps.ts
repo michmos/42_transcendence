@@ -69,9 +69,6 @@ export async function startTournament(
 ): Promise<boolean> {
   const response = await fetch(`/api/tournaments/${tournamentUuid}/start`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     credentials: 'include',
   });
   if (!response.ok) {
