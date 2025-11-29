@@ -563,6 +563,11 @@ function renderTournamentGrid(
       });
     }
 
+    // Add click handler for the entire card (fallback for viewing details)
+    card.addEventListener('click', () => {
+      navigateTo(`/tournament/${tournament.id}`);
+    });
+
     grid.appendChild(card);
   });
 
