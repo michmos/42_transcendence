@@ -566,7 +566,7 @@ export default async function initRoute() {
           }
         }
         currentUIRounds = updatedRounds.map((round) => ({
-          id: round.index,
+          id: round.index + 1,
           name: `Round ${round.index + 1}`,
           status: mapRoundStatusToUI(round),
         }));
@@ -664,7 +664,7 @@ export default async function initRoute() {
 
     // Map rounds to UI format
     currentUIRounds = rounds.map((round) => ({
-      id: round.index,
+      id: round.index + 1,
       name: `Round ${round.index + 1}`,
       status: mapRoundStatusToUI(round),
     }));
