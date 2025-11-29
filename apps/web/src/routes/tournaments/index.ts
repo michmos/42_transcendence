@@ -623,12 +623,12 @@ function showNewTournamentDialog() {
       
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-2">
-          <label for="min-size" class="text-sm font-semibold text-gray-700">Min Players (min: 4)</label>
+          <label for="min-size" class="text-sm font-semibold text-gray-700">Min Players (min: 2)</label>
           <input
             id="min-size"
             type="number"
-            min="4"
-            placeholder="4"
+            min="2"
+            placeholder="2"
             class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
           />
         </div>
@@ -693,8 +693,8 @@ function showNewTournamentDialog() {
       return;
     }
 
-    if (isNaN(minPlayers) || minPlayers < 4) {
-      alert('Min players must be 4 or higher');
+    if (isNaN(minPlayers) || minPlayers < 2) {
+      alert('Min players must be 2 or higher');
       minSizeInput.focus();
       return;
     }
