@@ -316,19 +316,6 @@ export default async function (app: FastifyInstance): Promise<void> {
         });
       }
 
-      // check participation or admin status
-      if (
-        !(await app.db.participatesInTournament(
-          getUuid(request),
-          request.params.uuid
-        )) &&
-        !isAdmin(request, reply)
-      ) {
-        return reply
-          .status(403)
-          .send({ error: `User is not participating in this tournament` });
-      }
-
       // get round
       const round = await app.db.getTournamentRound(
         request.params.uuid,
