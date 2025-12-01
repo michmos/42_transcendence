@@ -1,0 +1,18 @@
+{
+  "name": "types",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dep:build": "tsc",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "typescript": "^5.0.0"
+  }
+}
