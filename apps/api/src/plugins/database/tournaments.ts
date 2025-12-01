@@ -93,12 +93,41 @@ export async function removeUserFromTournament(
   });
 }
 
+export async function getUserAlias(userId: string, tournamentId: string) {
+  return (
+    await Database.tournamentParticipations.findUniqueOrThrow({
+      where: {
+        tournamentId_userId: {
+          tournamentId,
+          userId,
+        },
+      },
+      select: {
+        alias: true,
+      },
+    })
+  ).alias;
+}
+
 export async function getAllTournaments(): Promise<Tournament[]> {
   return Database.tournament.findMany();
 }
 
 export async function getTournament(uuid: string): Promise<Tournament | null> {
   return Database.tournament.findUnique({ where: { uuid } });
+}
+
+export async function getTournamentByRound(
+  roundId: string
+): Promise<Tournament> {
+  const tournamentRound = await Database.tournamentRound.findUniqueOrThrow({
+    where: {
+      uuid: roundId,
+    },
+  });
+  return await Database.tournament.findUniqueOrThrow({
+    where: { uuid: tournamentRound.tournamentId },
+  });
 }
 
 export async function getTournamentsByStatus(
