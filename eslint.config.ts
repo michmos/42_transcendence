@@ -1,5 +1,4 @@
 import { defineConfig } from 'eslint/config';
-import eslintRecommended from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
@@ -8,10 +7,15 @@ import htmlParser from '@html-eslint/parser';
 import globals from 'globals';
 
 export default defineConfig(
-  eslintRecommended.configs.recommended,
   prettierConfig,
 
-  // TypeScript rules for all TS files
+  // TypeScript rules with type checking - apply recommended type-checked rules only to TS files
+  ...tseslint.configs.recommendedTypeChecked.map((config) => ({
+    ...config,
+    files: ['**/*.{ts,tsx}'],
+  })),
+
+  // Override TypeScript rules
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -36,12 +40,16 @@ export default defineConfig(
       '@typescript-eslint/no-unsafe-member-access': 'error',
       '@typescript-eslint/no-unsafe-return': 'error',
       '@typescript-eslint/unified-signatures': 'off',
-      'prettier/prettier': 'error',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/no-duplicate-enum-values': 'error',
+      '@typescript-eslint/no-duplicate-type-constituents': 'error',
+      '@typescript-eslint/no-redeclare': 'error',
+
+      // Prettier
+      'prettier/prettier': 'error',
     },
   },
 
@@ -66,7 +74,22 @@ export default defineConfig(
     },
   },
 
-  // Ignore build artifacts
+  // JavaScript files should cause lint errors - only TypeScript allowed
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Program',
+          message:
+            'JavaScript files are not allowed. Please use TypeScript (.ts) files instead.',
+        },
+      ],
+    },
+  },
+
+  // Ignore build artifacts but NOT JavaScript files
   {
     ignores: [
       '**/dist/',

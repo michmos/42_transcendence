@@ -1,7 +1,5 @@
 import 'fastify';
 
-/* eslint-disable no-unused-vars */
-
 declare module 'fastify' {
   interface FastifyRequest {
     user: {
