@@ -8,4 +8,4 @@
 //    pnpm add -D types@../../packages/types
 //
 // 3. import type you need
-//    import { SomeType } from 'your-package-name';
+//    import { SomeType } from 'types';
