@@ -5,7 +5,6 @@ import type * as UserDatabase from './user.ts';
 import type * as TournamentDatabase from './tournaments.ts';
 import type * as FriendshipDatabase from './friendship.ts';
 
-/* eslint-disable no-unused-vars */
 declare module 'fastify' {
   interface FastifyInstance {
     db: typeof UserDatabase &
@@ -16,6 +15,5 @@ declare module 'fastify' {
       };
   }
 }
-/* eslint-enable no-unused-vars */
 
 export {};
