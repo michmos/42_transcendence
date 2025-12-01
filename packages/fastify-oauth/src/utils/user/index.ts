@@ -58,7 +58,7 @@ async function getOauthUser(
   ) {
     throw new Error('User email is missing');
   }
-  const email = user['email'] as string;
+  const email = user['email'];
   const avatar = 'avatar' in user ? (user['avatar'] as string) : null;
 
   return {

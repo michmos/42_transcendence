@@ -41,7 +41,7 @@ class SessionManager {
   }
 
   // Endpoint to get the current session data
-  private async initializeSessionRoute() {
+  private initializeSessionRoute() {
     this.ctx.app.get('/auth/session', async (request, reply) => {
       // Verify and decode the JWT token from the session cookie
       const sessionCookie = TokenUtility.verifySessionToken(
