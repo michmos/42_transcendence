@@ -5,6 +5,15 @@ import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
 import { status as statusEnum } from 'db/generated/client/index.js';
 
+// TODO: move to external types module
+export type TournamentRoundResponse = {
+  status: statusEnum;
+  index: number;
+  matches: Array<{
+    uuid: string;
+  }>;
+};
+
 export default async function (app: FastifyInstance): Promise<void> {
   // create tournament
   app.post<{ Body: schemas.createTournamentBody }>(
@@ -333,10 +342,11 @@ export default async function (app: FastifyInstance): Promise<void> {
       }
 
       // get round
-      const round = await app.db.getTournamentRound(
-        request.params.uuid,
-        request.params.roundIndex
-      );
+      const round: TournamentRoundResponse | null =
+        await app.db.getTournamentRound(
+          request.params.uuid,
+          request.params.roundIndex
+        );
       if (!round) {
         return reply.status(404).send({
           error: `Tournament round with index: ${request.params.roundIndex} not found`,
