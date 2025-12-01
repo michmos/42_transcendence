@@ -284,6 +284,34 @@ components:
                 type: string
                 format: uuid
 
+    Match:
+      type: object
+      required:
+        - uuid
+        - status
+        - player1Name
+        - player2Name
+        - score1
+        - score2
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/Status'
+        player1Name:
+          type: string
+          example: 'someName'
+        player2Name:
+          type: string
+          example: 'someName'
+        score1:
+          type: integer
+          example: 4
+        score2:
+          type: integer
+          example: 5
+
     CreateTournamentInput:
       type: object
       required:
@@ -300,28 +328,6 @@ components:
         minPlayers:
           type: integer
           example: 4
-
-    Match:
-      type: object
-      required:
-        - player1
-        - player2
-        - status
-        - score
-      properties:
-        player1:
-          $ref: '#/components/schemas/User'
-        player2:
-          $ref: '#/components/schemas/User'
-        status:
-          $ref: '#/components/schemas/Status'
-        score:
-          type: object
-          properties:
-            pointsPlayer1:
-              type: integer
-            pointsPlayer2:
-              type: integer
 
     Error:
       type: object
@@ -1175,6 +1181,28 @@ paths:
                 $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /match/{uuid}:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    get:
+      tags:
+        - Tournament
+      summary: Get match by uuid
+      description: Retrieve a match by uuid
+      responses:
+        '200':
+          description: Match retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          description: Match doesn't exist
           content:
             application/json:
               schema:
