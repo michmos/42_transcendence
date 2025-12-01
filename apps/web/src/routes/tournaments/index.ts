@@ -2,13 +2,6 @@ import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { createTournament, joinTournament } from './tournamentOps.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 interface Tournament {
   id: string;
   name: string;

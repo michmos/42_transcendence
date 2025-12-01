@@ -5,17 +5,6 @@ import * as UserDatabase from './user.js';
 import * as TournamentDatabase from './tournaments.js';
 import * as FriendshipDatabase from './friendship.js';
 
-declare module 'fastify' {
-  interface FastifyInstance {
-    db: typeof UserDatabase &
-      typeof FriendshipDatabase &
-      typeof MatchDatabase &
-      typeof TournamentDatabase & {
-        clearAllData: () => Promise<void>;
-      };
-  }
-}
-
 export async function clearAllData() {
   // order important due to cascading of deletion
   await TournamentDatabase.removeAllTournaments();
@@ -40,5 +29,3 @@ export default fp(
     name: 'database',
   }
 );
-
-// export { UserDatabase } from './user.js';

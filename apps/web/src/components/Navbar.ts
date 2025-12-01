@@ -1,12 +1,5 @@
 import { navigateTo } from '../utils/navigation.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 export interface NavbarLink {
   label: string;
   href: string;

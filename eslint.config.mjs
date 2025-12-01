@@ -1,43 +1,46 @@
-// @ts-check
-import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
+import eslintRecommended from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
+import prettierConfig from 'eslint-config-prettier';
 import htmlPlugin from '@html-eslint/eslint-plugin';
 import htmlParser from '@html-eslint/parser';
+import globals from 'globals';
 
 export default defineConfig(
-  {
-    files: ['**/*.{js,mjs,cjs,ts}'],
-  },
-  eslint.configs.recommended,
-  ...tseslint.configs.strict,
-  ...tseslint.configs.stylistic,
+  eslintRecommended.configs.recommended,
   prettierConfig,
+
+  // TypeScript rules for all TS files
   {
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
+      parser: tseslint.parser,
       parserOptions: {
         project: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
       },
     },
     plugins: {
+      '@typescript-eslint': tseslint.plugin,
       prettier: prettierPlugin,
     },
     rules: {
-      'prettier/prettier': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
       '@typescript-eslint/unified-signatures': 'off',
+      'prettier/prettier': 'error',
     },
   },
-  // Use a dedicated tsconfig for apps/web to include config files like postcss.config.js
-  {
-    files: ['apps/web/**/*.{js,mjs,cjs,ts,tsx}'],
-    languageOptions: {
-      parserOptions: {
-        project: './apps/web/tsconfig.eslint.json',
-      },
-    },
-  },
+
+  // HTML linting
   {
     files: ['**/*.html'],
     languageOptions: {
@@ -57,12 +60,14 @@ export default defineConfig(
       '@html-eslint/require-title': 'error',
     },
   },
+
+  // Ignore build artifacts
   {
     ignores: [
       '**/dist/',
-      '**/node_modules/',
       '**/build/',
-      '**/out',
+      '**/out/',
+      '**/node_modules/',
       '**/generated/**',
     ],
   }

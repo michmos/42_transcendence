@@ -1,6 +1,5 @@
 import { generateUserLogic, userTableLogic } from './userTable.js';
 import API from '../plugins/api/index.js';
-// import { fetchSessionData } from 'fastify-oauth/client';
 
 export default async function initRoute() {
   console.log('🏠 Home route initializing...');
