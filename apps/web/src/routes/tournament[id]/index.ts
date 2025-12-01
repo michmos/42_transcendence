@@ -1,13 +1,6 @@
 import { Navbar, Card, Badge } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 interface Round {
   id: number;
   name: string;

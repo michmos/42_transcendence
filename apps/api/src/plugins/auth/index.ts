@@ -2,7 +2,7 @@ import { env } from '../../env.js';
 import Fastify from 'fastify';
 import fp from 'fastify-plugin';
 
-import Auth, { FortyTwo, Google, type oAuthUser } from 'fastify-oauth/server';
+import Auth, { FortyTwo, Google, type oAuthUser } from 'fastify-oauth';
 
 import { userRole } from 'db/generated/client/index.js';
 

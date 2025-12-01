@@ -34,6 +34,13 @@ interface GithubUser {
   updated_at: string;
 }
 
+interface GithubEmails {
+  email: string;
+  primary: boolean;
+  verified: boolean;
+  visibility: string | null;
+}
+
 async function fetchGithubUser(token: string) {
   const userResponse = await fetch('https://api.github.com/user', {
     headers: {
@@ -60,7 +67,7 @@ async function fetchGithubUser(token: string) {
     });
 
     if (emailResponse.ok) {
-      const emails = await emailResponse.json();
+      const emails = (await emailResponse.json()) as GithubEmails[];
       const primaryEmail = emails.find(
         (email: { primary: boolean; verified: boolean; email: string }) =>
           email.primary && email.verified

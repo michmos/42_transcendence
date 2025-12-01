@@ -23,6 +23,7 @@ import fastifyCookie from '@fastify/cookie';
 
 import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
 
+/* eslint-disable no-unused-vars */
 declare module 'fastify' {
   interface FastifyRequest {
     user?: {
@@ -31,6 +32,7 @@ declare module 'fastify' {
     };
   }
 }
+/* eslint-enable no-unused-vars */
 
 import setupCallbackRoute from './routes/callback/index.js';
 import setupLoginRoute from './routes/login/index.js';
@@ -50,6 +52,7 @@ interface OAuthContext {
   errorRedirectUrl: string;
   jwtSecret: string;
   state: State[];
+  // eslint-disable-next-line no-unused-vars
   callbacks: Record<string, (args: unknown) => unknown>;
 }
 
@@ -111,6 +114,7 @@ class OAuth {
   }
 
   // Register event callbacks
+  // eslint-disable-next-line no-unused-vars
   public on(name: string, callback: (args: unknown) => unknown) {
     this.ctx.callbacks[name] = callback;
     return this;
@@ -134,6 +138,7 @@ class OAuth {
     reply: import('fastify').FastifyReply,
     adminRole: string,
     api_admin_key: string,
+    // eslint-disable-next-line no-unused-vars
     getUserRoleCallback: (uuid: string) => Promise<string | null>
   ) {
     const apiKey = request.headers['x-api-key'];
@@ -196,6 +201,7 @@ class OAuth {
 
   // Add an authentication hook to Fastify
   public registerAuthCallback(
+    // eslint-disable-next-line no-unused-vars
     getUserObjectCallback: (uuid: string) => Promise<string | null>,
     api_admin_key: string,
     adminRole: string
@@ -252,9 +258,8 @@ export interface OAuthProvider {
   scopes: string[];
   buttonUri: string;
   oauth2Client?: AuthorizationCode;
-  fetchUserData?:
-    | ((token: string) => Promise<Record<string, unknown>>)
-    | undefined;
+  fetchUserData?: // eslint-disable-next-line no-unused-vars
+  ((token: string) => Promise<Record<string, unknown>>) | undefined;
 }
 
 export interface OAuthProviderOptions {
@@ -269,6 +274,7 @@ export interface OAuthProviderOptions {
     authorizePath: string;
   };
   scopes: string[];
+  // eslint-disable-next-line no-unused-vars
   fetchUserData?: (token: string) => Promise<Record<string, unknown>>;
 }
 
