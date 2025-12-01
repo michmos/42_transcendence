@@ -91,7 +91,7 @@ class OAuth {
     this.ctx.app.register(fastifyCookie);
 
     // Clean up expired states periodically
-    setInterval(() => this.removeExpiredStates(), 1 * 60 * 1000); // Every 1 minutes
+    setInterval(() => this.removeExpiredStates(), 10 * 60 * 1000); // Every 10 minutes
 
     // TODO: Make this more standard someday!
     this.ctx.app.setErrorHandler(
