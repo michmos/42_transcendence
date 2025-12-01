@@ -4,6 +4,8 @@ import fp from 'fastify-plugin';
 
 import Auth, { FortyTwo, Google, type oAuthUser } from 'fastify-oauth/server';
 
+import { userRole } from 'db/generated/client/index.js';
+
 async function authPlugin(app: Fastify.FastifyInstance) {
   console.info('🔐 Loading auth plugin...');
 
@@ -13,9 +15,13 @@ async function authPlugin(app: Fastify.FastifyInstance) {
 
   // Initialize the auth plugin
   Auth(app, env.REDIRECT_URL, '/', '/error', env.JWT_SECRET)
-    .add(Google)
-    .add(FortyTwo)
-    .addAuthenticationHook((uuid: string) => app.db.getUserRole(uuid))
+    .addProvider(Google)
+    .addProvider(FortyTwo)
+    .registerAuthCallback(
+      (uuid: string) => app.db.getUserRole(uuid),
+      env.ADMIN_API_KEY,
+      userRole.ADMIN
+    )
     .on('login', async (args: unknown) => {
       const user = args as oAuthUser;
 

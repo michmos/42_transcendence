@@ -41,6 +41,8 @@ function createWebSocket() {
   }
 
   setConnectionState('connecting');
+  // TODO: Double Websocket connection!? Already established in app.ts and loaded into window.socket
+
   const socket = new WebSocket(
     `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`
   );

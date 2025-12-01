@@ -66,6 +66,11 @@ class SessionManager {
       // eat (expiry) is in milliseconds
       const timeNow = Math.floor(new Date().getTime() / 1000);
 
+      console.info(
+        `Session issued at: ${new Date(sessionCookie.iat * 1000).toISOString()}` +
+          `Session expires at: ${new Date(sessionCookie.eat).toISOString()}` +
+          `Current time: ${new Date().toISOString()}`
+      );
       // If the token is not close to expiry (more than 5 minutes left), return the current session
       if (sessionCookie.eat - timeNow * 1000 > 5 * 60 * 1000) {
         return this.returnSession(reply, sessionCookie);

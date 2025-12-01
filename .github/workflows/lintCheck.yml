@@ -2,28 +2,37 @@ name: lint check
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   lint:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-    - name: setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '24.x'
+      - name: setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
 
-    - name: setup pnpm
-      uses: pnpm/action-setup@v4
+      - name: setup pnpm
+        uses: pnpm/action-setup@v4
 
-    - name: install dependencies
-      run: pnpm install
+      # populates environment with variables defined in .env.example
+      # mode: add on to .env
+      # load-mode: strict -> fail if file not found
+      - name: Load .env file
+        uses: xom9ikk/dotenv@v2.3.0
+        with:
+          path: ./
+          mode: example
+          load-mode: strict
 
-    - name: run linter
-      run: pnpm lint
+      - name: install dependencies
+        run: pnpm install
+
+      - name: run linter
+        run: pnpm lint

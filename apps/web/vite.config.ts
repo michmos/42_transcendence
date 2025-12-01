@@ -1,41 +1,35 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
+import { env } from './src/env.js';
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
-
-  const apiPort = env.API_PORT || '3002';
-  const socketPort = env.SOCKET_PORT || '3001';
-  const vitePort = parseInt(env.VITE_PORT || '5173');
-
+export default defineConfig(() => {
   return {
     root: 'src',
     server: {
       host: '0.0.0.0',
-      port: vitePort,
+      port: env.PORT,
       proxy: {
-        '^/api(/.*)?$': {
-          target: `http://localhost:${apiPort}`,
-          changeOrigin: false,
+        '/api': {
+          target: env.API_SERVER,
+          changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
         '/websocket': {
-          target: `http://localhost:${socketPort}`,
+          target: env.SOCKET_SERVER,
           changeOrigin: true,
           secure: false,
           ws: true,
           rewrite: (path) => path.replace(/^\/websocket/, ''),
         },
         '/documentation': {
-          target: `http://localhost:${apiPort}`,
+          target: env.SWAGGER_SERVER,
           changeOrigin: true,
           secure: false,
         },
       },
     },
     preview: {
-      host: '0.0.0.0',
-      port: vitePort,
+      port: env.PORT,
     },
     build: {
       outDir: '../out',

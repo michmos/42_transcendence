@@ -10,21 +10,11 @@ export interface AuthorizeUrlPayload {
 
 import ProviderUtility from '../providers/index.js';
 
-function countStatesWithIP(ctx: OAuthContext, ipNumber: string): number {
-  return ctx.state.filter((s) => s.ipNumber === ipNumber).length;
-}
-
 async function generateAuthUrl(
   ctx: OAuthContext,
   provider: OAuthProvider,
   ipNumber: string
 ): Promise<string> {
-  // Limit the number of concurrent states per IP to prevent abuse
-  const maxStatesPerIP = 5;
-  if (countStatesWithIP(ctx, ipNumber) >= maxStatesPerIP) {
-    throw new Error('Too many concurrent authentication attempts from this IP');
-  }
-
   // Generate a unique state parameter for CSRF protection
   const state = {
     state: Math.random().toString(36).substring(2, 15),

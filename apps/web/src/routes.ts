@@ -5,11 +5,6 @@ export const routes = {
     css: () => import('./routes/index.css?inline'),
     script: () => import('./routes/index.js'),
   },
-  '/socket': {
-    html: () => import('./routes/socket/index.html?raw'),
-    css: () => import('./routes/socket/index.css?inline'),
-    script: () => import('./routes/socket/index.js'),
-  },
   '/login': {
     html: () => import('./routes/login/index.html?raw'),
     css: () => import('./routes/login/index.css?inline'),

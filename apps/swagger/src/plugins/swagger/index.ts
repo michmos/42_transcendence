@@ -12,6 +12,8 @@ export default fastifyPlugin(async function (fastify) {
   });
 
   await fastify.register(fastifySwaggerUi, {
-    routePrefix: '/documentation',
+    routePrefix: '/',
   });
+
+  console.info('✅ Swagger documentation available');
 });

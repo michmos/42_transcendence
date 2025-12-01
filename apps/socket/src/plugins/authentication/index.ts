@@ -17,8 +17,8 @@ function getSessionCookie(request: FastifyRequest): string | null {
 }
 
 async function fetchUser(sessionCookie: string): Promise<User> {
-  const response = await fetch(`http://localhost:5173/api/auth/session`, {
-    // TODO: hardcoded localhost
+  // TODO: @michmoser - I replaced this from auth/session with  API call do we need the UUID? Then we shoul make a endpoint to get this.
+  const response = await fetch(`${env.API_URL}/user/me`, {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
@@ -30,8 +30,10 @@ async function fetchUser(sessionCookie: string): Promise<User> {
       `Authentication failed: ${response.status} ${response.statusText}`
     );
   }
-  const user = await response.json();
-  if (!user || !user.uuid) {
+  const data = await response.json();
+  //TODO: WE get some weird type back what is not the user!
+  const user: User = data.cleanedUserData;
+  if (!user) {
     throw new Error(`Authentication failed: Invalid user data`);
   }
   return user;
@@ -51,15 +53,14 @@ async function authenticateClient(request: FastifyRequest) {
 
   const user = await fetchUser(sessionCookie);
   request.setDecorator('identifiers', {
-    uuid: user.uuid,
     jwt: sessionCookie,
   });
-  console.log(`User authenticated: ${user.uuid}`);
+  console.log(`User authenticated: ${user.nickname}`);
 }
 
 async function authenticateAPIServer(request: FastifyRequest) {
-  const key = request.headers['x-api-server-key'];
-  if (!key || key !== env.API_SERVER_KEY) {
+  const key = request.headers['x-api-key'];
+  if (!key || key !== env.ADMIN_API_KEY) {
     throw new Error(`Unauthorized access attempt`);
   }
 }

@@ -1,5 +1,6 @@
 import { SimpleRouter } from './plugins/router/index.js';
 import { Socket } from './plugins/websocket/index.js';
+import { env } from './env.js';
 
 declare global {
   interface Window {
@@ -10,8 +11,7 @@ declare global {
 }
 
 // Connect to WebSocket
-const wsHost = window.location.host;
-window.socket = new Socket(`ws://${wsHost}/websocket`);
+window.socket = new Socket(env.VITE_SOCKET_URL);
 
 // Initialize router
 const router = new SimpleRouter(document.getElementById('app') as HTMLElement);

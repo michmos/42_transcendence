@@ -1,10 +1,12 @@
 import { generateUserLogic, userTableLogic } from './userTable.js';
-import { fetchSessionData } from 'fastify-oauth/client';
+import API from '../plugins/api/index.js';
+// import { fetchSessionData } from 'fastify-oauth/client';
 
 export default async function initRoute() {
   console.log('🏠 Home route initializing...');
 
-  let user = await fetchSessionData();
+  // INFO this is how to get the current user!
+  let user = await API.getMe();
 
   if (user) {
     console.log('User is logged in:', user);
