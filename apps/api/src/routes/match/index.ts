@@ -24,10 +24,10 @@ export default async function (app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ message: 'Match not found' });
       }
       const player1Name = match.player1Id
-        ? getPlayerName(app, match.player1Id, match)
+        ? await getPlayerName(app, match.player1Id, match)
         : null;
       const player2Name = match.player2Id
-        ? getPlayerName(app, match.player2Id, match)
+        ? await getPlayerName(app, match.player2Id, match)
         : null;
       return reply.status(200).send(
         JSON.stringify({
