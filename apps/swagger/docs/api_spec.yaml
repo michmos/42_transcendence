@@ -530,14 +530,14 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - alias
               properties:
                 uuid:
                   type: string
                   format: uuid
-                  required: false
                 alias:
                   type: string
-                  required: true
 
       responses:
         '200':
