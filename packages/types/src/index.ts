@@ -5,7 +5,7 @@
 //     }
 //
 // 2. add dev dependency to the package where types are needed
-//    pnpm add -D 'packageName'@../../packages/types
+//    pnpm add -D types@../../packages/types
 //
 // 3. import type you need
 //    import { SomeType } from 'your-package-name';
