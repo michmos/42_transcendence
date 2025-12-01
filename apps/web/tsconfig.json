@@ -46,6 +46,7 @@
     "src/**/*",
     "src/plugins/**/*",
     "src/routes/**/*",
-    "vite.config.ts"
+    "vite.config.ts",
+    "tailwind.config.ts"
   ]
 }

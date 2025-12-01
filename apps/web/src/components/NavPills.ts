@@ -6,7 +6,7 @@ export interface NavPillItem {
 
 export interface NavPillsProps {
   items: NavPillItem[];
-  onNavigate?: (href: string) => void;
+  onNavigate?: (_href: string) => void;
   className?: string;
 }
 

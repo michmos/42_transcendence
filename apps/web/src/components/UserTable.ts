@@ -4,8 +4,8 @@ import { Button } from './Button.js';
 
 export interface UserTableProps {
   users: User[];
-  onInfo?: (user: User) => void;
-  onRemove?: (user: User) => void;
+  onInfo?: (_user: User) => void;
+  onRemove?: (_user: User) => void;
   className?: string;
 }
 

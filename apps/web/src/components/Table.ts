@@ -2,7 +2,7 @@ export interface TableColumn<Row> {
   key: keyof Row | string;
   header: string;
   widthClass?: string;
-  render?: (row: Row) => string | HTMLElement;
+  render?: (_row: Row) => string | HTMLElement;
   sortable?: boolean;
 }
 
@@ -12,7 +12,7 @@ export interface TableProps<Row> {
   emptyTitle?: string;
   emptyMessage?: string;
   className?: string;
-  onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
+  onSortChange?: (_key: string, _direction: 'asc' | 'desc') => void;
 }
 
 export class Table<Row extends Record<string, unknown>> {

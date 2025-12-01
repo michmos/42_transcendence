@@ -1,4 +1,5 @@
 import Database from 'db';
+
 import type {
   Match,
   Tournament,

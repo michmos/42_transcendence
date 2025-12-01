@@ -7,7 +7,7 @@ export interface HeaderBarProps {
   title?: string;
   links?: HeaderLink[];
   className?: string;
-  onNavigate?: (href: string) => void;
+  onNavigate?: (_href: string) => void;
 }
 
 /**
