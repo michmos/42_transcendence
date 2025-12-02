@@ -65,7 +65,7 @@ function authenticateAPIServer(request: FastifyRequest) {
   }
 }
 
-async function authPlugin(app: FastifyInstance) {
+function authPlugin(app: FastifyInstance) {
   app.decorateRequest('identifiers', null);
   app.addHook('preValidation', async function (request, reply) {
     try {

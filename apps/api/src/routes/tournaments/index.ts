@@ -5,13 +5,13 @@ import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
 import { status as statusEnum } from 'db/generated/client/index.js';
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default function (app: FastifyInstance): void {
   // create tournament
   app.post<{ Body: schemas.createTournamentBody }>(
     '/',
     {
       schema: schemas.createTournament,
-      preHandler: async (request, reply) => {
+      preHandler: (request, reply) => {
         if (request.body.minPlayers > request.body.maxPlayers) {
           reply.status(400).send({
             error: 'maxPlayers must be >= minPlayers',
@@ -98,7 +98,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     '/:uuid/users',
     {
       schema: schemas.joinOrLeave,
-      preHandler: async (request, reply) => {
+      preHandler: (request, reply) => {
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
       },
     },
@@ -163,7 +163,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     '/:uuid/users',
     {
       schema: schemas.joinOrLeave,
-      preHandler: async (request, reply) => {
+      preHandler: (request, reply) => {
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
       },
     },
@@ -224,7 +224,7 @@ export default async function (app: FastifyInstance): Promise<void> {
     '/:uuid',
     {
       schema: schemas.updateTournament,
-      preHandler: async (request, reply) => {
+      preHandler: (request, reply) => {
         if (!isAdmin(request, reply)) return;
         if (Object.values(request.body).length === 0) {
           return reply.status(400).send({
