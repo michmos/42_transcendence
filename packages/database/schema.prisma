@@ -63,6 +63,7 @@ model User {
 }
 
 model TournamentParticipations {
+  uuid              String      @id @default(uuid())
   alias             String
 
   // Scalar fields
