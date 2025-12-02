@@ -13,7 +13,7 @@ export function participatesInTournament(
   );
 }
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default function (app: FastifyInstance): void {
   app.post<{ Body: schemas.tournamentCreatedBody }>(
     '/broadcast/created',
     {

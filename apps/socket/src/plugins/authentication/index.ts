@@ -58,7 +58,7 @@ async function authenticateClient(request: FastifyRequest) {
   console.log(`User authenticated: ${user.nickname}`);
 }
 
-async function authenticateAPIServer(request: FastifyRequest) {
+function authenticateAPIServer(request: FastifyRequest) {
   const key = request.headers['x-api-key'];
   if (!key || key !== env.ADMIN_API_KEY) {
     throw new Error(`Unauthorized access attempt`);
@@ -72,7 +72,7 @@ async function authPlugin(app: FastifyInstance) {
       if (request.url === '/') {
         await authenticateClient(request);
       } else {
-        await authenticateAPIServer(request);
+        authenticateAPIServer(request);
       }
     } catch (error) {
       console.error(

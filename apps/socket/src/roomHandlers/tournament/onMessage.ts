@@ -2,7 +2,7 @@ import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { participatesInTournament } from '../../routes/tournaments/index.js';
 
-async function handleJoinRoom(room: string, socket: WSocket) {
+function handleJoinRoom(room: string, socket: WSocket) {
   const tournamentUuid = room.split(':')[1] as string;
   // check participation
   if (!participatesInTournament(socket.uuid, tournamentUuid)) {
@@ -14,7 +14,7 @@ async function handleJoinRoom(room: string, socket: WSocket) {
   socket.getUser()?.join(room);
 }
 
-async function handleLeaveRoom(room: string, socket: WSocket) {
+function handleLeaveRoom(room: string, socket: WSocket) {
   // check whether is in room
   if (!RoomManager.get(room)?.has(socket)) {
     socket.consoleError(
@@ -25,14 +25,14 @@ async function handleLeaveRoom(room: string, socket: WSocket) {
   socket.getUser()?.leave(room);
 }
 
-export async function onMessage(socket: WSocket, message: SocketMessageType) {
+export function onMessage(socket: WSocket, message: SocketMessageType) {
   // get tournaments from cache or api
   switch (message.type) {
     case 'join-room':
-      await handleJoinRoom(message.room, socket);
+      handleJoinRoom(message.room, socket);
       break;
     case 'leave-room':
-      await handleLeaveRoom(message.room, socket);
+      handleLeaveRoom(message.room, socket);
       break;
   }
 }
