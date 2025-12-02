@@ -5,6 +5,7 @@ import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
 import { status as statusEnum } from 'db/generated/client/index.js';
 import { type TournamentRoundResponse } from 'types';
+import { Prisma } from 'db/generated/client';
 
 export default async function (app: FastifyInstance): Promise<void> {
   // create tournament
@@ -161,9 +162,17 @@ export default async function (app: FastifyInstance): Promise<void> {
           playerCount: updatedTournament.playerCount,
         });
         return reply.status(200).send(updatedTournament);
-        // eslint-disable-next-line
-      } catch (_) {
-        return reply.status(409).send('Alias already taken in this tournament');
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          return reply
+            .status(409)
+            .send('Alias already taken in this tournament');
+        } else {
+          throw error;
+        }
       }
     }
   );
