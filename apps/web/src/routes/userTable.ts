@@ -31,9 +31,7 @@ function createUserRow(user: {
     </td>
   `;
 
-  const detailsBtn = row.querySelector(
-    '.details-btn'
-  ) as HTMLButtonElement | null;
+  const detailsBtn = row.querySelector<HTMLButtonElement>('.details-btn');
 
   if (detailsBtn) {
     detailsBtn.addEventListener('click', () => {
@@ -97,40 +95,42 @@ function generateUserLogic() {
   makeUserBtn.parentNode?.replaceChild(newMakeUserBtn, makeUserBtn);
 
   console.log('✅ makeUserBtn found, adding click listener...');
-  newMakeUserBtn.addEventListener('click', async () => {
-    console.log('🚀 Generate user button clicked');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const errorMessage = document.getElementById('errorMessage');
-    if (loadingIndicator) loadingIndicator.style.display = 'block';
-    if (errorMessage) errorMessage.style.display = 'none';
+  newMakeUserBtn.addEventListener('click', () => {
+    void (async () => {
+      console.log('🚀 Generate user button clicked');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const errorMessage = document.getElementById('errorMessage');
+      if (loadingIndicator) loadingIndicator.style.display = 'block';
+      if (errorMessage) errorMessage.style.display = 'none';
 
-    try {
-      const newUser = await API.generateUser();
-      if (!newUser) {
-        if (loadingIndicator) loadingIndicator.style.display = 'none';
-        if (errorMessage) {
-          errorMessage.textContent = 'No user data returned from API';
-          errorMessage.style.display = 'block';
+      try {
+        const newUser = await API.generateUser();
+        if (!newUser) {
+          if (loadingIndicator) loadingIndicator.style.display = 'none';
+          if (errorMessage) {
+            errorMessage.textContent = 'No user data returned from API';
+            errorMessage.style.display = 'block';
+          }
+          return;
         }
-        return;
-      }
-      console.log('Generated user:', newUser);
+        console.log('Generated user:', newUser);
 
-      const usersTable = document.getElementById(
-        'usersTable'
-      ) as HTMLTableElement | null;
-      if (usersTable) {
-        const tbody = usersTable.querySelector('tbody');
-        if (tbody) {
-          const row = createUserRow(newUser);
-          tbody.appendChild(row);
+        const usersTable = document.getElementById(
+          'usersTable'
+        ) as HTMLTableElement | null;
+        if (usersTable) {
+          const tbody = usersTable.querySelector('tbody');
+          if (tbody) {
+            const row = createUserRow(newUser);
+            tbody.appendChild(row);
+          }
         }
+      } catch (error) {
+        showError(error);
+      } finally {
+        hideError();
       }
-    } catch (error) {
-      showError(error);
-    } finally {
-      hideError();
-    }
+    })();
   });
 }
 

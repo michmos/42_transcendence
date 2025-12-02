@@ -260,9 +260,7 @@ function renderLeaderboard(container: HTMLElement) {
 }
 
 export default function initRoute() {
-  const pageRoot = document.querySelector(
-    '.tournament-page'
-  ) as HTMLElement | null;
+  const pageRoot = document.querySelector<HTMLElement>('.tournament-page');
   if (!pageRoot) return;
 
   pageRoot.innerHTML = '';

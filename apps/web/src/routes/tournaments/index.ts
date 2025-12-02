@@ -54,9 +54,15 @@ const mockTournaments: Tournament[] = [
   },
 ];
 
+interface WebSocketMessage {
+  event: string;
+  data?: unknown;
+  message?: string;
+}
+
 // TODO: handle events
 window.socket.registerWebSocketHook((event: MessageEvent) => {
-  const data = JSON.parse(event.data);
+  const data = JSON.parse(event.data as string) as WebSocketMessage;
   if (data.event === 'tournament-updated') {
     console.log('Tournament updated:', data);
   } else if (data.event === 'tournament-joined') {
@@ -355,31 +361,31 @@ function showNewTournamentDialog() {
   });
 
   dialog.querySelector('#cancel-btn')?.addEventListener('click', closeDialog);
-  dialog.querySelector('#create-btn')?.addEventListener('click', async () => {
-    const tournamentName = getInput(dialog, '#tournament-name');
-    const minPlayers = parseInt(getInput(dialog, '#min-size'));
-    const maxPlayers = parseInt(getInput(dialog, '#max-players'));
+  dialog.querySelector('#create-btn')?.addEventListener('click', () => {
+    void (async () => {
+      const tournamentName = getInput(dialog, '#tournament-name');
+      const minPlayers = parseInt(getInput(dialog, '#min-size'));
+      const maxPlayers = parseInt(getInput(dialog, '#max-players'));
 
-    // TODO: add validation logic (maxPlayers >=2 , minPlayer >=2, maxPlayers >= minPlayers)
+      // TODO: add validation logic (maxPlayers >=2 , minPlayer >=2, maxPlayers >= minPlayers)
 
-    console.log('Creating tournament...');
-    const newTournament = await createTournament({
-      tournamentName,
-      minPlayers,
-      maxPlayers,
-    });
-    if (newTournament) {
-      await joinTournament(newTournament.uuid);
-      // TODO: update UI to reflect added tournament (where you already participate)
-    }
-    closeDialog();
+      console.log('Creating tournament...');
+      const newTournament = await createTournament({
+        tournamentName,
+        minPlayers,
+        maxPlayers,
+      });
+      if (newTournament) {
+        await joinTournament(newTournament.uuid);
+        // TODO: update UI to reflect added tournament (where you already participate)
+      }
+      closeDialog();
+    })();
   });
 }
 
 export default function initRoute() {
-  const pageRoot = document.querySelector(
-    '.tournaments-page'
-  ) as HTMLElement | null;
+  const pageRoot = document.querySelector<HTMLElement>('.tournaments-page');
   if (!pageRoot) return;
 
   pageRoot.innerHTML = '';
