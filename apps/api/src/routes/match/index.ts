@@ -2,17 +2,7 @@ import { type FastifyInstance } from 'fastify';
 import * as schemas from './validation.js';
 import type { Match } from 'db/generated/client/index.js';
 import { getPlayerName } from './utils.js';
-import { type status } from 'db/generated/client/index.js';
-
-// TODO: move to external types module
-export type MatchResponse = {
-  uuid: string;
-  status: status;
-  player1Name: string | null;
-  player2Name: string | null;
-  score1: number;
-  score2: number;
-};
+import { type MatchResponse } from 'types';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.get<{ Params: schemas.singleUuidParam }>(

@@ -4,15 +4,7 @@ import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
 import { status as statusEnum } from 'db/generated/client/index.js';
-
-// TODO: move to external types module
-export type TournamentRoundResponse = {
-  status: statusEnum;
-  index: number;
-  matches: Array<{
-    uuid: string;
-  }>;
-};
+import { type TournamentRoundResponse } from 'types';
 
 export default async function (app: FastifyInstance): Promise<void> {
   // create tournament
