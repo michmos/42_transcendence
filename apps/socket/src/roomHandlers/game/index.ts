@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { type SocketMessage } from '../../plugins/rooms/index.js';
+import { type SocketMessageType } from '../../plugins/rooms/index.js';
 
 import { attachClient, removeExpiredRoles } from './player.js';
 
@@ -183,7 +183,7 @@ setInterval(() => {
 
 export default async function (
   socket: WebSocket,
-  message: SocketMessage
+  message: SocketMessageType
 ): Promise<void> {
   // Check roles on ping interval
   setInterval(removeExpiredRoles, PING);

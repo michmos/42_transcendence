@@ -1,4 +1,4 @@
-import { type SocketMessage } from '../../plugins/rooms/index.js';
+import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { participatesInTournament } from '../../routes/tournaments/index.js';
 
@@ -25,7 +25,7 @@ async function handleLeaveRoom(room: string, socket: WSocket) {
   socket.getUser()?.leave(room);
 }
 
-export async function onMessage(socket: WSocket, message: SocketMessage) {
+export async function onMessage(socket: WSocket, message: SocketMessageType) {
   // get tournaments from cache or api
   switch (message.type) {
     case 'join-room':

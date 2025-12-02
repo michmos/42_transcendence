@@ -9,7 +9,7 @@ import {
   runMessageHandler,
 } from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
-export { type SocketMessage } from './validation.js';
+export { SocketMessage, type SocketMessageType } from './validation.js';
 import { WSocket } from './WSocket/index.js';
 
 interface IIdentifiers {

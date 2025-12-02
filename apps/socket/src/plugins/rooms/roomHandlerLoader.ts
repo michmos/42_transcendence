@@ -2,12 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { WSocket } from './WSocket/index.js';
-import { SocketMessage } from './validation.js';
+import { SocketMessage, type SocketMessageType } from './validation.js';
 
 const ZodWSocket = z.custom<WSocket>((val) => {
   return val instanceof WSocket;
 });
-type ZodWSocket = z.infer<typeof ZodWSocket>;
 
 /**
  * Schema for handler exports
@@ -67,7 +66,7 @@ export async function runOnCloseHooks(socket: WSocket) {
 
 export async function runMessageHandler(
   socket: WSocket,
-  message: SocketMessage
+  message: SocketMessageType
 ) {
   // handlerName can't be undefined since zod validation ensures it matches the regex
   const handlerName = message.room.split(':')[0] as string;
