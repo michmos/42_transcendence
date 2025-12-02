@@ -161,7 +161,8 @@ export default async function (app: FastifyInstance): Promise<void> {
           playerCount: updatedTournament.playerCount,
         });
         return reply.status(200).send(updatedTournament);
-      } catch (error) {
+        // eslint-disable-next-line
+      } catch (_) {
         return reply.status(409).send('Alias already taken in this tournament');
       }
     }
