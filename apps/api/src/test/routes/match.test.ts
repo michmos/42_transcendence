@@ -1,8 +1,8 @@
 import { describe, test, expect, assert } from 'vitest';
 import { setUserTo, normalUser, adminUser } from '../utils.js';
 import { app } from '../setup.js';
-import { type MatchResponse } from '../../routes/match/index.js';
-import { type TournamentRoundResponse } from '../../routes/tournaments/index.js';
+import { type MatchResponse } from 'types';
+import { type TournamentRoundResponse } from 'types';
 
 describe('GET /match/:uuid', () => {
   setUserTo('MEMBER');

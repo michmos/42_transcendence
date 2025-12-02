@@ -12,7 +12,7 @@ import {
   type Tournament,
 } from 'db/generated/client/index.js';
 
-import { type TournamentRoundResponse } from '../../routes/tournaments/index.js';
+import { type TournamentRoundResponse } from 'types';
 
 describe('POST /tournaments', () => {
   setUserTo('MEMBER');
