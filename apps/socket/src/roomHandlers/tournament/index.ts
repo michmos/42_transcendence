@@ -7,7 +7,7 @@ export default {
   onOpen: async (socket: WSocket) => {
     await onOpen(socket);
   },
-  onMessage: async (socket: WSocket, message: SocketMessageType) => {
-    await onMessage(socket, message);
+  onMessage: (socket: WSocket, message: SocketMessageType) => {
+    onMessage(socket, message);
   },
 };
