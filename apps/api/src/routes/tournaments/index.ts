@@ -262,7 +262,7 @@ export default function (app: FastifyInstance): void {
   );
 
   // get tournaments
-  app.get<{ Querystring: schemas.getTournaments }>(
+  app.get<{ Querystring: schemas.getTournamentsQuerystring }>(
     '/',
     { schema: schemas.getTournaments },
     async function (request, reply) {
@@ -292,7 +292,7 @@ export default function (app: FastifyInstance): void {
   );
 
   // get tournament round
-  app.get<{ Params: schemas.getTournamentRound }>(
+  app.get<{ Params: schemas.getTournamentRoundParams }>(
     '/:uuid/rounds/:roundIndex',
     {
       schema: schemas.getTournamentRound,
