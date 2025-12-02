@@ -7,6 +7,9 @@ import { type MatchResponse } from 'types';
 export default async function (app: FastifyInstance): Promise<void> {
   app.get<{ Params: schemas.singleUuidParam }>(
     '/:uuid',
+    {
+      schema: schemas.getMatch,
+    },
     async (request, reply) => {
       const { uuid } = request.params;
       const match: Match | null = await app.db.getMatch(uuid);
