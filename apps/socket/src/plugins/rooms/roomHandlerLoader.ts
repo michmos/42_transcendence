@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { z } from 'zod';
+import { z, type ZodSafeParseResult } from 'zod';
 import { WSocket } from './WSocket/index.js';
 import { SocketMessage, type SocketMessageType } from './validation.js';
 
@@ -17,9 +17,9 @@ const Handler = z.object({
   onMessage: z.optional(z.function({ input: [ZodWSocket, SocketMessage] })),
   onClose: z.optional(z.function({ input: [ZodWSocket] })),
 });
-type Handler = z.infer<typeof Handler>;
+type HandlerType = z.infer<typeof Handler>;
 
-const roomHandlers: Record<string, Handler> = {};
+const roomHandlers: Record<string, HandlerType> = {};
 
 /**
  * Registers all room Handlers
@@ -32,8 +32,13 @@ export async function loadRoomHandlers() {
   for (const room of rooms) {
     const roomName = room;
     try {
-      const module = await import(`${roomsDir}/${roomName}/index.js`);
-      const result = Handler.safeParse(module.default);
+      const module: unknown = await import(`${roomsDir}/${roomName}/index.js`);
+      if (!module || typeof module !== 'object' || !('default' in module)) {
+        throw new Error('Module does not have a default export');
+      }
+      const result: ZodSafeParseResult<HandlerType> = Handler.safeParse(
+        module.default
+      );
       if (!result.success) {
         throw new Error(z.prettifyError(result.error));
       }

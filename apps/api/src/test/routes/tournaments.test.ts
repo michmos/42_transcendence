@@ -173,7 +173,7 @@ describe('POST /tournaments', () => {
   });
 });
 
-describe('GET /tournaments', async () => {
+describe('GET /tournaments', () => {
   setUserTo('MEMBER');
 
   test('valid: Get tournaments without status filter', async () => {
@@ -508,7 +508,10 @@ describe('POST /tournaments/{uuid}/users', () => {
         assert(tempUser !== null);
         await app.db.addUserToTournament(tempUser.uuid, tournament.uuid);
       } catch (error) {
-        assert(false, `Failed to add user to tournament: ${error}`);
+        assert(
+          false,
+          `Failed to add user to tournament: ${(error as Error).message}`
+        );
       }
     }
 

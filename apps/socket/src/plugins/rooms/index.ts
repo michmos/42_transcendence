@@ -54,7 +54,9 @@ async function roomPlugin(app: FastifyInstance) {
       try {
         await runOnOpenHooks(socket);
       } catch (error) {
-        console.error(`[${socket.uuid}]: error on open: ${error}`);
+        console.error(
+          `[${socket.uuid}]: error on open: ${(error as Error).message}`
+        );
       }
     }
   );
