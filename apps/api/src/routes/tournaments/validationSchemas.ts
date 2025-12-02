@@ -51,7 +51,7 @@ export const joinTournament = {
   }),
   body: Type.Object({
     uuid: Type.Optional(Type.String()),
-    alias: Type.String(),
+    alias: Type.String({ minLength: 1, maxLength: 50 }),
   }),
 };
 export type joinTournamentBody = Static<typeof joinTournament.body>;
