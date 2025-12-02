@@ -1,4 +1,5 @@
 // TODO: create tournament interface for return type
+import { type Tournament } from 'db/generated/client/client';
 
 export async function createTournament(specs: {
   tournamentName: string;
@@ -19,7 +20,7 @@ export async function createTournament(specs: {
     // TODO: handle error
     return null;
   }
-  const tournament = await response.json();
+  const tournament = (await response.json()) as Tournament;
   return tournament;
 }
 
