@@ -22,16 +22,14 @@ export default async function (app: FastifyInstance): Promise<void> {
       const player2Name = match.player2Id
         ? await getPlayerName(app, match.player2Id, match)
         : null;
-      return reply.status(200).send(
-        JSON.stringify({
-          uuid: match.uuid,
-          status: match.status,
-          player1Name,
-          player2Name,
-          score1: match.Score1,
-          score2: match.Score2,
-        } as MatchResponse)
-      );
+      return reply.status(200).send({
+        uuid: match.uuid,
+        status: match.status,
+        player1Name,
+        player2Name,
+        score1: match.Score1,
+        score2: match.Score2,
+      } as MatchResponse);
     }
   );
 }
