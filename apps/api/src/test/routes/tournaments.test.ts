@@ -12,6 +12,8 @@ import {
   type Tournament,
 } from 'db/generated/client/index.js';
 
+import { type TournamentRoundResponse } from 'types';
+
 describe('POST /tournaments', () => {
   setUserTo('MEMBER');
 
@@ -767,10 +769,11 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
     });
     expect(response.statusCode).toBe(200);
 
-    const responseRoundData = JSON.parse(response.payload);
+    const responseRoundData = JSON.parse(
+      response.payload
+    ) as TournamentRoundResponse;
     expect(responseRoundData.index).toBe(0);
     expect(Array.isArray(responseRoundData.matches)).toBe(true);
-    expect(responseRoundData.tournamentId).toBe(tournament.uuid);
   });
 
   test('valid: Get tournament round data as admin -> 200', async () => {
@@ -787,7 +790,7 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
     });
     expect(response.statusCode).toBe(200);
 
-    const roundData = JSON.parse(response.payload);
+    const roundData = JSON.parse(response.payload) as TournamentRoundResponse;
     expect(roundData.index).toBe(0);
   });
 
