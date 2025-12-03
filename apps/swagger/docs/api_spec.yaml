@@ -284,7 +284,7 @@ components:
                 type: string
                 format: uuid
 
-    Match:
+    CleanedMatch:
       type: object
       required:
         - uuid
@@ -311,6 +311,40 @@ components:
         score2:
           type: integer
           example: 5
+
+    Match:
+      type: object
+      required:
+        - uuid
+        - status
+        - score1
+        - score2
+        - player1Id
+        - player2Id
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/Status'
+        score1:
+          type: integer
+          example: 4
+        score2:
+          type: integer
+          example: 5
+        player1Id:
+          type: string
+          format: uuid
+        player2Id:
+          type: string
+          format: uuid
+        winnerId:
+          type: string
+          format: uuid
+        tournamentRoundId:
+          type: string
+          format: uuid
 
     CreateTournamentInput:
       type: object
@@ -1249,7 +1283,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Match'
+                $ref: '#/components/schemas/CleanedMatch'
         '404':
           description: Match doesn't exist
           content:
