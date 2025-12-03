@@ -11,7 +11,6 @@ export default async function (app: FastifyInstance): Promise<void> {
     '/:uuid',
     {
       schema: schemas.getMatch,
-      // TODO: define access restriction
     },
     async (request, reply) => {
       const { uuid } = request.params;
@@ -19,6 +18,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       if (!match) {
         return reply.status(404).send({ message: 'Match not found' });
       }
+      // determine displayable names
       const player1Name = match.player1Id
         ? await getPlayerName(app, match.player1Id, match)
         : null;
