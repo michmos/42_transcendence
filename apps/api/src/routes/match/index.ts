@@ -15,7 +15,9 @@ export default async function (app: FastifyInstance): Promise<void> {
       const { uuid } = request.params;
       const match: Match | null = await app.db.getMatch(uuid);
       if (!match) {
-        return reply.status(404).send({ message: 'Match not found' });
+        return reply
+          .status(404)
+          .send({ error: `match ${request.params.uuid} not found` });
       }
       // determine displayable names
       const player1Name = match.player1Id
@@ -50,7 +52,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2025') {
-            return reply.status(404).send('user not found');
+            return reply.status(404).send({ error: `user not found` });
           }
         }
         throw error;
@@ -80,7 +82,9 @@ export default async function (app: FastifyInstance): Promise<void> {
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2025') {
-            return reply.status(404).send('match not found');
+            return reply
+              .status(404)
+              .send({ error: `match ${request.params.uuid} not found` });
           }
         }
         throw error;
