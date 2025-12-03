@@ -79,7 +79,7 @@ describe('GET /match/:uuid', () => {
 });
 
 describe('POST /match', () => {
-  test('valid: post -> 200', async () => {
+  test('valid: post -> 201', async () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
@@ -92,7 +92,7 @@ describe('POST /match', () => {
     });
     expect(response.statusCode).toBe(201);
   });
-  test('valid: additional body properties -> 200', async () => {
+  test('valid: additional body properties -> 201', async () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
