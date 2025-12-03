@@ -15,9 +15,8 @@ function getSessionCookie(request: FastifyRequest): string | null {
   return remainder.split(';')[0] ?? null;
 }
 
-async function fetchUser(sessionCookie: string): Promise<User> {
-  // TODO: @michmoser - I replafed this from auth/session with  API call do we need the UUID? Then we shoul make a endpoint to get this.
-  const response = await fetch(`${env.API_URL}/user/me`, {
+async function fetchUuid(sessionCookie: string): Promise<string> {
+  const response = await fetch(`${env.API_URL}/user/me/uuid`, {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
@@ -29,13 +28,11 @@ async function fetchUser(sessionCookie: string): Promise<User> {
       `Authentication failed: ${response.status} ${response.statusText}`
     );
   }
-  const data = await response.json();
-  //TODO: WE get some weird type back what is not the user!
-  const user: User = data.cleanedUserData;
-  if (!user) {
+  const data = (await response.json()) as { uuid: string };
+  if (!data) {
     throw new Error(`Authentication failed: Invalid user data`);
   }
-  return user;
+  return data.uuid;
 }
 
 /**
@@ -50,11 +47,12 @@ async function authenticateClient(request: FastifyRequest) {
     throw new Error(`Authentication failed: No session cookie`);
   }
 
-  const user = await fetchUser(sessionCookie);
+  const uuid = await fetchUuid(sessionCookie);
   request.setDecorator('identifiers', {
     jwt: sessionCookie,
+    uuid,
   });
-  console.log(`User authenticated: ${user.nickname}`);
+  console.log(`User authenticated: ${uuid}`);
 }
 
 function authenticateAPIServer(request: FastifyRequest) {
