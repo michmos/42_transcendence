@@ -36,8 +36,8 @@ export const updateMatch = {
         )
       ),
       winnerId: Type.Optional(Type.String()),
-      Score1: Type.Optional(Type.Number()),
-      Score2: Type.Optional(Type.Number()),
+      score1: Type.Optional(Type.Number()),
+      score2: Type.Optional(Type.Number()),
     },
     { additionalProperties: false }
   ),

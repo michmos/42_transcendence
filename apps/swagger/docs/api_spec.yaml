@@ -1275,9 +1275,9 @@ paths:
                 winnerId:
                   type: string
                   format: uuid
-                Score1:
+                score1:
                   type: number
-                Score2:
+                score2:
                   type: number
       responses:
         '200':

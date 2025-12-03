@@ -30,8 +30,8 @@ export default async function (app: FastifyInstance): Promise<void> {
         status: match.status,
         player1Name,
         player2Name,
-        score1: match.Score1,
-        score2: match.Score2,
+        score1: match.score1,
+        score2: match.score2,
       } as MatchResponse);
     }
   );

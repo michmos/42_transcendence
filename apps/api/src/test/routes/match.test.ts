@@ -173,8 +173,8 @@ describe('PATCH /match/:uuid', () => {
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
-        Score1: 3,
-        Score2: 1,
+        score1: 3,
+        score2: 1,
       },
     });
     expect(response.statusCode).toBe(200);
@@ -192,8 +192,8 @@ describe('PATCH /match/:uuid', () => {
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
-        Score1: 3,
-        Score2: 1,
+        score1: 3,
+        score2: 1,
         whatever: 'this should be ignored',
       },
     });
@@ -207,8 +207,8 @@ describe('PATCH /match/:uuid', () => {
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
-        Score1: 3,
-        Score2: 1,
+        score1: 3,
+        score2: 1,
       },
     });
     expect(response.statusCode).toBe(404);
@@ -226,8 +226,8 @@ describe('PATCH /match/:uuid', () => {
       body: {
         status: 'wrong status value',
         winnerId: normalUser.uuid,
-        Score1: 3,
-        Score2: 1,
+        score1: 3,
+        score2: 1,
       },
     });
     expect(response.statusCode).toBe(400);
@@ -245,8 +245,8 @@ describe('PATCH /match/:uuid', () => {
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
-        Score1: 3,
-        Score2: 1,
+        score1: 3,
+        score2: 1,
       },
     });
     expect(response.statusCode).toBe(403);
