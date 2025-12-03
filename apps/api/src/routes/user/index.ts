@@ -13,7 +13,6 @@ import {
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
 import type { UserMatchRecord, UserDashboardResponse } from 'types';
-// import { type UserMatchRecord } from '../../../../../packages/types/src/index.js';
 
 export default function (app: FastifyInstance): void {
   app.get('/', async function (request, reply) {
