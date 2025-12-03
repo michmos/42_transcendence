@@ -289,8 +289,6 @@ components:
       required:
         - uuid
         - status
-        - player1Name
-        - player2Name
         - score1
         - score2
       properties:
