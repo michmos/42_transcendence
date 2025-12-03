@@ -2,10 +2,21 @@ import type { Match, status } from 'db/generated/client/index.js';
 import Database from 'db';
 
 export async function addMatch(data: {
-  player1Id?: string;
-  player2Id?: string;
+  player1Id: string;
+  player2Id: string;
+  status?: status;
 }): Promise<Match> {
-  return Database.match.create({ data });
+  return Database.match.create({
+    data: {
+      player1: {
+        connect: { uuid: data.player1Id },
+      },
+      player2: {
+        connect: { uuid: data.player2Id },
+      },
+      ...(data.status !== undefined ? { status: data.status } : {}),
+    },
+  });
 }
 
 export async function updateMatch(
