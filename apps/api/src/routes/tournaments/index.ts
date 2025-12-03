@@ -11,12 +11,13 @@ export default function (app: FastifyInstance): void {
     '/',
     {
       schema: schemas.createTournament,
-      preHandler: (request, reply) => {
+      preHandler: (request, reply, done) => {
         if (request.body.minPlayers > request.body.maxPlayers) {
           reply.status(400).send({
             error: 'maxPlayers must be >= minPlayers',
           });
         }
+        done();
       },
     },
     async function (request, reply) {
@@ -98,8 +99,10 @@ export default function (app: FastifyInstance): void {
     '/:uuid/users',
     {
       schema: schemas.joinOrLeave,
-      preHandler: (request, reply) => {
-        if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
+      preHandler: (request, reply, done) => {
+        if (request.body.uuid !== undefined && !isAdmin(request, reply)) {
+        }
+        done();
       },
     },
     async function (request, reply) {
@@ -163,8 +166,10 @@ export default function (app: FastifyInstance): void {
     '/:uuid/users',
     {
       schema: schemas.joinOrLeave,
-      preHandler: (request, reply) => {
-        if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
+      preHandler: (request, reply, done) => {
+        if (request.body.uuid !== undefined && !isAdmin(request, reply)) {
+        }
+        done();
       },
     },
     async function (request, reply) {
@@ -224,13 +229,17 @@ export default function (app: FastifyInstance): void {
     '/:uuid',
     {
       schema: schemas.updateTournament,
-      preHandler: (request, reply) => {
-        if (!isAdmin(request, reply)) return;
+      preHandler: (request, reply, done) => {
+        if (!isAdmin(request, reply)) {
+          return done();
+        }
         if (Object.values(request.body).length === 0) {
-          return reply.status(400).send({
+          reply.status(400).send({
             error: 'Only status and tournamentName can be updated',
           });
+          return done();
         }
+        done();
       },
     },
     async function (request, reply) {
