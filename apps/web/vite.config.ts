@@ -27,7 +27,7 @@ export default defineConfig(() => {
           secure: false,
         },
         '/cdn': {
-          target: `http://localhost:${cdnPort}`,
+          target: `http://localhost:${env.CDN_PORT}`,
           changeOrigin: true,
           secure: false,
         },

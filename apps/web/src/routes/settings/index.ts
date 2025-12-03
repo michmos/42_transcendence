@@ -26,7 +26,7 @@ export default async function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
@@ -92,16 +92,17 @@ export default async function initRoute() {
   // Profile Picture Section
   const profilePicSection = document.createElement('div');
   profilePicSection.className = 'mb-8 pb-8 border-b border-white/20';
-  
+
   const profilePicContent = document.createElement('div');
   profilePicContent.className = 'flex items-center gap-6';
-  
+
   const avatarContainer = document.createElement('div');
   avatarContainer.className = 'relative';
-  
+
   const avatarDisplay = document.createElement('div');
-  avatarDisplay.className = 'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden';
-  
+  avatarDisplay.className =
+    'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden';
+
   // Display current avatar or initials
   if (currentAvatar) {
     const avatarImg = document.createElement('img');
@@ -123,9 +124,10 @@ export default async function initRoute() {
       </svg>
     `;
   }
-  
+
   const uploadLabel = document.createElement('label');
-  uploadLabel.className = 'absolute bottom-0 right-0 w-8 h-8 rounded-full bg-accent flex items-center justify-center cursor-pointer hover:bg-accent/80 transition-colors border-2 border-white';
+  uploadLabel.className =
+    'absolute bottom-0 right-0 w-8 h-8 rounded-full bg-accent flex items-center justify-center cursor-pointer hover:bg-accent/80 transition-colors border-2 border-white';
   uploadLabel.innerHTML = `
     <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -134,30 +136,32 @@ export default async function initRoute() {
     </svg>
     <input type="file" id="avatar-upload" accept="image/png,image/jpeg,image/jpg" class="hidden" />
   `;
-  
+
   const infoDiv = document.createElement('div');
   infoDiv.innerHTML = `
     <h3 class="text-lg font-semibold text-white mb-1">Profile Picture</h3>
     <p class="text-sm text-white/60">Upload a new profile picture (max 2MB)</p>
     <p id="avatar-error" class="text-sm text-red-400 mt-1 hidden"></p>
   `;
-  
+
   avatarContainer.appendChild(avatarDisplay);
   avatarContainer.appendChild(uploadLabel);
   profilePicContent.appendChild(avatarContainer);
   profilePicContent.appendChild(infoDiv);
   profilePicSection.appendChild(profilePicContent);
-  
+
   // Handle avatar upload
-  const avatarInput = uploadLabel.querySelector('#avatar-upload') as HTMLInputElement;
+  const avatarInput = uploadLabel.querySelector(
+    '#avatar-upload'
+  ) as HTMLInputElement;
   const avatarError = infoDiv.querySelector('#avatar-error') as HTMLElement;
   let selectedAvatarFile: File | null = null;
-  
+
   if (avatarInput) {
     avatarInput.addEventListener('change', (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      
+
       // Validate file size (2MB = 2 * 1024 * 1024 bytes)
       const maxSize = 2 * 1024 * 1024;
       if (file.size > maxSize) {
@@ -166,7 +170,7 @@ export default async function initRoute() {
         avatarInput.value = '';
         return;
       }
-      
+
       // Validate file type
       const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
       if (!validTypes.includes(file.type)) {
@@ -175,11 +179,11 @@ export default async function initRoute() {
         avatarInput.value = '';
         return;
       }
-      
+
       // Clear error
       avatarError.classList.add('hidden');
       selectedAvatarFile = file;
-      
+
       // Preview the image
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -295,33 +299,39 @@ export default async function initRoute() {
   saveButton.textContent = 'Save Changes';
   saveButton.className =
     'ml-auto px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-  
+
   saveButton.addEventListener('click', async () => {
-    const displayNameInput = document.getElementById('display-name') as HTMLInputElement;
-    const nicknameError = document.getElementById('nickname-error') as HTMLElement;
+    const displayNameInput = document.getElementById(
+      'display-name'
+    ) as HTMLInputElement;
+    const nicknameError = document.getElementById(
+      'nickname-error'
+    ) as HTMLElement;
     const newNickname = displayNameInput?.value.trim();
-    
+
     // Validate nickname
     if (!newNickname || newNickname.length < 3 || newNickname.length > 30) {
-      nicknameError.textContent = 'Nickname must be between 3 and 30 characters';
+      nicknameError.textContent =
+        'Nickname must be between 3 and 30 characters';
       nicknameError.classList.remove('hidden');
       return;
     }
-    
+
     // Validate nickname pattern (letters, numbers, underscores, hyphens)
     if (!/^[a-zA-Z0-9_-]+$/.test(newNickname)) {
-      nicknameError.textContent = 'Nickname can only contain letters, numbers, underscores, and hyphens';
+      nicknameError.textContent =
+        'Nickname can only contain letters, numbers, underscores, and hyphens';
       nicknameError.classList.remove('hidden');
       return;
     }
-    
+
     nicknameError.classList.add('hidden');
     saveButton.disabled = true;
     saveButton.textContent = 'Saving...';
-    
+
     let hasError = false;
     let errorMessage = 'Failed to save settings';
-    
+
     try {
       // Update nickname if changed
       if (newNickname !== currentNickname) {
@@ -333,11 +343,14 @@ export default async function initRoute() {
           }
         } catch (error) {
           hasError = true;
-          errorMessage = error instanceof Error ? error.message : 'Failed to update nickname';
+          errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to update nickname';
           console.error('Error updating nickname:', error);
         }
       }
-      
+
       // Upload avatar if selected (only if nickname update succeeded or wasn't needed)
       if (selectedAvatarFile && !hasError) {
         try {
@@ -348,11 +361,12 @@ export default async function initRoute() {
           }
         } catch (error) {
           hasError = true;
-          errorMessage = error instanceof Error ? error.message : 'Failed to upload avatar';
+          errorMessage =
+            error instanceof Error ? error.message : 'Failed to upload avatar';
           console.error('Error uploading avatar:', error);
         }
       }
-      
+
       if (hasError) {
         alert(`Error: ${errorMessage}`);
         saveButton.disabled = false;
@@ -363,14 +377,15 @@ export default async function initRoute() {
         navigateTo('/profile');
       }
     } catch (error) {
-      const finalErrorMessage = error instanceof Error ? error.message : 'Failed to save settings';
+      const finalErrorMessage =
+        error instanceof Error ? error.message : 'Failed to save settings';
       alert(`Error: ${finalErrorMessage}`);
       console.error('Unexpected error saving settings:', error);
       saveButton.disabled = false;
       saveButton.textContent = 'Save Changes';
     }
   });
-  
+
   saveBtnWrapper.appendChild(saveButton);
 
   actionsSection.appendChild(cancelBtnWrapper);

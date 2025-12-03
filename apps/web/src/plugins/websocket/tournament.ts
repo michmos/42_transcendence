@@ -21,10 +21,10 @@ interface TournamentSocketMessage {
 
 /**
  * Tournament Socket Client
- * 
+ *
  * Handles WebSocket connections for tournament real-time updates.
  * Works gracefully without backend support (falls back to polling).
- * 
+ *
  * Note: Your teammate will provide joinTournament/leaveTournament functions
  * that use window.socket - this client is for listening to updates.
  */
@@ -34,7 +34,7 @@ class TournamentSocket {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private listeners: Map<string, Set<(data: any) => void>> = new Map();
+  private listeners = new Map<string, Set<(data: any) => void>>();
   private isInitialized = false;
 
   constructor() {
@@ -235,4 +235,3 @@ class TournamentSocket {
 // Export singleton instance
 export const tournamentSocket = new TournamentSocket();
 export default tournamentSocket;
-

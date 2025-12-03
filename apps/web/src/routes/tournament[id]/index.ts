@@ -38,7 +38,9 @@ interface LeaderboardEntry {
 /**
  * Map backend status to UI round status
  */
-function mapRoundStatusToUI(round: TournamentRound): 'completed' | 'in-progress' | 'upcoming' {
+function mapRoundStatusToUI(
+  round: TournamentRound
+): 'completed' | 'in-progress' | 'upcoming' {
   // Check if all matches are finished
   const allMatchesFinished = round.matches.every(
     (match) => match.status === 'finished'
@@ -65,7 +67,7 @@ function buildLeaderboard(
 ): LeaderboardEntry[] {
   // Get all participants
   const participants = tournament.participants || [];
-  
+
   // Calculate stats per player
   const playerStats = new Map<
     string,
@@ -328,7 +330,10 @@ function renderTournamentProgress(
   container.appendChild(cardContainer);
 }
 
-function renderLeaderboard(container: HTMLElement, leaderboard: LeaderboardEntry[]) {
+function renderLeaderboard(
+  container: HTMLElement,
+  leaderboard: LeaderboardEntry[]
+) {
   const cardContainer = document.createElement('div');
   const card = new Card(cardContainer, {
     title: 'Leaderboard',
@@ -355,11 +360,12 @@ function renderLeaderboard(container: HTMLElement, leaderboard: LeaderboardEntry
       </tr>
     </thead>
     <tbody>
-      ${leaderboard.length === 0
-        ? '<tr><td colspan="4" class="py-8 text-center text-white/60">No matches played yet</td></tr>'
-        : leaderboard
-            .map(
-              (entry) => `
+      ${
+        leaderboard.length === 0
+          ? '<tr><td colspan="4" class="py-8 text-center text-white/60">No matches played yet</td></tr>'
+          : leaderboard
+              .map(
+                (entry) => `
         <tr class="border-b border-white/20 hover:bg-white/5 transition-colors">
           <td class="py-3 px-4 text-white font-medium">${entry.rank}</td>
           <td class="py-3 px-4 text-white">${entry.player}</td>
@@ -367,8 +373,9 @@ function renderLeaderboard(container: HTMLElement, leaderboard: LeaderboardEntry
           <td class="py-3 px-4 text-white">${entry.scoreDiff > 0 ? '+' : ''}${entry.scoreDiff}</td>
         </tr>
       `
-            )
-            .join('')}
+              )
+              .join('')
+      }
     </tbody>
   `;
 
@@ -425,7 +432,8 @@ export default async function initRoute() {
   const tournamentUuid = routeParams.id;
 
   if (!tournamentUuid) {
-    pageRoot.innerHTML = '<div class="p-8 text-white">Tournament ID not found</div>';
+    pageRoot.innerHTML =
+      '<div class="p-8 text-white">Tournament ID not found</div>';
     return;
   }
 
@@ -439,7 +447,7 @@ export default async function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
@@ -506,16 +514,20 @@ export default async function initRoute() {
   // Function to refresh tournament data
   const refreshTournamentData = async () => {
     if (!currentTournament) return;
-    
+
     try {
-      const updatedTournament = await TournamentAPI.getTournament(tournamentUuid);
+      const updatedTournament =
+        await TournamentAPI.getTournament(tournamentUuid);
       if (updatedTournament) {
         currentTournament = updatedTournament;
         // Re-fetch rounds if needed
         const updatedRounds: TournamentRound[] = [];
         for (let i = 0; i < updatedTournament.numberOfRounds; i++) {
           try {
-            const round = await TournamentAPI.getTournamentRound(tournamentUuid, i);
+            const round = await TournamentAPI.getTournamentRound(
+              tournamentUuid,
+              i
+            );
             if (round) {
               updatedRounds.push(round);
             }
@@ -530,13 +542,13 @@ export default async function initRoute() {
           status: mapRoundStatusToUI(round),
         }));
         currentLeaderboard = buildLeaderboard(updatedTournament, updatedRounds);
-        
+
         // Re-render the page with updated data
         innerContainer.innerHTML = '';
         const headerDiv = document.createElement('div');
         renderTournamentHeader(headerDiv, updatedTournament);
         innerContainer.appendChild(headerDiv);
-        
+
         // Re-add status badge
         const tournamentHeader = headerDiv.firstElementChild as HTMLElement;
         if (tournamentHeader) {
@@ -547,7 +559,8 @@ export default async function initRoute() {
               text: statusMap[updatedTournament.status] || 'Unknown',
               variant: 'default',
             });
-            const statusBadgeElement = statusBadgeContainer.firstElementChild as HTMLElement;
+            const statusBadgeElement =
+              statusBadgeContainer.firstElementChild as HTMLElement;
             if (statusBadgeElement) {
               const statusColors: Record<status, string> = {
                 outstanding: 'bg-warning text-white',
@@ -557,15 +570,22 @@ export default async function initRoute() {
               };
               statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[updatedTournament.status] || 'bg-muted'}`;
             }
-            badgesSection.insertBefore(statusBadgeContainer, badgesSection.firstChild);
+            badgesSection.insertBefore(
+              statusBadgeContainer,
+              badgesSection.firstChild
+            );
           }
         }
-        
+
         renderStatsCards(innerContainer, updatedTournament);
         const gridContainer = document.createElement('div');
         gridContainer.className = 'grid gap-6 lg:grid-cols-2';
         const progressColumn = document.createElement('div');
-        renderTournamentProgress(progressColumn, currentUIRounds, tournamentUuid);
+        renderTournamentProgress(
+          progressColumn,
+          currentUIRounds,
+          tournamentUuid
+        );
         gridContainer.appendChild(progressColumn);
         const leaderboardColumn = document.createElement('div');
         renderLeaderboard(leaderboardColumn, currentLeaderboard);
@@ -608,7 +628,7 @@ export default async function initRoute() {
         console.error(`Error fetching round ${i}:`, error);
       }
     }
-    
+
     currentRounds = rounds;
 
     // Map rounds to UI format
@@ -650,7 +670,10 @@ export default async function initRoute() {
           };
           statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[tournament.status] || 'bg-muted'}`;
         }
-        badgesSection.insertBefore(statusBadgeContainer, badgesSection.firstChild);
+        badgesSection.insertBefore(
+          statusBadgeContainer,
+          badgesSection.firstChild
+        );
       }
     }
 
@@ -701,14 +724,20 @@ export default async function initRoute() {
       }
     };
 
-    const handleUserLeft = (data: { tournamentUuid: string; userUuid: string }) => {
+    const handleUserLeft = (data: {
+      tournamentUuid: string;
+      userUuid: string;
+    }) => {
       if (data.tournamentUuid === tournamentUuid) {
         // Refresh tournament to show updated player count
         refreshTournamentData();
       }
     };
 
-    const handleTournamentStarted = (data: { uuid: string; rounds: TournamentRound[] }) => {
+    const handleTournamentStarted = (data: {
+      uuid: string;
+      rounds: TournamentRound[];
+    }) => {
       if (data.uuid === tournamentUuid) {
         // Tournament started - refresh to show rounds
         refreshTournamentData();
@@ -750,7 +779,7 @@ export default async function initRoute() {
     innerContainer.innerHTML = '';
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to load tournament';
-    
+
     if (errorMessage.includes('Forbidden')) {
       renderErrorState(
         innerContainer,
@@ -759,7 +788,7 @@ export default async function initRoute() {
     } else {
       renderErrorState(innerContainer, errorMessage);
     }
-    
+
     showApiError({
       message: errorMessage,
       status: 0,

@@ -20,7 +20,7 @@ export default async function initRoute() {
     // If container doesn't exist, create it
     const app = document.getElementById('app');
     if (!app) return;
-    
+
     const container = document.createElement('div');
     container.className = 'user-container';
     app.innerHTML = '';
@@ -75,7 +75,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
   try {
     // Fetch user data
     const userData = await UserAPI.getUserByNickname(nickname);
-    
+
     if (!userData || !userData.nickname) {
       renderError('User not found', mainContent);
       return;
@@ -83,8 +83,10 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
 
     // Check if viewing own profile
     const currentUserProfile = await UserAPI.getUserProfile();
-    const isSelf = currentUserProfile?.cleanedUserData.nickname?.toLowerCase() === nickname.toLowerCase();
-    
+    const isSelf =
+      currentUserProfile?.cleanedUserData.nickname?.toLowerCase() ===
+      nickname.toLowerCase();
+
     if (isSelf) {
       // Redirect to own profile
       navigateTo('/profile');
@@ -105,7 +107,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     // Page header with user info
     const pageHeader = document.createElement('div');
     pageHeader.className = 'mb-8 flex items-center gap-6';
-    
+
     const avatar = userData.avatar || null;
     const userNickname = userData.nickname || nickname;
     const initials = userNickname
@@ -116,8 +118,9 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
       .slice(0, 2);
 
     const avatarDisplay = document.createElement('div');
-    avatarDisplay.className = 'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden flex-shrink-0';
-    
+    avatarDisplay.className =
+      'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden flex-shrink-0';
+
     if (avatar) {
       const avatarImg = document.createElement('img');
       avatarImg.src = avatar;
@@ -142,7 +145,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
 
     // Friendship action button
     const actionButton = createFriendshipActionButton(friendship, userNickname);
-    
+
     pageHeader.appendChild(avatarDisplay);
     pageHeader.appendChild(headerInfo);
     pageHeader.appendChild(actionButton);
@@ -160,14 +163,16 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
 
     // Stats Grid
     const statsGrid = document.createElement('div');
-    statsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
+    statsGrid.className =
+      'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
     leftColumn.appendChild(statsGrid);
 
     const totalMatches = userData.gamesPlayed || 0;
     const gamesWon = userData.gamesWon || 0;
-    const winRate = totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
+    const winRate =
+      totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
     const tournaments = userData.tournamentsPlayed || 0;
-    
+
     // Calculate friends count (ACCEPTED friends)
     // Use same logic as profile page: filter ACCEPTED friends
     const friends = currentUserProfile
@@ -222,7 +227,6 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     if (friendshipBody) {
       renderFriendshipStatus(friendshipBody, friendship, userNickname);
     }
-
   } catch (error) {
     loadingDiv.remove();
     renderError(
@@ -261,7 +265,9 @@ function createFriendshipActionButton(
         }, 1000);
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Failed to send friend request';
+          error instanceof Error
+            ? error.message
+            : 'Failed to send friend request';
         alert(errorMessage);
         button.disabled = false;
         button.textContent = 'Add Friend';
@@ -307,7 +313,7 @@ function createFriendshipActionButton(
       // Request received - show Accept/Reject buttons
       const buttonGroup = document.createElement('div');
       buttonGroup.className = 'flex gap-2';
-      
+
       const acceptBtn = document.createElement('button');
       acceptBtn.className =
         'px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors cursor-pointer';

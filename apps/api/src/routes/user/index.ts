@@ -10,6 +10,7 @@ import fastifyMultipart from '@fastify/multipart';
 import { getTournaments } from '../tournaments/validationSchemas.js';
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
+import { env } from '../../env.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.get('/', async function (request, reply) {
@@ -100,11 +101,12 @@ export default async function (app: FastifyInstance): Promise<void> {
 
       // generating new filename for avatar
       const avatarUuid = crypto.randomUUID();
-      const newFilename = `${avatarUuid}`;
+      const newFilename = `${avatarUuid}.png`;
 
       // Generating path where avatar will get stored & then then relative path to be stored in DB
+      // TODO: path.join should become the CDN_PATH '/var/data' with 'userAvatars' added, and then file name -> '/var/data/userAvatars/image_name.jpeg' when all services are in containers
       const savePath = path.join(
-        process.cwd(),
+        `${env.CDN_PATH}`,
         'public/userAvatars',
         newFilename
       );
@@ -117,7 +119,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       try {
         await sharp(buffer)
           .resize(256, 256, { fit: 'cover' })
-          .jpeg({ quality: 80 })
+          .png({ quality: 80 })
           .toFile(savePath);
       } catch {
         return reply.code(415).send({

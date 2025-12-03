@@ -52,7 +52,10 @@ function mapMatchStatusToUI(
  * Handles both cases: when player relation is loaded and when only ID is available
  */
 function getPlayerNickname(
-  player: { nickname?: string | null; email?: string | null } | null | undefined,
+  player:
+    | { nickname?: string | null; email?: string | null }
+    | null
+    | undefined,
   playerId?: string | null
 ): string {
   // If player object exists with nickname/email, use it
@@ -143,11 +146,11 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
     `;
   } else {
     matches.forEach((match) => {
-    const matchItem = document.createElement('div');
-    matchItem.className =
-      'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all hover:bg-white/10';
+      const matchItem = document.createElement('div');
+      matchItem.className =
+        'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all hover:bg-white/10';
 
-    matchItem.innerHTML = `
+      matchItem.innerHTML = `
       <div class="flex items-center p-6">
         <!-- Opponent 1 -->
         <div class="flex-1 min-w-0">
@@ -180,26 +183,28 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
       </div>
     `;
 
-    // Append status badge
-    const badgeContainer = matchItem.querySelector(`#status-badge-${match.id}`);
-    if (badgeContainer) {
-      const statusText =
-        match.status === 'completed'
-          ? 'Final'
-          : match.status === 'live'
-            ? 'LIVE'
-            : 'Scheduled';
-      const variant =
-        match.status === 'completed'
-          ? 'success'
-          : match.status === 'live'
-            ? 'warning'
-            : 'default';
-      new Badge(badgeContainer as HTMLElement, {
-        text: statusText,
-        variant: variant,
-      });
-    }
+      // Append status badge
+      const badgeContainer = matchItem.querySelector(
+        `#status-badge-${match.id}`
+      );
+      if (badgeContainer) {
+        const statusText =
+          match.status === 'completed'
+            ? 'Final'
+            : match.status === 'live'
+              ? 'LIVE'
+              : 'Scheduled';
+        const variant =
+          match.status === 'completed'
+            ? 'success'
+            : match.status === 'live'
+              ? 'warning'
+              : 'default';
+        new Badge(badgeContainer as HTMLElement, {
+          text: statusText,
+          variant: variant,
+        });
+      }
 
       matchesContainer.appendChild(matchItem);
     });
@@ -300,7 +305,7 @@ export default async function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
@@ -359,7 +364,10 @@ export default async function initRoute() {
     }
 
     // Fetch round
-    const round = await TournamentAPI.getTournamentRound(tournamentId, roundIndex);
+    const round = await TournamentAPI.getTournamentRound(
+      tournamentId,
+      roundIndex
+    );
     if (!round) {
       renderErrorState(innerContainer, 'Round not found');
       return;

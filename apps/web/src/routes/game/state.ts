@@ -7,7 +7,9 @@ function initCanvas() {
   if (!canvas || !document.body.contains(canvas)) {
     canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
     if (!canvas) {
-      throw new Error('Canvas not found — make sure canvas element exists with id="gameCanvas"');
+      throw new Error(
+        'Canvas not found — make sure canvas element exists with id="gameCanvas"'
+      );
     }
     ctx = canvas.getContext('2d');
     if (!ctx) {

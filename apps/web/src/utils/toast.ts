@@ -1,6 +1,6 @@
 /**
  * Toast Notification Utility
- * 
+ *
  * Provides a simple toast notification system for displaying temporary messages
  * to users. Toasts appear in the top-right corner and auto-dismiss after a delay.
  */
@@ -15,7 +15,7 @@ export interface ToastOptions {
 
 class ToastManager {
   private container: HTMLElement | null = null;
-  private toasts: Set<HTMLElement> = new Set();
+  private toasts = new Set<HTMLElement>();
 
   constructor() {
     this.createContainer();
@@ -23,7 +23,7 @@ class ToastManager {
 
   private createContainer() {
     // Check if container already exists
-    let existingContainer = document.getElementById('toast-container');
+    const existingContainer = document.getElementById('toast-container');
     if (existingContainer) {
       this.container = existingContainer;
       return;
@@ -143,4 +143,3 @@ class ToastManager {
 // Export singleton instance
 export const toast = new ToastManager();
 export default toast;
-

@@ -25,6 +25,8 @@ export const env = createEnv({
       .nonempty('GITHUB_CLIENT_SECRET is required'),
     REDIRECT_URL: z.string().nonempty('GOOGLE_REDIRECT_URL is required'),
     JWT_SECRET: z.string().nonempty('JWT_SECRET is required'),
+
+    CDN_PATH: z.string().nonempty('CDN_PATH is required'),
   },
 
   runtimeEnv: process.env,

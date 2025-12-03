@@ -12,13 +12,11 @@ export interface ApiError {
 
 /**
  * Handles API errors consistently across the application
- * 
+ *
  * @param response - Fetch Response object
  * @returns Promise<ApiError> - Structured error object
  */
-export async function handleApiError(
-  response: Response
-): Promise<ApiError> {
+export async function handleApiError(response: Response): Promise<ApiError> {
   const status = response.status;
   let errorMessage = 'An error occurred';
   let shouldRedirect = false;
@@ -94,7 +92,7 @@ export async function handleApiError(
 
 /**
  * Handles network errors (no response from server)
- * 
+ *
  * @returns ApiError - Structured error object for network errors
  */
 export function handleNetworkError(): ApiError {
@@ -108,7 +106,7 @@ export function handleNetworkError(): ApiError {
 /**
  * Shows an error message to the user
  * Can be extended to use a toast/notification system in the future
- * 
+ *
  * @param error - ApiError object
  */
 export function showApiError(error: ApiError): void {
@@ -125,21 +123,13 @@ export function showApiError(error: ApiError): void {
 
 /**
  * Helper function to handle fetch errors (both network and API errors)
- * 
+ *
  * @param response - Fetch Response object (may be undefined for network errors)
  * @returns Promise<ApiError> - Structured error object
  */
-export async function handleFetchError(
-  response?: Response
-): Promise<ApiError> {
+export async function handleFetchError(response?: Response): Promise<ApiError> {
   if (!response) {
     return handleNetworkError();
   }
   return handleApiError(response);
 }
-
-
-
-
-
-

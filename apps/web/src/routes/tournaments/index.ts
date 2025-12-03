@@ -3,7 +3,10 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import TournamentAPI from '../../plugins/api/tournaments.js';
 import UserAPI from '../../plugins/api/user.js';
-import type { Tournament as BackendTournament, status } from '../../types/api.js';
+import type {
+  Tournament as BackendTournament,
+  status,
+} from '../../types/api.js';
 import { handleApiError, showApiError } from '../../utils/api-helpers.js';
 import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
@@ -32,7 +35,9 @@ interface Tournament {
 /**
  * Map backend status to UI status
  */
-function mapStatusToUI(backendStatus: status): 'active' | 'upcoming' | 'completed' {
+function mapStatusToUI(
+  backendStatus: status
+): 'active' | 'upcoming' | 'completed' {
   switch (backendStatus) {
     case 'outstanding':
       return 'upcoming';
@@ -239,11 +244,13 @@ function renderTournamentGrid(
     // Check if user is participant
     // Note: participants array may not be included in list response, so we check if it exists
     const participants = backendTournament?.participants || [];
-    const isParticipant = participants.length > 0 
-      ? participants.some((p: any) => p.uuid === currentUserId)
-      : false; // If participants not included, assume not participant (will show Join button)
+    const isParticipant =
+      participants.length > 0
+        ? participants.some((p: any) => p.uuid === currentUserId)
+        : false; // If participants not included, assume not participant (will show Join button)
     // Check if user is the creator (first participant)
-    const isCreator = participants.length > 0 && participants[0]?.uuid === currentUserId;
+    const isCreator =
+      participants.length > 0 && participants[0]?.uuid === currentUserId;
     // Check if minimum players have joined (for showing Start button)
     const hasMinPlayers =
       backendTournament?.playerCount >= backendTournament?.minPlayers;
@@ -303,11 +310,18 @@ function renderTournamentGrid(
           <div class="flex gap-2">
             ${(() => {
               // Check if participants array was included in response
-              const participantsIncluded = Array.isArray(backendTournament?.participants);
-              
+              const participantsIncluded = Array.isArray(
+                backendTournament?.participants
+              );
+
               // Case 1: User IS participant (only if participants array was included), min players reached, tournament outstanding -> Show Start + View Details
               // Note: All participants can see Start button when min players reached
-              if (participantsIncluded && isParticipant && hasMinPlayers && isOutstanding) {
+              if (
+                participantsIncluded &&
+                isParticipant &&
+                hasMinPlayers &&
+                isOutstanding
+              ) {
                 return `<button class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium cursor-pointer start-tournament-btn" data-tournament-id="${tournament.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="5 3 19 12 5 21 5 3"/>
@@ -322,9 +336,14 @@ function renderTournamentGrid(
                   View Details
                 </button>`;
               }
-              
+
               // Case 2: User IS participant (only if participants array was included), min players NOT reached -> Show View Details only
-              if (participantsIncluded && isParticipant && !hasMinPlayers && isOutstanding) {
+              if (
+                participantsIncluded &&
+                isParticipant &&
+                !hasMinPlayers &&
+                isOutstanding
+              ) {
                 return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -333,10 +352,15 @@ function renderTournamentGrid(
                   View Details
                 </button>`;
               }
-              
+
               // Case 3: Tournament is outstanding, not full, user logged in, user is NOT participant -> Show Join button
               // (This replaces View Details for non-participants)
-              if (isOutstanding && !isFull && currentUserId && (!participantsIncluded || !isParticipant)) {
+              if (
+                isOutstanding &&
+                !isFull &&
+                currentUserId &&
+                (!participantsIncluded || !isParticipant)
+              ) {
                 return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors font-medium cursor-pointer join-tournament-btn" data-tournament-id="${tournament.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -349,7 +373,7 @@ function renderTournamentGrid(
                   Join
                 </button>`;
               }
-              
+
               // Case 4: Tournament is full and user not participant -> Show Full + View Details
               if (isFull && (!participantsIncluded || !isParticipant)) {
                 return `<button class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-muted text-muted-foreground rounded-lg cursor-not-allowed font-medium" disabled>
@@ -363,7 +387,7 @@ function renderTournamentGrid(
                   View Details
                 </button>`;
               }
-              
+
               // Case 5: Default -> Show View Details only (for non-outstanding tournaments, etc.)
               return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -605,9 +629,13 @@ function showNewTournamentDialog() {
 
   // Handle form submission
   const createBtn = dialog.querySelector('#create-btn') as HTMLButtonElement;
-  const nameInput = dialog.querySelector('#tournament-name') as HTMLInputElement;
+  const nameInput = dialog.querySelector(
+    '#tournament-name'
+  ) as HTMLInputElement;
   const minSizeInput = dialog.querySelector('#min-size') as HTMLInputElement;
-  const maxPlayersInput = dialog.querySelector('#max-players') as HTMLInputElement;
+  const maxPlayersInput = dialog.querySelector(
+    '#max-players'
+  ) as HTMLInputElement;
 
   createBtn.addEventListener('click', async () => {
     // Get form values
@@ -709,7 +737,7 @@ export default async function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
@@ -741,9 +769,7 @@ export default async function initRoute() {
     filteredTournaments = filtered;
     // Map filtered tournaments to backend tournaments
     filteredBackendTournaments = filtered.map((uiTournament) => {
-      return allBackendTournaments.find(
-        (bt) => bt.uuid === uiTournament.id
-      )!;
+      return allBackendTournaments.find((bt) => bt.uuid === uiTournament.id)!;
     });
     updateTournamentGrid();
   });
@@ -784,7 +810,8 @@ export default async function initRoute() {
     updateTournamentGrid();
 
     try {
-      const backendTournaments = await TournamentAPI.getTournaments(statusFilter);
+      const backendTournaments =
+        await TournamentAPI.getTournaments(statusFilter);
       allBackendTournaments = backendTournaments;
       allTournaments = backendTournaments.map(mapTournamentToUI);
       filteredTournaments = [...allTournaments];
@@ -828,14 +855,20 @@ export default async function initRoute() {
     loadTournaments();
   };
 
-  const handleTournamentJoined = (data: { uuid: string; playerCount: number }) => {
+  const handleTournamentJoined = (data: {
+    uuid: string;
+    playerCount: number;
+  }) => {
     // Find tournament name for toast
     const tournament = allBackendTournaments.find((t) => t.uuid === data.uuid);
     const tournamentName = tournament?.tournamentName || 'Tournament';
     // Show toast notification
-    toast.show(`Someone joined ${tournamentName} (${data.playerCount} players)`, {
-      variant: 'info',
-    });
+    toast.show(
+      `Someone joined ${tournamentName} (${data.playerCount} players)`,
+      {
+        variant: 'info',
+      }
+    );
     // Update tournament in list
     handleTournamentUpdated({
       uuid: data.uuid,
@@ -843,7 +876,10 @@ export default async function initRoute() {
     });
   };
 
-  const handleTournamentLeft = (data: { uuid: string; playerCount: number }) => {
+  const handleTournamentLeft = (data: {
+    uuid: string;
+    playerCount: number;
+  }) => {
     // Find tournament name for toast
     const tournament = allBackendTournaments.find((t) => t.uuid === data.uuid);
     const tournamentName = tournament?.tournamentName || 'Tournament';
@@ -864,9 +900,7 @@ export default async function initRoute() {
     playerCount?: number;
   }) => {
     // Update existing tournament in the list
-    const index = allBackendTournaments.findIndex(
-      (t) => t.uuid === data.uuid
-    );
+    const index = allBackendTournaments.findIndex((t) => t.uuid === data.uuid);
     if (index !== -1) {
       // Update backend tournament data
       if (data.status) {

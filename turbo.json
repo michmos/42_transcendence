@@ -23,7 +23,9 @@
     "FORTYTWO_CLIENT_ID",
     "GITHUB_CLIENT_ID",
     "GITHUB_CLIENT_SECRET",
-    "REDIRECT_URL"
+    "REDIRECT_URL",
+    "CDN_PORT",
+    "CDN_PATH"
   ],
   "tasks": {
     "db:generate": {

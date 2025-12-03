@@ -23,9 +23,3 @@ export async function handleLogout(): Promise<void> {
     navigateTo('/login');
   }
 }
-
-
-
-
-
-
