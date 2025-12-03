@@ -1186,14 +1186,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /match:
+    post:
+      tags:
+        - Match
+      summary: Create a new match
+      description: |
+        only admins can post a new match
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/Status'
+                player1Id:
+                  type: string
+                  format: uuid
+                player2Id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Match created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          description: Bad request - e.g. wrong status provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Match doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /match/{uuid}:
     parameters:
       - $ref: '#/components/parameters/uuid'
     get:
       tags:
-        - Tournament
+        - Match
       summary: Get match by uuid
-      description: Retrieve a match by uuid
+      description: |
+        Retrieve a match by uuid
       responses:
         '200':
           description: Match retrieved successfully
@@ -1201,6 +1250,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Match'
+        '404':
+          description: Match doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - Match
+      summary: update match data
+      description: |
+        only admins can patch a match
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/Status'
+                winnerId:
+                  type: string
+                  format: uuid
+                Score1:
+                  type: number
+                Score2:
+                  type: number
+      responses:
+        '200':
+          description: Match updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          description: Bad request - e.g. wrong status provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Match doesn't exist
           content:
