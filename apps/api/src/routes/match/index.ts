@@ -4,12 +4,14 @@ import type { Match } from 'db/generated/client/index.js';
 import { getPlayerName } from './utils.js';
 import { type MatchResponse } from 'types';
 import { isAdmin } from '../../plugins/auth/utils.js';
+import type { singleUuidParam } from '../tournaments/validationSchemas.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.get<{ Params: schemas.singleUuidParam }>(
     '/:uuid',
     {
       schema: schemas.getMatch,
+      // TODO: define access restriction
     },
     async (request, reply) => {
       const { uuid } = request.params;
@@ -33,6 +35,7 @@ export default async function (app: FastifyInstance): Promise<void> {
       } as MatchResponse);
     }
   );
+
   app.post<{ Body: schemas.createMatchBodyType }>(
     '/',
     {
@@ -46,6 +49,23 @@ export default async function (app: FastifyInstance): Promise<void> {
         const match = await app.db.addMatch(request.body);
         return reply.status(201).send(match);
       } catch (error) {}
+    }
+  );
+
+  app.patch<{ Body: schemas.updateMatchBodyType; Params: singleUuidParam }>(
+    '/:uuid',
+    {
+      schema: schemas.updateMatch,
+      preHandler: async (request, reply) => {
+        if (!isAdmin(request, reply)) return;
+      },
+    },
+    async (request, reply) => {
+      const updatedMatch = await app.db.updateMatch({
+        ...request.body,
+        uuid: request.params.uuid,
+      });
+      return reply.status(200).send(updatedMatch);
     }
   );
 }

@@ -23,3 +23,23 @@ export const createMatch = {
   ),
 };
 export type createMatchBodyType = Static<typeof createMatch.body>;
+
+export const updateMatch = {
+  params: Type.Object({
+    uuid: Type.String(),
+  }),
+  body: Type.Object(
+    {
+      status: Type.Optional(
+        Type.Union(
+          Object.values(statusEnum).map((value) => Type.Literal(value))
+        )
+      ),
+      winnerId: Type.Optional(Type.String()),
+      Score1: Type.Optional(Type.Number()),
+      Score2: Type.Optional(Type.Number()),
+    },
+    { additionalProperties: false }
+  ),
+};
+export type updateMatchBodyType = Static<typeof updateMatch.body>;
