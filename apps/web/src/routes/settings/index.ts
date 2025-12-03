@@ -1,7 +1,7 @@
 import { Navbar, Card, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 
-export default function initRoute() {
+export default async function initRoute() {
   const pageRoot = document.querySelector<HTMLElement>('.settings-page');
   if (!pageRoot) return;
   pageRoot.innerHTML = '';

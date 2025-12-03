@@ -10,7 +10,7 @@
 // 3. import type you need
 //    import { SomeType } from 'types';
 
-import { type status } from 'db/generated/client/index.js';
+import { User, Friendship, type status } from 'db/generated/client/index.js';
 
 export type TournamentRoundResponse = {
   status: status;
@@ -18,4 +18,20 @@ export type TournamentRoundResponse = {
   matches: Array<{
     uuid: string;
   }>;
+};
+
+export type UserMatchRecord = {
+    date: string;
+    score1: number;
+    score2: number;
+    player1: string;
+    player2: string;
+    result: string;
+    gameType: string;
+};
+
+export type UserDashboardResponse = {
+  cleanedUserData: Partial<User>;
+  cleanedUserFriends: Partial<Friendship>[];
+  userMatches: UserMatchRecord[];
 };

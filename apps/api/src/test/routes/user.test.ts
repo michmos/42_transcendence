@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { describe, test, expect } from 'vitest';
 import { app } from '../setup.js';
 import { setUserTo, normalUser, createValidTournament } from '../utils.js';

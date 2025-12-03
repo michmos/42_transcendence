@@ -14,7 +14,7 @@ export async function clearAllData() {
 }
 
 export default fp(
-  async (app: FastifyInstance) => {
+  (app: FastifyInstance) => {
     console.info('🗄️  Loading database plugin...');
 
     app.decorate('db', {
