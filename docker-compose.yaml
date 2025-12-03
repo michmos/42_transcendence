@@ -59,7 +59,7 @@ services:
       dockerfile: ./apps/api/Dockerfile.yaml
       args:
         DATABASE_URL: file:/data/db/sqlite-database.db
-        FRONTEND_URL: ${FRONTEND_URL}
+        VITE_URL: ${VITE_URL}
         ADMIN_API_KEY: ${ADMIN_API_KEY}
         GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -85,7 +85,7 @@ services:
       dockerfile: ./apps/socket/Dockerfile.yaml
       args:
         DATABASE_URL: file:/data/db/sqlite-database.db
-        API_URL: ${API_URL}
+        API_SERVER: ${API_SERVER}
         ADMIN_API_KEY: ${ADMIN_API_KEY}
     volumes:
       - ./shared/private-data/db:/data/db:rw
@@ -113,7 +113,17 @@ services:
       - nginx-cdn
       - fastify-api
       - fastify-socket
-
+  cloudflare-tunnel:
+    container_name: cloudflare-tunnel
+    labels:
+      description: "Cloudflare Tunnel Service"
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - public-network
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
 networks:
   backend-network:
     driver: bridge

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const env = createEnv({
   server: {
-    FRONTEND_URL: z.string().nonempty('FRONTEND_URL is required'),
+    VITE_URL: z.string().nonempty('VITE_URL is required'),
 
     API_PORT: z.coerce.number().default(3000),
 
