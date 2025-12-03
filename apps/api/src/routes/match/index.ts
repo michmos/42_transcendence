@@ -4,7 +4,6 @@ import { type Match, Prisma } from 'db/generated/client/index.js';
 import { getPlayerName } from './utils.js';
 import { type MatchResponse } from 'types';
 import { isAdmin } from '../../plugins/auth/utils.js';
-import type { singleUuidParam } from '../tournaments/validationSchemas.js';
 
 export default async function (app: FastifyInstance): Promise<void> {
   app.get<{ Params: schemas.singleUuidParam }>(
@@ -59,7 +58,10 @@ export default async function (app: FastifyInstance): Promise<void> {
     }
   );
 
-  app.patch<{ Body: schemas.updateMatchBodyType; Params: singleUuidParam }>(
+  app.patch<{
+    Body: schemas.updateMatchBodyType;
+    Params: schemas.singleUuidParam;
+  }>(
     '/:uuid',
     {
       schema: schemas.updateMatch,
