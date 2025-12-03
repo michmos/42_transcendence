@@ -77,3 +77,178 @@ describe('GET /match/:uuid', () => {
     expect(response.statusCode).toBe(404);
   });
 });
+
+describe('POST /match', () => {
+  test('valid: post -> 200', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
+        status: 'ongoing',
+        player1Id: normalUser.uuid,
+        player2Id: adminUser.uuid,
+      },
+    });
+    expect(response.statusCode).toBe(201);
+  });
+  test('valid: additional body properties -> 200', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
+        status: 'ongoing',
+        player1Id: normalUser.uuid,
+        player2Id: adminUser.uuid,
+        whatever: 'this should be ignored',
+      },
+    });
+    expect(response.statusCode).toBe(201);
+  });
+  test('invalid: missing body properties -> 400', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
+        status: 'ongoing',
+        player1Id: normalUser.uuid,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+  test('invalid: non existent user ids -> 404', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
+        status: 'ongoing',
+        player1Id: 'some-non-existent-uuid',
+        player2Id: adminUser.uuid,
+      },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+  test('invalid: wrong status -> 400', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
+        status: 'wrong status value',
+        player1Id: normalUser.uuid,
+        player2Id: adminUser.uuid,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+  test('invalid: post as normal user -> 403', async () => {
+    setUserTo('MEMBER');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
+        status: 'ongoing',
+        player1Id: normalUser.uuid,
+        player2Id: adminUser.uuid,
+      },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+});
+
+describe('PATCH /match/:uuid', () => {
+  test('valid: patch -> 200', async () => {
+    setUserTo('ADMIN');
+    const match = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/match/${match.uuid}`,
+      body: {
+        status: 'finished',
+        winnerId: normalUser.uuid,
+        Score1: 3,
+        Score2: 1,
+      },
+    });
+    expect(response.statusCode).toBe(200);
+  });
+  test('valid: additional body properties -> 200', async () => {
+    setUserTo('ADMIN');
+    const match = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/match/${match.uuid}`,
+      body: {
+        status: 'finished',
+        winnerId: normalUser.uuid,
+        Score1: 3,
+        Score2: 1,
+        whatever: 'this should be ignored',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+  });
+  test('invalid: match not found -> 404', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/match/invalid-match-uuid`,
+      body: {
+        status: 'finished',
+        winnerId: normalUser.uuid,
+        Score1: 3,
+        Score2: 1,
+      },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+  test('invalid: wrong status -> 400', async () => {
+    setUserTo('ADMIN');
+    const match = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/match/${match.uuid}`,
+      body: {
+        status: 'wrong status value',
+        winnerId: normalUser.uuid,
+        Score1: 3,
+        Score2: 1,
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+  test('invalid: patch as normal user -> 403', async () => {
+    setUserTo('MEMBER');
+    const match = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/match/${match.uuid}`,
+      body: {
+        status: 'finished',
+        winnerId: normalUser.uuid,
+        Score1: 3,
+        Score2: 1,
+      },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+});
