@@ -1,7 +1,6 @@
 import fp from 'fastify-plugin';
 import { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { env } from '../../env.js';
-import type { User } from 'db/generated/client/index.js';
 
 function getSessionCookie(request: FastifyRequest): string | null {
   if (!request.headers.cookie) {

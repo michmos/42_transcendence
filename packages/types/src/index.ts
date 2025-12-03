@@ -21,13 +21,13 @@ export type TournamentRoundResponse = {
 };
 
 export type UserMatchRecord = {
-    date: string;
-    score1: number;
-    score2: number;
-    player1: string;
-    player2: string;
-    result: string;
-    gameType: string;
+  date: string;
+  score1: number;
+  score2: number;
+  player1: string;
+  player2: string;
+  result: string;
+  gameType: string;
 };
 
 export type UserDashboardResponse = {
