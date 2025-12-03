@@ -1,0 +1,121 @@
+services:
+  builder-frontend:
+    container_name: builder-web
+    labels:
+      description: "Frontend Application Builder"
+    volumes:
+      - ./shared/public-data/frontend:/www
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.yaml
+      args:
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
+        VITE_API_URL: ${VITE_API_URL}
+    restart: on-failure
+  database-creator:
+    container_name: database-creator
+    labels:
+      description: "Database Creator Service"
+    build:
+      context: .
+      dockerfile: services/database-creator/Dockerfile.yaml
+      args:
+        DATABASE_URL: file:/data/db/sqlite-database.db
+    volumes:
+      - ./shared/private-data/db:/data/db:rw
+    networks:
+      - backend-network
+    restart: on-failure
+  nginx-frontend:
+    container_name: nginx-frontend
+    labels:
+      description: "Nginx Static File Server for Frontend Application"
+    volumes:
+      - ./shared/public-data/frontend:/usr/share/nginx/html:ro
+    networks:
+      - backend-network
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    depends_on:
+      - builder-frontend
+  nginx-cdn:
+    container_name: nginx-cdn
+    labels:
+      description: "Nginx Static File Server for CDN"
+    volumes:
+      - ./shared/public-data/cdn:/usr/share/nginx/html:ro
+    networks:
+      - backend-network
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    depends_on:
+      - builder-frontend
+  fastify-api:
+    container_name: fastify-api
+    labels:
+      description: "Fastify API Service"
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile.yaml
+      args:
+        DATABASE_URL: file:/data/db/sqlite-database.db
+        FRONTEND_URL: ${FRONTEND_URL}
+        ADMIN_API_KEY: ${ADMIN_API_KEY}
+        GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+        FORTYTWO_CLIENT_ID: ${FORTYTWO_CLIENT_ID}
+        FORTYTWO_CLIENT_SECRET: ${FORTYTWO_CLIENT_SECRET}
+        GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+        GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+        REDIRECT_URL: ${REDIRECT_URL}
+        JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - ./shared/private-data/db:/data/db:rw
+    networks:
+      - backend-network
+    restart: unless-stopped
+    depends_on:
+      - database-creator
+  fastify-socket:
+    container_name: fastify-socket
+    labels:
+      description: "Fastify Socket Service"
+    build:
+      context: .
+      dockerfile: ./apps/socket/Dockerfile.yaml
+      args:
+        DATABASE_URL: file:/data/db/sqlite-database.db
+        API_URL: ${API_URL}
+        ADMIN_API_KEY: ${ADMIN_API_KEY}
+    volumes:
+      - ./shared/private-data/db:/data/db:rw
+    networks:
+      - backend-network
+    restart: unless-stopped
+    depends_on:
+      - database-creator
+  nginx-proxy:
+    container_name: nginx-proxy
+    labels:
+      description: "Nginx Proxy for Web Application"
+    ports:
+      - "443:443"
+      - "80:80"
+    networks:
+      - backend-network
+      - public-network
+    build:
+      context: ./services/nginx-proxy
+      dockerfile: Dockerfile.yaml
+    restart: unless-stopped
+    depends_on:
+      - nginx-frontend
+      - nginx-cdn
+      - fastify-api
+      - fastify-socket
+
+networks:
+  backend-network:
+    driver: bridge
+  public-network:
+    driver: bridge

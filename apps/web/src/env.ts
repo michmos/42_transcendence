@@ -9,15 +9,8 @@ export const env = createEnv({
   },
   server: {
     PORT: z.coerce.number().default(5173),
-    API_SERVER: z.string().nonempty({ message: 'API_SERVER is required' }),
-    SOCKET_SERVER: z
-      .string()
-      .nonempty({ message: 'SOCKET_SERVER is required' }),
-    SWAGGER_SERVER: z
-      .string()
-      .nonempty({ message: 'SWAGGER_SERVER is required' }),
-    SOCKET_URL: z.string().nonempty({ message: 'SOCKET_URL is required' }),
-    API_URL: z.string().nonempty({ message: 'API_URL is required' }),
+    API_SERVER: z.string().default('http://localhost:3000'),
+    SOCKET_URL: z.string().default('ws://localhost:3000/socket'),
   },
   runtimeEnv: import.meta.env,
 });
