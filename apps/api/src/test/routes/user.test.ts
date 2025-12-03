@@ -372,13 +372,29 @@ describe('GET /user/me/tournaments', () => {
   // ------------------------------------------------------------------------ 13
   test('several tournaments -> 200', async () => {
     let tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     const response = await app.inject({
       method: 'GET',
       url: '/user/me/tournaments',
@@ -392,7 +408,11 @@ describe('GET /user/me/tournaments', () => {
   test('VALID - tournaments by status -> 200', async () => {
     const testStatus = async (status: statusEnum) => {
       const tournament = await createValidTournament(app);
-      await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+      await app.db.addUserToTournament(
+        normalUser.uuid,
+        tournament.uuid,
+        'someAlias'
+      );
       await app.db.updateTournament({ uuid: tournament.uuid, status });
       const response = await app.inject({
         method: 'GET',

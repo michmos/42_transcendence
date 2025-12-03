@@ -9,3 +9,22 @@
 //
 // 3. import type you need
 //    import { SomeType } from 'types';
+
+import { type status } from 'db/generated/client/index.js';
+
+export interface MatchResponse {
+  uuid: string;
+  status: status;
+  player1Name: string | null;
+  player2Name: string | null;
+  score1: number;
+  score2: number;
+}
+
+export interface TournamentRoundResponse {
+  status: status;
+  index: number;
+  matches: {
+    uuid: string;
+  }[];
+}

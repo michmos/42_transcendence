@@ -268,14 +268,49 @@ components:
       required:
         - index
         - matches
+        - status
       properties:
         index:
           type: integer
           example: 0
+        status:
+          $ref: '#/components/schemas/Status'
         matches:
           type: array
           items:
-            $ref: '#/components/schemas/Match'
+            type: object
+            properties:
+              uuid:
+                type: string
+                format: uuid
+
+    Match:
+      type: object
+      required:
+        - uuid
+        - status
+        - player1Name
+        - player2Name
+        - score1
+        - score2
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/Status'
+        player1Name:
+          type: string
+          example: 'someName'
+        player2Name:
+          type: string
+          example: 'someName'
+        score1:
+          type: integer
+          example: 4
+        score2:
+          type: integer
+          example: 5
 
     CreateTournamentInput:
       type: object
@@ -293,28 +328,6 @@ components:
         minPlayers:
           type: integer
           example: 4
-
-    Match:
-      type: object
-      required:
-        - player1
-        - player2
-        - status
-        - score
-      properties:
-        player1:
-          $ref: '#/components/schemas/User'
-        player2:
-          $ref: '#/components/schemas/User'
-        status:
-          $ref: '#/components/schemas/Status'
-        score:
-          type: object
-          properties:
-            pointsPlayer1:
-              type: integer
-            pointsPlayer2:
-              type: integer
 
     Error:
       type: object
@@ -512,15 +525,19 @@ paths:
         - bearerAuth: []
         - x-api-key: []
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - alias
               properties:
                 uuid:
                   type: string
                   format: uuid
+                alias:
+                  type: string
 
       responses:
         '200':
@@ -542,7 +559,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: User already in tournament
+          description: User already in tournament or alias taken
           content:
             application/json:
               schema:
@@ -1164,6 +1181,28 @@ paths:
                 $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /match/{uuid}:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    get:
+      tags:
+        - Tournament
+      summary: Get match by uuid
+      description: Retrieve a match by uuid
+      responses:
+        '200':
+          description: Match retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          description: Match doesn't exist
           content:
             application/json:
               schema:

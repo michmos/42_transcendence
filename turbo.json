@@ -41,6 +41,7 @@
     },
 
     "dep:build": {
+      "dependsOn": ["^db"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": ["dist/**", "out/**"],
       "cache": false
