@@ -32,10 +32,9 @@ async function authPlugin(app: Fastify.FastifyInstance) {
         uuid: user.uuid,
         email: user.email ?? null,
         email_verified: user.email_verified ?? false,
-        fullName: user.fullName ?? null,
         nickname:
           existingUser?.nickname ?? (await app.db.generateUniqueNickName()),
-        avatar: user.avatar ?? null,
+        avatar: existingUser?.avatar ?? user.avatar ?? null,
       });
     })
     .on('logout', (args: unknown) => {
