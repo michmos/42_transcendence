@@ -8,6 +8,7 @@
     "db:generate": "turbo run db:generate",
     "prebuild": "turbo run dep:build",
     "build": "turbo run build",
+    "dep:build": "turbo run dep:build",
     "dev": "turbo run dev",
     "preview": "turbo run preview",
     "lint": "turbo run lint --continue",
