@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import { Action } from '../../roomHandlers/game/index.js';
+
+const GameDataSchema = z.object({
+  action: z.enum(Action).optional(),
+  subtype: z.string().optional(),
+});
 
 /**
  * Schema for incoming socket messages
@@ -6,7 +12,8 @@ import { z } from 'zod';
 export const SocketMessage = z.object({
   type: z.enum(['join-room', 'leave-room', 'message']),
   room: z.string().regex(/^[a-zA-Z0-9]+(:[a-zA-Z0-9_-]+)?$/),
-  data: z.any().optional(),
+  // data: z.any().optional(),
+  data: GameDataSchema.optional(),
 });
 export type SocketMessageType = z.infer<typeof SocketMessage>;
 
