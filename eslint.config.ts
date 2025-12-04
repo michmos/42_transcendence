@@ -34,19 +34,30 @@ export default defineConfig(
       prettier: prettierPlugin,
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-call': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
+      // Override/customize rules from recommendedTypeChecked
       '@typescript-eslint/unified-signatures': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-duplicate-enum-values': 'error',
-      '@typescript-eslint/no-duplicate-type-constituents': 'error',
+
+      // Additional strict rules for maximum type safety
       '@typescript-eslint/no-redeclare': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error', // Disallow ! assertions
+      '@typescript-eslint/no-dynamic-delete': 'error', // Disallow delete operator on computed keys
+      '@typescript-eslint/no-invalid-void-type': 'error', // Disallow void in union types
+      '@typescript-eslint/prefer-literal-enum-member': 'error', // Require literal values for enums
+      '@typescript-eslint/no-extraneous-class': 'error', // Disallow classes with only static members
+
+      // Stylistic rules for consistency
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'], // Prefer interfaces over types
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'as', objectLiteralTypeAssertions: 'never' },
+      ],
+      '@typescript-eslint/array-type': ['error', { default: 'array-simple' }], // Prefer T[] over Array<T>
+      '@typescript-eslint/prefer-for-of': 'error', // Prefer for-of over traditional for loops
+      '@typescript-eslint/prefer-function-type': 'error', // Prefer function types over interfaces with call signatures
 
       // Prettier
       'prettier/prettier': 'error',
