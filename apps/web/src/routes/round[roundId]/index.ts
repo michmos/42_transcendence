@@ -5,15 +5,6 @@ import TournamentAPI from '../../plugins/api/tournaments.js';
 import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-    routeParams?: Record<string, string>;
-  }
-}
-
-// UI Match interface (mapped from backend)
 interface Match {
   id: string;
   opponent1: string;
