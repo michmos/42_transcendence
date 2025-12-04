@@ -4,6 +4,12 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./generated/client": "./generated/client/index.js",
+    "./generated/client/index.js": "./generated/client/index.js",
+    "./generated/client/client.js": "./generated/client/client.js"
+  },
   "scripts": {
     "dep:build": "tsc",
     "build": "tsc",

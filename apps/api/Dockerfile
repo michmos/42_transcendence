@@ -4,6 +4,9 @@ FROM node:20-alpine AS build-api
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 
+ARG CDN_PATH
+ENV CDN_PATH=$CDN_PATH
+
 # Install pnpm
 RUN corepack enable pnpm
 
@@ -25,6 +28,7 @@ RUN pnpm install
 # Build shared packages first
 RUN pnpm run --filter="db" build
 RUN pnpm run --filter="fastify-oauth" build
+RUN pnpm run --filter="types" build
 
 # Generate Prisma client for the Linux platform
 WORKDIR /workspace/packages/database
@@ -45,6 +49,8 @@ ENV CORS_URL=$CORS_URL
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 
+ARG CDN_PATH
+ENV CDN_PATH=$CDN_PATH
 
 ARG ADMIN_API_KEY
 ENV ADMIN_API_KEY=$ADMIN_API_KEY

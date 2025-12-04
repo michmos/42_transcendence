@@ -58,6 +58,7 @@ services:
       args:
         CORS_URL: ${CORS_URL}
         DATABASE_URL: file:/data/db/sqlite-database.db
+        CDN_PATH: ${CDN_PATH}
         ADMIN_API_KEY: ${ADMIN_API_KEY}
         GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}

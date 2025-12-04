@@ -16,7 +16,7 @@ function getSessionCookie(request: FastifyRequest): string | null {
 }
 
 async function fetchUuid(sessionCookie: string): Promise<string> {
-  const response = await fetch(`${env.API_URL}/user/me/uuid`, {
+  const response = await fetch(`${env.API_SERVER}/user/me/uuid`, {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
