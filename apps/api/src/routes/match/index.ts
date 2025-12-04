@@ -33,7 +33,7 @@ export default function (app: FastifyInstance): void {
         player2Name,
         score1: match.score1,
         score2: match.score2,
-      } as MatchResponse;
+      };
       return reply.status(200).send(matchResponse);
     }
   );
@@ -42,8 +42,11 @@ export default function (app: FastifyInstance): void {
     '/',
     {
       schema: schemas.createMatch,
-      preHandler: async (request, reply) => {
-        if (!isAdmin(request, reply)) return;
+      preHandler: (request, reply, done) => {
+        if (!isAdmin(request, reply)) {
+        }
+        done();
+        return;
       },
     },
     async (request, reply) => {
@@ -68,8 +71,11 @@ export default function (app: FastifyInstance): void {
     '/:uuid',
     {
       schema: schemas.updateMatch,
-      preHandler: async (request, reply) => {
-        if (!isAdmin(request, reply)) return;
+      preHandler: (request, reply, done) => {
+        if (!isAdmin(request, reply)) {
+        }
+        done();
+        return;
       },
     },
     async (request, reply) => {
