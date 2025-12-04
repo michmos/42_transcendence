@@ -38,6 +38,7 @@
     "src/plugins/**/*",
     "src/routes/**/*",
     "vite.config.ts",
-    "tailwind.config.ts"
+    "tailwind.config.ts",
+    "postcss.config.ts"
   ]
 }

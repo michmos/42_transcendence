@@ -1,6 +1,6 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
-import { createTournament, joinTournament } from './tournamentOps.js';
+import API from '../../plugins/api/index.js';
 
 interface Tournament {
   id: string;
