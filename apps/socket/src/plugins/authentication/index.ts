@@ -66,7 +66,6 @@ function authPlugin(app: FastifyInstance) {
   app.decorateRequest('identifiers', null);
   app.addHook('preValidation', async function (request, reply) {
     try {
-      console.log('Authenticating request to', request.url);
       if (request.url === '/') {
         await authenticateClient(request);
       } else {
