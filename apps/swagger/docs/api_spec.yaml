@@ -1225,6 +1225,8 @@ paths:
       summary: Create a new match
       description: |
         only admins can post a new match
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
