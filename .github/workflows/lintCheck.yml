@@ -16,7 +16,7 @@ jobs:
       - name: setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
+          node-version: "24.x"
 
       - name: setup pnpm
         uses: pnpm/action-setup@v4
@@ -33,9 +33,6 @@ jobs:
 
       - name: install dependencies
         run: pnpm install
-
-      - name: install local packages
-        run: pnpm prebuild
 
       - name: run linter
         run: pnpm lint
