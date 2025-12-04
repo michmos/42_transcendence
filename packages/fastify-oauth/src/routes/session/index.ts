@@ -9,7 +9,7 @@ class SessionManager {
   private ctx!: OAuthContext;
 
   constructor() {
-    this.ctx = {} as OAuthContext;
+    this.ctx = {} as unknown as OAuthContext;
   }
 
   initialize(ctx: OAuthContext) {
@@ -157,13 +157,13 @@ class SessionManager {
           return reply.status(400).send({ error: 'Failed to fetch user info' });
         }
 
-        const newSession = {
+        const newSession: SessionCookie = {
           name: oAuthUser.fullName,
           uuid: oAuthUser.uuid,
           providerName: oAuthUser.providerName,
           refreshToken: accessToken.token.refresh_token as string,
           eat: Date.parse(accessToken.token.expires_at as string),
-        } as SessionCookie;
+        };
 
         // Generate a new JWT token with updated info
         const sessionJWT = TokenUtility.generateSessionToken(newSession);

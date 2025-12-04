@@ -22,14 +22,15 @@ export default function (app: FastifyInstance): void {
       const player2Name = match.player2Id
         ? await getPlayerName(app, match.player2Id, match)
         : null;
-      return reply.status(200).send({
+      const matchResponse: MatchResponse = {
         uuid: match.uuid,
         status: match.status,
         player1Name,
         player2Name,
         score1: match.Score1,
         score2: match.Score2,
-      } as MatchResponse);
+      };
+      return reply.status(200).send(matchResponse);
     }
   );
 }

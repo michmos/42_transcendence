@@ -125,7 +125,7 @@ export class Table<Row extends Record<string, unknown>> {
           } else if (typeof value === 'object') {
             td.textContent = JSON.stringify(value);
           } else {
-            td.textContent = value as string;
+            td.textContent = String(value as unknown);
           }
         }
         tr.appendChild(td);

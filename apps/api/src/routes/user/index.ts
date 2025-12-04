@@ -34,18 +34,22 @@ export default function (app: FastifyInstance): void {
     try {
       const uuidSelf: string = request.user.uuid;
       const userData = await app.db.getUserMe(uuidSelf);
+
       const cleanedUserData = cleanSelfUserData(userData);
+
       const userFriends: fullFriendshipRecord[] =
         await app.db.getFriendsMe(uuidSelf);
       const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
+
       const userMatches: UserMatchRecord[] =
         await app.db.getUserMatchHistory(uuidSelf);
 
-      return reply.code(200).send({
+      const userDashboardData: UserDashboardResponse = {
         cleanedUserData,
         cleanedUserFriends,
         userMatches,
-      } as UserDashboardResponse);
+      };
+      return reply.code(200).send(userDashboardData);
     } catch (error) {
       app.log.error(error);
       return reply.code(500).send({ Error: 'Failed getting own user data' });

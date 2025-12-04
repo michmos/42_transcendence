@@ -13,7 +13,7 @@
 import { User, Friendship } from 'db/generated/client/index.js';
 
 // TODO: maybe align with MatchResponse
-export type UserMatchRecord = {
+export interface UserMatchRecord {
   date: string;
   score1: number;
   score2: number;
@@ -21,10 +21,10 @@ export type UserMatchRecord = {
   player2: string;
   result: string;
   gameType: string;
-};
+}
 
-export type UserDashboardResponse = {
+export interface UserDashboardResponse {
   cleanedUserData: Partial<User>;
-  cleanedUserFriends: Partial<Friendship>[];
+  cleanedUserFriends: Array<Partial<Friendship>>;
   userMatches: UserMatchRecord[];
-};
+}

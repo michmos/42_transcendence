@@ -170,7 +170,7 @@ export async function removeAllTournaments(): Promise<void> {
 export async function createTournamentRound(
   tournamentId: string,
   index: number,
-  matches: Partial<Match>[]
+  matches: Array<Partial<Match>>
 ): Promise<TournamentRound | null> {
   // needs to be transaction for operations to be atomic
   return await Database.$transaction(async (tx) => {

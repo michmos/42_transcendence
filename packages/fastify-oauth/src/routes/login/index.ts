@@ -4,6 +4,7 @@ import type { OAuthProvider } from '../../index.js';
 export interface AuthorizeUrlPayload {
   redirect_uri: string;
   scope: string;
+  state: string;
   access_type: 'offline';
   prompt: 'consent select_account';
 }
@@ -30,13 +31,15 @@ function generateAuthUrl(
     throw new Error('OAuth2 client not initialized for provider');
   }
 
-  return provider.oauth2Client.authorizeURL({
+  const payload: AuthorizeUrlPayload = {
     redirect_uri: ctx.redirectUri,
     scope: provider.scopes.join(' '),
     state: state.state,
     access_type: 'offline',
     prompt: 'consent select_account',
-  } as AuthorizeUrlPayload);
+  };
+
+  return provider.oauth2Client.authorizeURL(payload);
 }
 
 function setupLoginRoute(ctx: OAuthContext) {

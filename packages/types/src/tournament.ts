@@ -12,10 +12,10 @@
 
 import { type status } from 'db/generated/client/index.js';
 
-export type TournamentRoundResponse = {
+export interface TournamentRoundResponse {
   status: status;
   index: number;
   matches: Array<{
     uuid: string;
   }>;
-};
+}

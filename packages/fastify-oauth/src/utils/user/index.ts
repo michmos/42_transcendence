@@ -61,7 +61,7 @@ async function getOauthUser(
   const email = user['email'];
   const avatar = 'avatar' in user ? (user['avatar'] as string) : null;
 
-  return {
+  const result: oAuthUser = {
     uuid,
     fullName,
     email,
@@ -69,7 +69,8 @@ async function getOauthUser(
     email_verified:
       'email_verified' in user ? (user['email_verified'] as boolean) : false,
     providerName: provider.name,
-  } as oAuthUser;
+  };
+  return result;
 }
 
 function getOauthUserUUID(
