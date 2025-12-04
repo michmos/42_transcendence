@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { env } from '../../env.js';
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default function (app: FastifyInstance) {
   console.log('Registering CORS plugin with CORS_URL:', env.CORS_URL);
 
   // Enable CORS for all routes
