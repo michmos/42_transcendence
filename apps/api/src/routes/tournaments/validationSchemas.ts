@@ -75,7 +75,9 @@ export const getTournaments = {
     ),
   }),
 };
-export type getTournaments = Static<typeof getTournaments.querystring>;
+export type getTournamentsQuerystring = Static<
+  typeof getTournaments.querystring
+>;
 
 // GET /tournaments/:uuid
 export const getTournament = {
@@ -83,7 +85,7 @@ export const getTournament = {
     uuid: Type.String(),
   }),
 };
-export type getTournament = Static<typeof getTournament.params>;
+export type getTournamentParams = Static<typeof getTournament.params>;
 export type singleUuidParam = Static<typeof getTournament.params>;
 
 // GET /tournaments/:uuid/rounds/:roundIndex
@@ -93,4 +95,4 @@ export const getTournamentRound = {
     roundIndex: Type.Integer({ minimum: 0 }),
   }),
 };
-export type getTournamentRound = Static<typeof getTournamentRound.params>;
+export type getTournamentRoundParams = Static<typeof getTournamentRound.params>;

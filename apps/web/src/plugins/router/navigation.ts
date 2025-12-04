@@ -3,7 +3,7 @@
  * Handles browser navigation events and link interception
  */
 
-export type NavigationHandler = (path: string) => void;
+export type NavigationHandler = (_path: string) => void;
 
 /**
  * Set up navigation event listeners

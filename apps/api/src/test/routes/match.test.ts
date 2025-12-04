@@ -63,7 +63,7 @@ describe('GET /match/:uuid', () => {
       url: `/match/${matchId}`,
     });
 
-    const matchResponse: MatchResponse = JSON.parse(response.body);
+    const matchResponse = JSON.parse(response.body) as MatchResponse;
     expect(response.statusCode).toBe(200);
     expect(matchResponse.player1Name).toBe('normalAlias');
     expect(matchResponse.player2Name).toBe('adminAlias');

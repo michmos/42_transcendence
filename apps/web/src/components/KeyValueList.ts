@@ -24,7 +24,7 @@ export class KeyValueList {
   }
 
   update(newProps: Partial<KeyValueListProps>): void {
-    this.props = { ...this.props, ...newProps } as KeyValueListProps;
+    this.props = { ...this.props, ...newProps };
     this.render();
   }
 

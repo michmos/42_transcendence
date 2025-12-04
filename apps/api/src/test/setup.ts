@@ -22,9 +22,10 @@ beforeAll(async () => {
       throw error;
     }
 
-    app.addHook('onRequest', async (request) => {
+    app.addHook('onRequest', (request, _reply, done) => {
       // Mock authentication by attaching a user object to the request
       request.user = testUser;
+      done();
     });
   }
 });

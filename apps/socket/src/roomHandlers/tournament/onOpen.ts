@@ -21,9 +21,11 @@ async function fetchTournaments(socket: WSocket, queryString: string) {
     );
   }
 
-  const tournaments = (await response.json()) as (Partial<Tournament> & {
-    uuid: string;
-  })[];
+  const tournaments = (await response.json()) as Array<
+    Partial<Tournament> & {
+      uuid: string;
+    }
+  >;
   //TODO: api should be adapted to only return uuids in the first place
   const tournamentUuids = new Set<string>();
   for (const tournament of tournaments) {

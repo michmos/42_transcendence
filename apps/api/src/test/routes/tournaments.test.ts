@@ -175,7 +175,7 @@ describe('POST /tournaments', () => {
   });
 });
 
-describe('GET /tournaments', async () => {
+describe('GET /tournaments', () => {
   setUserTo('MEMBER');
 
   test('valid: Get tournaments without status filter', async () => {
@@ -535,7 +535,10 @@ describe('POST /tournaments/{uuid}/users', () => {
           `someAlias${i}`
         );
       } catch (error) {
-        assert(false, `Failed to add user to tournament: ${error}`);
+        assert(
+          false,
+          `Failed to add user to tournament: ${(error as Error).message}`
+        );
       }
     }
 
@@ -870,7 +873,7 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
     });
     expect(response.statusCode).toBe(200);
 
-    const roundData = JSON.parse(response.payload);
+    const roundData = JSON.parse(response.payload) as TournamentRoundResponse;
     expect(roundData.index).toBe(0);
   });
 

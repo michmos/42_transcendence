@@ -16,6 +16,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "db": "link:../database"
+    "db": "../database"
   }
 }

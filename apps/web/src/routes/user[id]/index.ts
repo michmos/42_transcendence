@@ -20,31 +20,33 @@ export default function initRoute() {
   }
 
   // Small delay to ensure DOM is fully ready
-  setTimeout(async () => {
-    console.log(`🌐 Fetching user data for ID: ${userId}`);
+  setTimeout(() => {
+    void (async () => {
+      console.log(`🌐 Fetching user data for ID: ${userId}`);
 
-    // Fetch and display user details
-    const user = await API.getUserById(userId);
-    if (!user) {
-      console.error(`❌ User with ID ${userId} not found`);
-      return alert(`User with ID ${userId} not found.`);
-    }
+      // Fetch and display user details
+      const user = await API.getUserById(userId);
+      if (!user) {
+        console.error(`❌ User with ID ${userId} not found`);
+        return alert(`User with ID ${userId} not found.`);
+      }
 
-    console.log('✅ User data loaded:', user);
+      console.log('✅ User data loaded:', user);
 
-    const userDetailsContainer = document.getElementById('userDetails');
-    if (userDetailsContainer) {
-      userDetailsContainer.innerHTML = `
+      const userDetailsContainer = document.getElementById('userDetails');
+      if (userDetailsContainer) {
+        userDetailsContainer.innerHTML = `
         <h2>User Details</h2>
         <p><strong>UUID:</strong> ${user.uuid}</p>
         <p><strong>NickName:</strong> ${user.nickname}</p>
         <p><strong>Email:</strong> ${user.email}</p>
         <button id="deleteUserBtn">Delete User</button>
       `;
-      // Re-attach event listeners after injecting HTML
-      attachUserEventListeners(userId);
-      console.log('✅ User interface setup complete');
-    }
+        // Re-attach event listeners after injecting HTML
+        attachUserEventListeners(userId);
+        console.log('✅ User interface setup complete');
+      }
+    })();
   }, 100); // Increased delay to ensure everything is ready
 }
 

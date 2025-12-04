@@ -7,13 +7,6 @@ import {
 } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 // TODO: Replace with actual API types
 interface MatchData {
   playerName: string;
