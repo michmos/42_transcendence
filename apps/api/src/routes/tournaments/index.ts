@@ -4,6 +4,8 @@ import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
 import { status as statusEnum } from 'db/generated/client/index.js';
+import { type TournamentRoundResponse } from 'types';
+import { Prisma } from 'db/generated/client';
 
 export default function (app: FastifyInstance): void {
   // create tournament
@@ -95,10 +97,13 @@ export default function (app: FastifyInstance): void {
   );
 
   // join tournament
-  app.post<{ Params: schemas.singleUuidParam; Body: schemas.addUserBody }>(
+  app.post<{
+    Params: schemas.singleUuidParam;
+    Body: schemas.joinTournamentBody;
+  }>(
     '/:uuid/users',
     {
-      schema: schemas.joinOrLeave,
+      schema: schemas.joinTournament,
       preHandler: (request, reply, done) => {
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) {
         }
@@ -146,26 +151,43 @@ export default function (app: FastifyInstance): void {
       }
 
       // add user
-      const updatedTournament = await app.db.addUserToTournament(
-        userUuid,
-        tournamentUuid
-      );
+      try {
+        const updatedTournament = await app.db.addUserToTournament(
+          userUuid,
+          tournamentUuid,
+          request.body.alias
+        );
 
-      // notify socket server
-      await messageSocketServer(`/tournaments/broadcast/joined`, {
-        tournamentUuid: tournament.uuid,
-        userUuid,
-        playerCount: updatedTournament.playerCount,
-      });
-      return reply.status(200).send(updatedTournament);
+        // notify socket server
+        await messageSocketServer(`/tournaments/broadcast/joined`, {
+          tournamentUuid: tournament.uuid,
+          userUuid,
+          playerCount: updatedTournament.playerCount,
+        });
+        return reply.status(200).send(updatedTournament);
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          return reply
+            .status(409)
+            .send('Alias already taken in this tournament');
+        } else {
+          throw error;
+        }
+      }
     }
   );
 
   // leave tournament
-  app.delete<{ Params: schemas.singleUuidParam; Body: schemas.rmvUserBody }>(
+  app.delete<{
+    Params: schemas.singleUuidParam;
+    Body: schemas.leaveTournamentBody;
+  }>(
     '/:uuid/users',
     {
-      schema: schemas.joinOrLeave,
+      schema: schemas.leaveTournament,
       preHandler: (request, reply, done) => {
         if (request.body.uuid !== undefined && !isAdmin(request, reply)) {
         }
@@ -331,15 +353,17 @@ export default function (app: FastifyInstance): void {
       }
 
       // get round
-      const round = await app.db.getTournamentRound(
-        request.params.uuid,
-        request.params.roundIndex
-      );
+      const round: TournamentRoundResponse | null =
+        await app.db.getTournamentRound(
+          request.params.uuid,
+          request.params.roundIndex
+        );
       if (!round) {
         return reply.status(404).send({
           error: `Tournament round with index: ${request.params.roundIndex} not found`,
         });
       }
+
       return reply.status(200).send(round);
     }
   );

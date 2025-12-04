@@ -124,7 +124,7 @@ export async function participatesInTournament(
       uuid: userId,
       tournaments: {
         some: {
-          uuid: tournamentId,
+          tournamentId,
         },
       },
     },
@@ -139,7 +139,7 @@ export async function getTournamentParticipants(
     where: {
       tournaments: {
         some: {
-          uuid: tournamentId,
+          tournamentId,
         },
       },
     },

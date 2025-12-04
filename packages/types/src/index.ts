@@ -20,6 +20,7 @@ export type TournamentRoundResponse = {
   }>;
 };
 
+// TODO: maybe align with MatchResponse
 export type UserMatchRecord = {
   date: string;
   score1: number;
@@ -35,3 +36,12 @@ export type UserDashboardResponse = {
   cleanedUserFriends: Partial<Friendship>[];
   userMatches: UserMatchRecord[];
 };
+
+export interface MatchResponse {
+  uuid: string;
+  status: status;
+  player1Name: string | null;
+  player2Name: string | null;
+  score1: number;
+  score2: number;
+}

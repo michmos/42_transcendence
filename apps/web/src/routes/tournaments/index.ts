@@ -1,6 +1,6 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
-import { createTournament, joinTournament } from './tournamentOps.js';
+import API from '../../plugins/api/index.js';
 
 interface Tournament {
   id: string;
@@ -369,20 +369,21 @@ function showNewTournamentDialog() {
 
       // TODO: add validation logic (maxPlayers >=2 , minPlayer >=2, maxPlayers >= minPlayers)
 
-      console.log('Creating tournament...');
-      const newTournament = await createTournament({
+    console.log('Creating tournament...');
+    try {
+      const newTournament = await API.createTournament({
         tournamentName,
         minPlayers,
         maxPlayers,
       });
-      if (newTournament) {
-        await joinTournament(newTournament.uuid);
-        // TODO: update UI to reflect added tournament (where you already participate)
-      }
-      closeDialog();
-    })();
+      // TODO: update UI with new tournament
+      console.log('Tournament created:', newTournament);
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+    }
+    closeDialog();
   });
-}
+});
 
 export default function initRoute() {
   const pageRoot = document.querySelector<HTMLElement>('.tournaments-page');

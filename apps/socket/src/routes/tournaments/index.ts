@@ -31,7 +31,7 @@ export default function (app: FastifyInstance): void {
         request.body.tournamentUuid,
         new Set<string>()
       );
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentStartedBody }>(
@@ -54,7 +54,7 @@ export default function (app: FastifyInstance): void {
           message: `Join the first match of ${request.body.tournamentName} in the next 60 seconds!`,
         })
       );
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentJoinedBody }>(
@@ -65,6 +65,12 @@ export default function (app: FastifyInstance): void {
     async function (request, reply) {
       const { userUuid, tournamentUuid } = request.body;
 
+      const participants = cachedTournamentParticipations.get(tournamentUuid);
+      if (!participants) {
+        return reply.status(409).send();
+      }
+
+      participants.add(userUuid);
       RoomManager.get('tournament:main')?.broadcast(
         JSON.stringify({
           event: 'tournament-joined',
@@ -73,12 +79,7 @@ export default function (app: FastifyInstance): void {
         })
       );
 
-      const participants = cachedTournamentParticipations.get(tournamentUuid);
-      if (!participants) {
-        return reply.status(409);
-      }
-      participants.add(userUuid);
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentLeftBody }>(
@@ -99,10 +100,10 @@ export default function (app: FastifyInstance): void {
 
       const participants = cachedTournamentParticipations.get(tournamentUuid);
       if (!participants) {
-        return reply.status(409);
+        return reply.status(409).send();
       }
       participants.delete(userUuid);
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
   app.post<{ Body: schemas.tournamentUpdatedBody }>(
@@ -121,7 +122,7 @@ export default function (app: FastifyInstance): void {
           status,
         })
       );
-      return reply.status(200);
+      return reply.status(200).send();
     }
   );
 }
