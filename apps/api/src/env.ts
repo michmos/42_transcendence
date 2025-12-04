@@ -3,11 +3,9 @@ import { z } from 'zod';
 
 export const env = createEnv({
   server: {
-    FRONTEND_URL: z.string().nonempty('FRONTEND_URL is required'),
+    CORS_URL: z.string().nonempty('CORS_URL is required'),
 
-    SOCKET_URL: z.string().nonempty('SOCKET_URL is required'),
-
-    API_PORT: z.coerce.number().default(3002),
+    API_PORT: z.coerce.number().default(3000),
 
     ADMIN_API_KEY: z.string().nonempty('ADMIN_API_KEY is required'),
 

@@ -37,7 +37,7 @@ export default defineConfig(() => {
       port: env.PORT,
     },
     build: {
-      outDir: '../out',
+      outDir: '../dist',
       emptyOutDir: true,
     },
   };

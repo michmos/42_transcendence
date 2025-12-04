@@ -2,7 +2,6 @@
   "private": true,
   "name": "trancendence",
   "scripts": {
-    "predev": "turbo run dep:build",
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "db:generate": "turbo run db:generate",

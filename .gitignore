@@ -11,3 +11,4 @@ package-lock.json
 *subject*
 AGENTS.md
 packages/database/dev.db
+shared/

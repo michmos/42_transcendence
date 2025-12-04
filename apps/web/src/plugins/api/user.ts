@@ -2,7 +2,7 @@ import type { User } from 'db/generated/client/index.js';
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
-  async getMe(): Promise<User | null> {
+  async getMe(): Promise<Partial<User> | null> {
     try {
       const response = await fetch('/api/user/me', {
         method: 'GET',
@@ -17,17 +17,18 @@ const UserAPI = {
         throw new Error('Failed to fetch user data');
       }
 
-      const res = (await response.json()) as { cleanedUserData: User };
-      console.log('Fetched user data:', res.cleanedUserData);
-      // TODO: Weird user data issue fix later
-      return res.cleanedUserData;
+      const res = (await response.json()) as Partial<User>;
+      if (!res.nickname) {
+        return null;
+      }
+      return res;
     } catch (error) {
       console.error('Error fetching user data:', error);
       return null;
     }
   },
 
-  async getUserBasicInfo(): Promise<User | null> {
+  async getUserBasicInfo(): Promise<Partial<User> | null> {
     return this.getMe();
   },
 

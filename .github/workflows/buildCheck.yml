@@ -40,5 +40,8 @@ jobs:
       - name: Build all packages
         run: pnpm build
 
+      - name: Prisma push database
+        run: pnpm db:push
+
       - name: Run tests
         run: pnpm test

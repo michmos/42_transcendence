@@ -1,5 +1,5 @@
 {
-  "name": "websocket",
+  "name": "socket",
   "version": "1.0.0",
   "description": "",
   "type": "module",
@@ -24,14 +24,14 @@
     "fastify": "^5.5.0",
     "fastify-plugin": "^5.0.1",
     "ws": "^8.18.3",
-    "zod": "^4.1.5"
+    "zod": "^4.1.5",
+    "pino-pretty": "^13.1.2",
+    "@sinclair/typebox": "^0.34.41",
+    "db": "../../packages/database"
   },
   "devDependencies": {
-    "@sinclair/typebox": "^0.34.41",
     "@types/node": "^24.3.0",
     "@types/ws": "^8.18.1",
-    "db": "link:../../packages/database",
-    "pino-pretty": "^13.1.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }

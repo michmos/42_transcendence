@@ -3,11 +3,8 @@
   "globalDependencies": [".env"],
   "globalEnv": [
     "VITE_PORT",
-    "FRONTEND_URL",
-    "VITE_API_URL",
-    "API_URL",
+    "CORS_URL",
     "VITE_SOCKET_URL",
-    "SOCKET_URL",
     "SOCKET_PORT",
     "API_PORT",
     "CDN_PATH",

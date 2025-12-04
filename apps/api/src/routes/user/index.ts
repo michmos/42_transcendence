@@ -30,6 +30,20 @@ export default function (app: FastifyInstance): void {
     return reply.status(200).send({ uuid: getUuid(request) });
   });
 
+  // TODO: Hacked this in as the web is requesting /me for own user data
+  //      Might need to refactor later
+  app.get('/me', async function (request, reply) {
+    try {
+      const uuidSelf: string = request.user.uuid;
+      const userData = await app.db.getUserMe(uuidSelf);
+      const cleanedUserData = cleanSelfUserData(userData);
+      return reply.code(200).send(cleanedUserData);
+    } catch (error) {
+      app.log.error(error);
+      return reply.code(500).send({ Error: 'Failed getting own user data' });
+    }
+  });
+
   app.get('/me/dashboard', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;

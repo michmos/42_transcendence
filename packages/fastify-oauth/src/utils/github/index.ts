@@ -26,8 +26,8 @@ interface GithubUser {
   hireable: boolean;
   bio: string;
   twitter_nickname: string;
-  public_repos: number;
-  public_gists: number;
+  VITE_repos: number;
+  VITE_gists: number;
   followers: number;
   following: number;
   created_at: string;
