@@ -33,7 +33,8 @@ export default function (app: FastifyInstance): void {
         player2Name,
         score1: match.score1,
         score2: match.score2,
-      } as MatchResponse);
+      } as MatchResponse;
+      return reply.status(200).send(matchResponse);
     }
   );
 
