@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "include": ["apps/**/*.{ts,tsx}", "packages/**/*.{ts,tsx}"],
-  "exclude": ["node_modules", "dist", "build", "out", "generated/client"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "out",
+    "generated/client",
+    "**/test/**"
+  ]
 }
