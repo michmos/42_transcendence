@@ -9,7 +9,7 @@ export async function getPlayerName(
   app: FastifyInstance,
   userId: string,
   match: Match
-) {
+): Promise<string> {
   if (match.tournamentRoundId) {
     const tournament: Tournament = await app.db.getTournamentByRound(
       match.tournamentRoundId

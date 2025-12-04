@@ -4,7 +4,7 @@ import type { Match } from 'db/generated/client/index.js';
 import { getPlayerName } from './utils.js';
 import { type MatchResponse } from 'types';
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default function (app: FastifyInstance): void {
   app.get<{ Params: schemas.singleUuidParam }>(
     '/:uuid',
     {
