@@ -41,6 +41,9 @@
     "db": {
       "dependsOn": ["db:generate", "db:push"]
     },
+    "db:studio": {
+      "env": ["DATABASE_URL"]
+    },
 
     "dep:build": {
       "inputs": ["$TURBO_DEFAULT$"],
