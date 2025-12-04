@@ -25,5 +25,5 @@ export interface Tournament {
   maxPlayers: number;
   minPlayers: number;
   numberOfRounds: number;
-  participants?: { uuid: string; nickname?: string; email?: string }[];
+  participants?: Array<{ uuid: string; nickname?: string; email?: string }>;
 }

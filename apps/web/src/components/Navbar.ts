@@ -10,6 +10,8 @@ export interface NavbarProps {
   title?: string;
   logoIcon?: string;
   links?: NavbarLink[];
+  userNickname?: string | undefined;
+  userAvatar?: string | undefined;
   onSettingsClick?: () => void;
   onLogoutClick?: () => void;
   className?: string;

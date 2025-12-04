@@ -21,11 +21,11 @@ export class UserTable {
   }
 
   update(newProps: Partial<UserTableProps>): void {
-    this.props = { ...this.props, ...newProps } as UserTableProps;
+    this.props = { ...this.props, ...newProps };
     this.render();
   }
 
-  private columns(): TableColumn<User>[] {
+  private columns(): Array<TableColumn<User>> {
     return [
       { key: 'uuid', header: 'ID', widthClass: 'w-1/3', sortable: true },
       { key: 'nickname', header: 'Nickname', sortable: true },

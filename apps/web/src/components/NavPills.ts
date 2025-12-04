@@ -25,7 +25,7 @@ export class NavPills {
   }
 
   update(newProps: Partial<NavPillsProps>): void {
-    this.props = { ...this.props, ...newProps } as NavPillsProps;
+    this.props = { ...this.props, ...newProps };
     this.render();
   }
 

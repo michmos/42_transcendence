@@ -247,13 +247,13 @@ export default async function initRoute() {
 
   // Get route parameters from window.routeParams (set by router)
   const routeParams = window.routeParams || {};
-  const roundId = routeParams.roundId || '1';
+  const roundId = routeParams['roundId'] || '1';
   const roundIndex = parseInt(roundId, 10) - 1; // Convert to 0-based index
 
   // Get tournamentId from sessionStorage (set when navigating from tournament page)
   // This allows us to navigate back to the correct tournament
   const tournamentId =
-    sessionStorage.getItem('lastTournamentId') || routeParams.tournamentId;
+    sessionStorage.getItem('lastTournamentId') || routeParams['tournamentId'];
 
   if (!tournamentId) {
     roundRoot.innerHTML =
@@ -350,11 +350,11 @@ export default async function initRoute() {
     const uiMatches: Match[] = round.matches.map((match) => {
       const opponent1 =
         match.player1Id && playerMap.has(match.player1Id)
-          ? playerMap.get(match.player1Id)!
+          ? (playerMap.get(match.player1Id) ?? 'Unknown')
           : getPlayerNickname(match.player1, match.player1Id);
       const opponent2 =
         match.player2Id && playerMap.has(match.player2Id)
-          ? playerMap.get(match.player2Id)!
+          ? (playerMap.get(match.player2Id) ?? 'Unknown')
           : getPlayerNickname(match.player2, match.player2Id);
 
       return {

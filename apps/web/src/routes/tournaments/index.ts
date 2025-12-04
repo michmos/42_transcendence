@@ -1,6 +1,6 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
-import API from '../../plugins/api/index.js';
+import TournamentAPI from '../../plugins/api/tournament.js';
 
 interface Tournament {
   id: string;
@@ -371,7 +371,7 @@ function showNewTournamentDialog() {
 
       console.log('Creating tournament...');
       try {
-        const newTournament = await API.createTournament({
+        const newTournament = await TournamentAPI.createTournament({
           tournamentName,
           minPlayers,
           maxPlayers,
@@ -384,67 +384,67 @@ function showNewTournamentDialog() {
       closeDialog();
     });
   });
+}
 
-  export default function initRoute() {
-    const pageRoot = document.querySelector<HTMLElement>('.tournaments-page');
-    if (!pageRoot) return;
+export default function initRoute() {
+  const pageRoot = document.querySelector<HTMLElement>('.tournaments-page');
+  if (!pageRoot) return;
 
-    pageRoot.innerHTML = '';
+  pageRoot.innerHTML = '';
 
-    let searchQuery = '';
-    let filteredTournaments = [...mockTournaments];
+  let searchQuery = '';
+  let filteredTournaments = [...mockTournaments];
 
-    // Main wrapper with gradient background - matching profile page structure
-    const mainWrapper = document.createElement('div');
-    mainWrapper.className = 'min-h-screen bg-gradient-primary';
-    pageRoot.appendChild(mainWrapper);
+  // Main wrapper with gradient background - matching profile page structure
+  const mainWrapper = document.createElement('div');
+  mainWrapper.className = 'min-h-screen bg-gradient-primary';
+  pageRoot.appendChild(mainWrapper);
 
-    // ===== HEADER =====
-    const headerContainer = document.createElement('div');
-    mainWrapper.appendChild(headerContainer);
-    new Navbar(headerContainer, {
-      title: 'The Pong Game',
-      links: [{ label: 'Profile', href: '/profile', active: false }],
-      onSettingsClick: () => {
-        navigateTo('/settings');
-      },
-      onLogoutClick: () => {
-        navigateTo('/login');
-      },
-    });
+  // ===== HEADER =====
+  const headerContainer = document.createElement('div');
+  mainWrapper.appendChild(headerContainer);
+  new Navbar(headerContainer, {
+    title: 'The Pong Game',
+    links: [{ label: 'Profile', href: '/profile', active: false }],
+    onSettingsClick: () => {
+      navigateTo('/settings');
+    },
+    onLogoutClick: () => {
+      navigateTo('/login');
+    },
+  });
 
-    // ===== MAIN CONTENT =====
-    const mainContent = document.createElement('div');
-    mainContent.className = 'max-w-7xl mx-auto px-6 py-8';
-    mainWrapper.appendChild(mainContent);
+  // ===== MAIN CONTENT =====
+  const mainContent = document.createElement('div');
+  mainContent.className = 'max-w-7xl mx-auto px-6 py-8';
+  mainWrapper.appendChild(mainContent);
 
-    // Render sections
-    renderPageHeader(mainContent, showNewTournamentDialog);
+  // Render sections
+  renderPageHeader(mainContent, showNewTournamentDialog);
 
-    // Search functionality
-    const searchContainer = document.createElement('div');
-    renderSearchBar(searchContainer, (query) => {
-      searchQuery = query.toLowerCase();
-      filteredTournaments = mockTournaments.filter((t) =>
-        t.name.toLowerCase().includes(searchQuery)
-      );
-      updateTournamentGrid();
-    });
-    mainContent.appendChild(searchContainer);
-
-    // Tournament grid container
-    const gridContainer = document.createElement('div');
-    mainContent.appendChild(gridContainer);
-
-    const updateTournamentGrid = () => {
-      gridContainer.innerHTML = '';
-      if (filteredTournaments.length === 0) {
-        renderEmptyState(gridContainer);
-      } else {
-        renderTournamentGrid(gridContainer, filteredTournaments);
-      }
-    };
-
+  // Search functionality
+  const searchContainer = document.createElement('div');
+  renderSearchBar(searchContainer, (query) => {
+    searchQuery = query.toLowerCase();
+    filteredTournaments = mockTournaments.filter((t) =>
+      t.name.toLowerCase().includes(searchQuery)
+    );
     updateTournamentGrid();
-  }
+  });
+  mainContent.appendChild(searchContainer);
+
+  // Tournament grid container
+  const gridContainer = document.createElement('div');
+  mainContent.appendChild(gridContainer);
+
+  const updateTournamentGrid = () => {
+    gridContainer.innerHTML = '';
+    if (filteredTournaments.length === 0) {
+      renderEmptyState(gridContainer);
+    } else {
+      renderTournamentGrid(gridContainer, filteredTournaments);
+    }
+  };
+
+  updateTournamentGrid();
 }
