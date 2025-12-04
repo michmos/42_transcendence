@@ -2,11 +2,11 @@ import { env } from '../../env.js';
 import Fastify from 'fastify';
 import fp from 'fastify-plugin';
 
-import Auth, { FortyTwo, Google, type oAuthUser } from 'fastify-oauth/server';
+import Auth, { FortyTwo, Google, type oAuthUser } from 'fastify-oauth';
 
 import { userRole } from 'db/generated/client/index.js';
 
-async function authPlugin(app: Fastify.FastifyInstance) {
+function authPlugin(app: Fastify.FastifyInstance) {
   console.info('🔐 Loading auth plugin...');
 
   if (!app.db || !app.db.getUsers) {

@@ -18,6 +18,7 @@ export const env = createEnv({
       .nonempty({ message: 'SWAGGER_SERVER is required' }),
     SOCKET_URL: z.string().nonempty({ message: 'SOCKET_URL is required' }),
     API_URL: z.string().nonempty({ message: 'API_URL is required' }),
+    CDN_PORT: z.number().default(3008),
   },
   runtimeEnv: import.meta.env,
 });

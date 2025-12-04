@@ -4,17 +4,18 @@ import type { OAuthProvider } from '../../index.js';
 export interface AuthorizeUrlPayload {
   redirect_uri: string;
   scope: string;
+  state: string;
   access_type: 'offline';
   prompt: 'consent select_account';
 }
 
 import ProviderUtility from '../providers/index.js';
 
-async function generateAuthUrl(
+function generateAuthUrl(
   ctx: OAuthContext,
   provider: OAuthProvider,
   ipNumber: string
-): Promise<string> {
+): string {
   // Generate a unique state parameter for CSRF protection
   const state = {
     state: Math.random().toString(36).substring(2, 15),
@@ -30,13 +31,15 @@ async function generateAuthUrl(
     throw new Error('OAuth2 client not initialized for provider');
   }
 
-  return provider.oauth2Client.authorizeURL({
+  const payload: AuthorizeUrlPayload = {
     redirect_uri: ctx.redirectUri,
     scope: provider.scopes.join(' '),
     state: state.state,
     access_type: 'offline',
     prompt: 'consent select_account',
-  } as AuthorizeUrlPayload);
+  };
+
+  return provider.oauth2Client.authorizeURL(payload);
 }
 
 function setupLoginRoute(ctx: OAuthContext) {
@@ -56,7 +59,7 @@ function setupLoginRoute(ctx: OAuthContext) {
     }
 
     // Generate the authorization URL
-    const url = await generateAuthUrl(ctx, provider, ipNumber);
+    const url = generateAuthUrl(ctx, provider, ipNumber);
     return reply.status(302).redirect(url);
   });
 }

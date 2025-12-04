@@ -12,7 +12,7 @@ import {
 import { cleanFriendshipRecord } from './utils.js';
 import * as schemas from './friendshipValidationSchemas.js';
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default function (app: FastifyInstance): void {
   // Send friend request to another user
   app.post<{ Params: schemas.PostAddFriendType }>(
     '/:nickname',
@@ -59,7 +59,8 @@ export default async function (app: FastifyInstance): Promise<void> {
           .code(200)
           .send({ cleanedFriendshipRecord, message: 'Friend request sent' });
       } catch (error) {
-        return reply.code(500).send({ Error: `${error}` });
+        app.log.error(error);
+        return reply.code(500).send({ Error: 'Failed looking up user' });
       }
     }
   );
@@ -80,7 +81,7 @@ export default async function (app: FastifyInstance): Promise<void> {
         if (!uuidOther)
           return reply.code(404).send({ Error: 'user not found' });
 
-        const uuidSelf: string = request.user?.uuid as string;
+        const uuidSelf: string = request.user.uuid;
 
         const friendRecord: Friendship | null = await findFriendRecord(
           uuidSelf,
@@ -134,7 +135,10 @@ export default async function (app: FastifyInstance): Promise<void> {
             message: 'Friendship request rejected',
           });
       } catch (error) {
-        return reply.code(500).send({ Error: `${error}` });
+        app.log.error(error);
+        return reply
+          .code(500)
+          .send({ Error: 'Failed modifying friend request' });
       }
     }
   );
@@ -183,7 +187,8 @@ export default async function (app: FastifyInstance): Promise<void> {
         else if (result.state === friendshipState.ACCEPTED)
           return reply.code(200).send({ message: 'Friend removed' });
       } catch (error) {
-        return reply.code(500).send({ Error: `${error}` });
+        app.log.error(error);
+        return reply.code(500).send({ Error: 'Failed deleting friendRecord' });
       }
     }
   );

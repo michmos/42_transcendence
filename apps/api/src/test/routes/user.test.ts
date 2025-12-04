@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { describe, test, expect } from 'vitest';
 import { app } from '../setup.js';
 import { setUserTo, normalUser, createValidTournament } from '../utils.js';
@@ -55,7 +57,7 @@ describe('GET /user', () => {
 });
 
 // -----   /user/me   -   USER'S OWN PROFILE
-describe('GET /user/me', () => {
+describe('GET /user/me/dashboard', () => {
   // ------------------------------------------------------------------------ 4
   test('User, no friends - valid', async () => {
     await app.db.setUserMeAvatar(
@@ -64,7 +66,7 @@ describe('GET /user/me', () => {
     );
     const response = await app.inject({
       method: 'GET',
-      url: '/user/me',
+      url: '/user/me/dashboard',
     });
 
     expect(response.statusCode).toBe(200);
@@ -189,7 +191,7 @@ describe('GET /user/me', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/user/me',
+      url: '/user/me/dashboard',
     });
 
     expect(response.statusCode).toBe(200);

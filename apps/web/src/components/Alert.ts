@@ -21,7 +21,7 @@ export class Alert {
   }
 
   update(newProps: Partial<AlertProps>): void {
-    this.props = { ...this.props, ...newProps } as AlertProps;
+    this.props = { ...this.props, ...newProps };
     this.render();
   }
 

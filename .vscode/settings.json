@@ -7,5 +7,10 @@
   },
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "typescript.preferences.includePackageJsonAutoImports": "auto"
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "prisma.fileWatcher": false,
+  "files.exclude": {
+    "**/generated/**": true,
+    "**/packages/database/generated/**": true
+  }
 }

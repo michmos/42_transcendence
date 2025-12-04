@@ -2,14 +2,6 @@ import { SimpleRouter } from './plugins/router/index.js';
 import { Socket } from './plugins/websocket/index.js';
 import { env } from './env.js';
 
-declare global {
-  interface Window {
-    routeParams?: Record<string, string>;
-    router: SimpleRouter;
-    socket: Socket;
-  }
-}
-
 // Connect to WebSocket
 window.socket = new Socket(env.VITE_SOCKET_URL);
 

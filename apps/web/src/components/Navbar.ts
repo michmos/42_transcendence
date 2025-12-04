@@ -1,12 +1,5 @@
 import { navigateTo } from '../utils/navigation.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 export interface NavbarLink {
   label: string;
   href: string;
@@ -17,6 +10,8 @@ export interface NavbarProps {
   title?: string;
   logoIcon?: string;
   links?: NavbarLink[];
+  userNickname?: string | undefined;
+  userAvatar?: string | undefined;
   onSettingsClick?: () => void;
   onLogoutClick?: () => void;
   className?: string;
