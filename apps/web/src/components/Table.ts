@@ -119,7 +119,14 @@ export class Table<Row extends Record<string, unknown>> {
           else td.textContent = String(content);
         } else {
           const value = (row as Record<string, unknown>)[String(col.key)];
-          td.textContent = value == null ? '' : String(value);
+          if (value == null) {
+            td.textContent = '';
+          } else if (typeof value === 'object') {
+            td.textContent = JSON.stringify(value);
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            td.textContent = String(value as any);
+          }
         }
         tr.appendChild(td);
       });

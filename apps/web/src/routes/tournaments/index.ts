@@ -54,9 +54,15 @@ const mockTournaments: Tournament[] = [
   },
 ];
 
+interface WebSocketMessage {
+  event: string;
+  data?: unknown;
+  message?: string;
+}
+
 // TODO: handle events
 window.socket.registerWebSocketHook((event: MessageEvent) => {
-  const data = JSON.parse(event.data);
+  const data = JSON.parse(event.data as string) as WebSocketMessage;
   if (data.event === 'tournament-updated') {
     console.log('Tournament updated:', data);
   } else if (data.event === 'tournament-joined') {
@@ -297,7 +303,7 @@ function showNewTournamentDialog() {
       <h2 class="text-2xl font-bold mb-2 text-gray-900">Create New Tournament</h2>
       <p class="text-sm text-gray-600">Set up a new tournament with your preferred settings</p>
     </div>
-    
+
     <div class="space-y-4">
       <div class="space-y-2">
         <label for="tournament-name" class="text-sm font-semibold text-gray-700">Tournament Name</label>
@@ -308,7 +314,7 @@ function showNewTournamentDialog() {
           class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
         />
       </div>
-      
+
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-2">
           <label for="min-size" class="text-sm font-semibold text-gray-700">Min Size</label>
@@ -329,7 +335,7 @@ function showNewTournamentDialog() {
           />
         </div>
       </div>
-      
+
       <div class="flex gap-3 pt-4">
         <button class="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="create-btn">
           Save
@@ -355,88 +361,90 @@ function showNewTournamentDialog() {
   });
 
   dialog.querySelector('#cancel-btn')?.addEventListener('click', closeDialog);
-  dialog.querySelector('#create-btn')?.addEventListener('click', async () => {
-    const tournamentName = getInput(dialog, '#tournament-name');
-    const minPlayers = parseInt(getInput(dialog, '#min-size'));
-    const maxPlayers = parseInt(getInput(dialog, '#max-players'));
+  dialog.querySelector('#create-btn')?.addEventListener('click', () => {
+    void (async () => {
+      const tournamentName = getInput(dialog, '#tournament-name');
+      const minPlayers = parseInt(getInput(dialog, '#min-size'));
+      const maxPlayers = parseInt(getInput(dialog, '#max-players'));
 
-    // TODO: add validation logic (maxPlayers >=2 , minPlayer >=2, maxPlayers >= minPlayers)
+      // TODO: add validation logic (maxPlayers >=2 , minPlayer >=2, maxPlayers >= minPlayers)
 
-    console.log('Creating tournament...');
-    const newTournament = await createTournament({
-      tournamentName,
-      minPlayers,
-      maxPlayers,
+      console.log('Creating tournament...');
+      try {
+        const newTournament = await API.createTournament({
+          tournamentName,
+          minPlayers,
+          maxPlayers,
+        });
+        // TODO: update UI with new tournament
+        console.log('Tournament created:', newTournament);
+      } catch (error) {
+        console.error('Error creating tournament:', error);
+      }
+      closeDialog();
     });
-    if (newTournament) {
-      await joinTournament(newTournament.uuid);
-      // TODO: update UI to reflect added tournament (where you already participate)
-    }
-    closeDialog();
-  });
-}
-
-export default function initRoute() {
-  const pageRoot = document.querySelector(
-    '.tournaments-page'
-  ) as HTMLElement | null;
-  if (!pageRoot) return;
-
-  pageRoot.innerHTML = '';
-
-  let searchQuery = '';
-  let filteredTournaments = [...mockTournaments];
-
-  // Main wrapper with gradient background - matching profile page structure
-  const mainWrapper = document.createElement('div');
-  mainWrapper.className = 'min-h-screen bg-gradient-primary';
-  pageRoot.appendChild(mainWrapper);
-
-  // ===== HEADER =====
-  const headerContainer = document.createElement('div');
-  mainWrapper.appendChild(headerContainer);
-  new Navbar(headerContainer, {
-    title: 'The Pong Game',
-    links: [{ label: 'Profile', href: '/profile', active: false }],
-    onSettingsClick: () => {
-      navigateTo('/settings');
-    },
-    onLogoutClick: () => {
-      navigateTo('/login');
-    },
   });
 
-  // ===== MAIN CONTENT =====
-  const mainContent = document.createElement('div');
-  mainContent.className = 'max-w-7xl mx-auto px-6 py-8';
-  mainWrapper.appendChild(mainContent);
+  export default function initRoute() {
+    const pageRoot = document.querySelector<HTMLElement>('.tournaments-page');
+    if (!pageRoot) return;
 
-  // Render sections
-  renderPageHeader(mainContent, showNewTournamentDialog);
+    pageRoot.innerHTML = '';
 
-  // Search functionality
-  const searchContainer = document.createElement('div');
-  renderSearchBar(searchContainer, (query) => {
-    searchQuery = query.toLowerCase();
-    filteredTournaments = mockTournaments.filter((t) =>
-      t.name.toLowerCase().includes(searchQuery)
-    );
+    let searchQuery = '';
+    let filteredTournaments = [...mockTournaments];
+
+    // Main wrapper with gradient background - matching profile page structure
+    const mainWrapper = document.createElement('div');
+    mainWrapper.className = 'min-h-screen bg-gradient-primary';
+    pageRoot.appendChild(mainWrapper);
+
+    // ===== HEADER =====
+    const headerContainer = document.createElement('div');
+    mainWrapper.appendChild(headerContainer);
+    new Navbar(headerContainer, {
+      title: 'The Pong Game',
+      links: [{ label: 'Profile', href: '/profile', active: false }],
+      onSettingsClick: () => {
+        navigateTo('/settings');
+      },
+      onLogoutClick: () => {
+        navigateTo('/login');
+      },
+    });
+
+    // ===== MAIN CONTENT =====
+    const mainContent = document.createElement('div');
+    mainContent.className = 'max-w-7xl mx-auto px-6 py-8';
+    mainWrapper.appendChild(mainContent);
+
+    // Render sections
+    renderPageHeader(mainContent, showNewTournamentDialog);
+
+    // Search functionality
+    const searchContainer = document.createElement('div');
+    renderSearchBar(searchContainer, (query) => {
+      searchQuery = query.toLowerCase();
+      filteredTournaments = mockTournaments.filter((t) =>
+        t.name.toLowerCase().includes(searchQuery)
+      );
+      updateTournamentGrid();
+    });
+    mainContent.appendChild(searchContainer);
+
+    // Tournament grid container
+    const gridContainer = document.createElement('div');
+    mainContent.appendChild(gridContainer);
+
+    const updateTournamentGrid = () => {
+      gridContainer.innerHTML = '';
+      if (filteredTournaments.length === 0) {
+        renderEmptyState(gridContainer);
+      } else {
+        renderTournamentGrid(gridContainer, filteredTournaments);
+      }
+    };
+
     updateTournamentGrid();
-  });
-  mainContent.appendChild(searchContainer);
-
-  // Tournament grid container
-  const gridContainer = document.createElement('div');
-  mainContent.appendChild(gridContainer);
-
-  const updateTournamentGrid = () => {
-    gridContainer.innerHTML = '';
-    if (filteredTournaments.length === 0) {
-      renderEmptyState(gridContainer);
-    } else {
-      renderTournamentGrid(gridContainer, filteredTournaments);
-    }
-  };
-
-  updateTournamentGrid();
+  }
 }

@@ -25,15 +25,19 @@ export default async function initRoute() {
     fetch('/api/auth/logout', {
       method: 'GET',
       credentials: 'include',
-    }).then(() => {
-      user = null;
-      userTableLogic(); // Refresh user table
-      if (logoutBtn) {
-        logoutBtn.textContent = 'Login';
-        logoutBtn.removeEventListener('click', handleLogoutClick);
-        logoutBtn.addEventListener('click', handleLoginClick);
-      }
-    });
+    })
+      .then(() => {
+        user = null;
+        userTableLogic(); // Refresh user table
+        if (logoutBtn) {
+          logoutBtn.textContent = 'Login';
+          logoutBtn.removeEventListener('click', handleLogoutClick);
+          logoutBtn.addEventListener('click', handleLoginClick);
+        }
+      })
+      .catch((error) => {
+        console.error('Logout failed:', error);
+      });
   }
   function handleLoginClick() {
     window.router.navigate('/login');

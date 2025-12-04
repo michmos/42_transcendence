@@ -47,7 +47,7 @@ When a new message is received, the handler name is extracted from the room name
    _important_: there must be an `index.ts` file with a default export of the following type:
 
    ```ts
-   import { type SocketMessage } from '../../plugins/rooms/index.js';
+   import { type SocketMessageType } from '../../plugins/rooms/index.js';
    import {
      RoomManager,
      WSocket,

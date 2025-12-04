@@ -1,20 +1,21 @@
 import { Card, Button } from '../../components/index.js';
 
 export default function initRoute() {
-  const pageRoot = document.querySelector('.root-page') as HTMLElement | null;
+  const pageRoot = document.querySelector('.root-page');
   if (!pageRoot) return;
   pageRoot.classList.add('overflow-hidden', 'h-screen', 'bg-gradient-primary');
 
   // Style the h1 title from the HTML - moved lower with top padding
-  const pageTitle = pageRoot.querySelector('h1') as HTMLElement | null;
+  const pageTitle = pageRoot.querySelector('h1');
   if (pageTitle) {
     pageTitle.className = 'text-white text-center mb-8 text-5xl font-bold';
-    pageTitle.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.3)';
-    pageTitle.style.paddingTop = '80px';
-    pageTitle.style.marginTop = '0';
+    (pageTitle as HTMLElement).style.textShadow =
+      '2px 2px 4px rgba(0, 0, 0, 0.3)';
+    (pageTitle as HTMLElement).style.paddingTop = '80px';
+    (pageTitle as HTMLElement).style.marginTop = '0';
   }
 
-  const cardMount = document.getElementById('loginCard') as HTMLElement | null;
+  const cardMount = document.getElementById('loginCard');
   if (!cardMount) return;
   cardMount.innerHTML = '';
 

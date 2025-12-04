@@ -10,7 +10,7 @@
     "module": "nodenext",
     "target": "esnext",
     "types": [],
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "typeRoots": ["./node_modules/@types", "./src/types", "../../../../../packages/types/src/index.js"],
 
     // Other Outputs
     "sourceMap": true,
