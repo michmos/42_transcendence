@@ -7,7 +7,7 @@ export interface TableColumn<Row> {
 }
 
 export interface TableProps<Row> {
-  columns: TableColumn<Row>[];
+  columns: Array<TableColumn<Row>>;
   rows: Row[];
   emptyTitle?: string;
   emptyMessage?: string;
@@ -28,7 +28,8 @@ export class Table<Row extends Record<string, unknown>> {
   }
 
   update(newProps: Partial<TableProps<Row>>): void {
-    this.props = { ...this.props, ...newProps } as TableProps<Row>;
+    const mergedProps: TableProps<Row> = { ...this.props, ...newProps };
+    this.props = mergedProps;
     this.render();
   }
 
@@ -124,8 +125,7 @@ export class Table<Row extends Record<string, unknown>> {
           } else if (typeof value === 'object') {
             td.textContent = JSON.stringify(value);
           } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            td.textContent = String(value as any);
+            td.textContent = value as string;
           }
         }
         tr.appendChild(td);

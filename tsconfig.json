@@ -12,5 +12,5 @@
     "noEmit": true
   },
   "include": ["apps/**/*", "packages/**/*", "eslint.config.ts"],
-  "exclude": ["node_modules", "dist", "build", "out", "**/generated/**"]
+  "exclude": ["node_modules", "dist", "build", "out", "generated/client"]
 }
