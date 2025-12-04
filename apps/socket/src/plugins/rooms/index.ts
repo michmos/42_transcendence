@@ -9,7 +9,7 @@ import {
   runMessageHandler,
 } from './roomHandlerLoader.js';
 import { getValidMessage } from './validation.js';
-export { type SocketMessage } from './validation.js';
+export { SocketMessage, type SocketMessageType } from './validation.js';
 import { WSocket } from './WSocket/index.js';
 
 interface IIdentifiers {
@@ -54,7 +54,9 @@ async function roomPlugin(app: FastifyInstance) {
       try {
         await runOnOpenHooks(socket);
       } catch (error) {
-        console.error(`[${socket.uuid}]: error on open: ${error}`);
+        console.error(
+          `[${socket.uuid}]: error on open: ${(error as Error).message}`
+        );
       }
     }
   );

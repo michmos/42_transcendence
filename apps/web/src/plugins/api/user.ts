@@ -17,7 +17,7 @@ const UserAPI = {
         throw new Error('Failed to fetch user data');
       }
 
-      const res = await response.json();
+      const res = (await response.json()) as { cleanedUserData: User };
       console.log('Fetched user data:', res.cleanedUserData);
       // TODO: Weird user data issue fix later
       return res.cleanedUserData;
@@ -26,6 +26,11 @@ const UserAPI = {
       return null;
     }
   },
+
+  async getUserBasicInfo(): Promise<User | null> {
+    return this.getMe();
+  },
+
   async getUsers(): Promise<User[]> {
     try {
       const response = await fetch('/api/user', {
@@ -41,7 +46,7 @@ const UserAPI = {
         throw new Error('Unauthorized');
       }
 
-      const res = await response.json();
+      const res = (await response.json()) as User[];
       return res;
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -55,7 +60,7 @@ const UserAPI = {
       if (response.status === 404) {
         return null;
       }
-      return await response.json();
+      return (await response.json()) as User;
     } catch (error) {
       console.error('Error fetching user by ID:', error);
       return null;
@@ -71,7 +76,7 @@ const UserAPI = {
           email: `user${Math.floor(Math.random() * 1000)}@example.com`,
         }),
       });
-      return await response.json();
+      return (await response.json()) as User;
     } catch (error) {
       console.error('Error creating user:', error);
       return null;

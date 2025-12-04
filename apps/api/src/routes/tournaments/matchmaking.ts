@@ -33,8 +33,8 @@ class RoundRobin<T> {
   }
 }
 
-function generateRound(roundRobin: RoundRobin<User>): Partial<Match>[] {
-  const matches: Partial<Match>[] = [];
+function generateRound(roundRobin: RoundRobin<User>): Array<Partial<Match>> {
+  const matches: Array<Partial<Match>> = [];
   const playerCount = roundRobin.length();
   for (let start = 0, end = playerCount; start < end; ++start, --end) {
     matches.push({
@@ -50,7 +50,7 @@ export default async function generateTournamentPlan(
   tournamentId: string,
   app: FastifyInstance
 ) {
-  const players: (User | null)[] =
+  const players: Array<User | null> =
     await app.db.getTournamentParticipants(tournamentId);
   const playerCount = players.length;
   const numberOfRounds = playerCount - 1;

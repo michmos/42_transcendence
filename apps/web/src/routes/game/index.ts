@@ -22,7 +22,12 @@ import {
   setWebSocket,
   setReconnectTimeout,
   setNetworkBlocked,
+  type ServerState,
 } from './state';
+
+type ServerMessage =
+  | (ServerState & { type: 'state' })
+  | { type: 'role'; role: string; clientId: string };
 
 const canvas = getCanvas();
 
@@ -70,7 +75,7 @@ function createWebSocket() {
   };
 
   socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
+    const message = JSON.parse(event.data as string) as ServerMessage;
 
     // Only update serverState
     if (message.type === 'state') {

@@ -45,8 +45,19 @@ export const updateTournament = {
 export type updateTournamentBody = Static<typeof updateTournament.body>;
 
 // POST /tournaments/:tournamentId/users
+export const joinTournament = {
+  params: Type.Object({
+    uuid: Type.String(),
+  }),
+  body: Type.Object({
+    uuid: Type.Optional(Type.String()),
+    alias: Type.String({ minLength: 1, maxLength: 50 }),
+  }),
+};
+export type joinTournamentBody = Static<typeof joinTournament.body>;
+
 // DELETE /tournaments/:tournamentId/users
-export const joinOrLeave = {
+export const leaveTournament = {
   params: Type.Object({
     uuid: Type.String(),
   }),
@@ -54,8 +65,7 @@ export const joinOrLeave = {
     uuid: Type.Optional(Type.String()),
   }),
 };
-export type addUserBody = Static<typeof joinOrLeave.body>;
-export type rmvUserBody = Static<typeof joinOrLeave.body>;
+export type leaveTournamentBody = Static<typeof leaveTournament.body>;
 
 // GET /tournaments
 export const getTournaments = {
@@ -65,7 +75,9 @@ export const getTournaments = {
     ),
   }),
 };
-export type getTournaments = Static<typeof getTournaments.querystring>;
+export type getTournamentsQuerystring = Static<
+  typeof getTournaments.querystring
+>;
 
 // GET /tournaments/:uuid
 export const getTournament = {
@@ -73,7 +85,7 @@ export const getTournament = {
     uuid: Type.String(),
   }),
 };
-export type getTournament = Static<typeof getTournament.params>;
+export type getTournamentParams = Static<typeof getTournament.params>;
 export type singleUuidParam = Static<typeof getTournament.params>;
 
 // GET /tournaments/:uuid/rounds/:roundIndex
@@ -83,4 +95,4 @@ export const getTournamentRound = {
     roundIndex: Type.Integer({ minimum: 0 }),
   }),
 };
-export type getTournamentRound = Static<typeof getTournamentRound.params>;
+export type getTournamentRoundParams = Static<typeof getTournamentRound.params>;

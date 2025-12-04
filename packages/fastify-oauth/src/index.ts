@@ -30,6 +30,7 @@ interface OAuthContext {
   errorRedirectUrl: string;
   jwtSecret: string;
   state: State[];
+
   callbacks: Record<string, (args: unknown) => unknown>;
 }
 
@@ -91,6 +92,7 @@ class OAuth {
   }
 
   // Register event callbacks
+
   public on(name: string, callback: (args: unknown) => unknown) {
     this.ctx.callbacks[name] = callback;
     return this;
@@ -114,6 +116,7 @@ class OAuth {
     reply: import('fastify').FastifyReply,
     adminRole: string,
     api_admin_key: string,
+
     getUserRoleCallback: (uuid: string) => Promise<string | null>
   ) {
     const apiKey = request.headers['x-api-key'];
@@ -161,9 +164,7 @@ class OAuth {
       }
 
       // Fetch the user object from the database using the provided callback
-      const userRole = (await getUserRoleCallback(session.uuid)) as
-        | string
-        | null;
+      const userRole = await getUserRoleCallback(session.uuid);
       console.info('Fetched user role for UUID', session.uuid, ':', userRole);
       if (!userRole)
         return reply.status(401).send({ error: 'User not found in database' });
@@ -249,6 +250,7 @@ export interface OAuthProviderOptions {
     authorizePath: string;
   };
   scopes: string[];
+
   fetchUserData?: (token: string) => Promise<Record<string, unknown>>;
 }
 

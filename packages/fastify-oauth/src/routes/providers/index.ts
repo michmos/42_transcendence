@@ -8,7 +8,7 @@ class ProviderUtility {
 
   constructor() {
     this.oAuthProviders = [];
-    this.ctx = {} as OAuthContext;
+    this.ctx = {} as unknown as OAuthContext;
   }
 
   initialize(ctx: OAuthContext) {

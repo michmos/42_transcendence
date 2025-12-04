@@ -1,17 +1,8 @@
 import { Navbar, Card, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 export default function initRoute() {
-  const pageRoot = document.querySelector(
-    '.settings-page'
-  ) as HTMLElement | null;
+  const pageRoot = document.querySelector<HTMLElement>('.settings-page');
   if (!pageRoot) return;
   pageRoot.innerHTML = '';
 

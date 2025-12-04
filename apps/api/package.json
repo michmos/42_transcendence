@@ -28,9 +28,9 @@
     "@fastify/websocket": "^11.2.0",
     "@sinclair/typebox": "^0.34.41",
     "@t3-oss/env-core": "^0.13.8",
-    "db": "../../packages/database",
+    "db": "link:../../packages/database",
     "fastify": "^5.5.0",
-    "fastify-oauth": "../../packages/fastify-oauth",
+    "fastify-oauth": "link:../../packages/fastify-oauth",
     "fastify-plugin": "^5.1.0",
     "googleapis": "^160.0.0",
     "jsonwebtoken": "^9.0.2",
@@ -44,6 +44,7 @@
     "@types/simple-oauth2": "^5.0.7",
     "@vitest/ui": "^3.2.4",
     "tsx": "^4.20.5",
+    "types": "link:../../packages/types",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

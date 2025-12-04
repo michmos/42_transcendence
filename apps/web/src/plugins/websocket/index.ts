@@ -2,7 +2,7 @@ import { type SocketMessage } from '../../types/SocketMessage.js';
 
 class Socket {
   private socket: WebSocket | null = null;
-  private hooks: ((_event: MessageEvent) => void)[] = [];
+  private hooks: Array<(_event: MessageEvent) => void> = [];
 
   constructor(url?: string) {
     console.log('📦 Initializing WebSocket connection...');

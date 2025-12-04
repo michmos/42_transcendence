@@ -1,13 +1,6 @@
 import { Navbar, Card, Badge } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 interface Round {
   id: number;
   name: string;
@@ -267,9 +260,7 @@ function renderLeaderboard(container: HTMLElement) {
 }
 
 export default function initRoute() {
-  const pageRoot = document.querySelector(
-    '.tournament-page'
-  ) as HTMLElement | null;
+  const pageRoot = document.querySelector<HTMLElement>('.tournament-page');
   if (!pageRoot) return;
 
   pageRoot.innerHTML = '';

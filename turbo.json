@@ -7,6 +7,7 @@
     "VITE_SOCKET_URL",
     "SOCKET_PORT",
     "API_PORT",
+    "CDN_PATH",
     "SWAGGER_PORT",
     "API_SERVER",
     "SOCKET_SERVER",
@@ -36,8 +37,12 @@
     "db": {
       "dependsOn": ["db:generate", "db:push"]
     },
+    "db:studio": {
+      "env": ["DATABASE_URL"]
+    },
 
     "dep:build": {
+      "dependsOn": ["^db"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": ["dist/**", "out/**"],
       "cache": false

@@ -9,6 +9,8 @@ export const env = createEnv({
 
     ADMIN_API_KEY: z.string().nonempty('ADMIN_API_KEY is required'),
 
+    CDN_PATH: z.string().nonempty('CDN_PATH is required'),
+
     GOOGLE_CLIENT_ID: z.string().nonempty('GOOGLE_CLIENT_ID is required'),
     GOOGLE_CLIENT_SECRET: z
       .string()
