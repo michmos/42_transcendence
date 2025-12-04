@@ -1,24 +1,21 @@
 services:
   builder-frontend:
-    container_name: builder-web
+    container_name: builder-frontend
     labels:
       description: "Frontend Application Builder"
     volumes:
       - ./shared/public-data/frontend:/www
     build:
       context: ./apps/web
-      dockerfile: Dockerfile.yaml
-      args:
-        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
-        VITE_API_URL: ${VITE_API_URL}
     restart: on-failure
+
   database-creator:
     container_name: database-creator
     labels:
       description: "Database Creator Service"
     build:
       context: .
-      dockerfile: services/database-creator/Dockerfile.yaml
+      dockerfile: services/database-creator/Dockerfile
       args:
         DATABASE_URL: file:/data/db/sqlite-database.db
     volumes:
@@ -26,8 +23,9 @@ services:
     networks:
       - backend-network
     restart: on-failure
-  nginx-frontend:
-    container_name: nginx-frontend
+
+  frontend:
+    container_name: frontend
     labels:
       description: "Nginx Static File Server for Frontend Application"
     volumes:
@@ -38,8 +36,9 @@ services:
     restart: unless-stopped
     depends_on:
       - builder-frontend
-  nginx-cdn:
-    container_name: nginx-cdn
+
+  cdn:
+    container_name: cdn
     labels:
       description: "Nginx Static File Server for CDN"
     volumes:
@@ -48,18 +47,17 @@ services:
       - backend-network
     image: nginx:stable-alpine
     restart: unless-stopped
-    depends_on:
-      - builder-frontend
-  fastify-api:
-    container_name: fastify-api
+
+  api:
+    container_name: api
     labels:
       description: "Fastify API Service"
     build:
       context: .
-      dockerfile: ./apps/api/Dockerfile.yaml
+      dockerfile: ./apps/api/Dockerfile
       args:
+        CORS_URL: ${CORS_URL}
         DATABASE_URL: file:/data/db/sqlite-database.db
-        VITE_URL: ${VITE_URL}
         ADMIN_API_KEY: ${ADMIN_API_KEY}
         GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -76,13 +74,14 @@ services:
     restart: unless-stopped
     depends_on:
       - database-creator
-  fastify-socket:
-    container_name: fastify-socket
+
+  socket:
+    container_name: socket
     labels:
       description: "Fastify Socket Service"
     build:
       context: .
-      dockerfile: ./apps/socket/Dockerfile.yaml
+      dockerfile: ./apps/socket/Dockerfile
       args:
         DATABASE_URL: file:/data/db/sqlite-database.db
         API_SERVER: ${API_SERVER}
@@ -94,6 +93,7 @@ services:
     restart: unless-stopped
     depends_on:
       - database-creator
+
   nginx-proxy:
     container_name: nginx-proxy
     labels:
@@ -106,13 +106,14 @@ services:
       - public-network
     build:
       context: ./services/nginx-proxy
-      dockerfile: Dockerfile.yaml
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      - nginx-frontend
-      - nginx-cdn
-      - fastify-api
-      - fastify-socket
+      - frontend
+      - cdn
+      - api
+      - socket
+
   cloudflare-tunnel:
     container_name: cloudflare-tunnel
     labels:

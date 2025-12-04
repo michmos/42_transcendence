@@ -1,23 +1,3 @@
-/**
- * To use OAuth2 authentication, we need access to a CLIENT_ID, CLIENT_SECRET, AND REDIRECT_URI.
- * To get these credentials for your application, visit https://console.cloud.google.com/apis/credentials.
- *
- * Make sure the people API is enabled for your project to get the user profile information.
- * You can enable it from https://console.cloud.google.com/apis/library/people.googleapis.com
- *
- * The REDIRECT_URI is the URL to which users will be redirected after they have authenticated with Google.
- * This URL must be registered in the Google Cloud Console.
- * For development purposes, you can use http://localhost:3000/api/auth/google/callback
- * For production, use your actual domain, e.g., https://yourdomain.com/api/auth/google/callback
- *
- * Make sure the Application is set to production or add test users if it's in testing mode.
- *
- * The JWT_SECRET is used to sign the JWT tokens. Make sure to use a strong, random string in a production environment.
- *
- * The GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL, JWT_SECRET, should be set in your environment variables.
- *
- */
-
 import { type FastifyError, type FastifyInstance } from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 
