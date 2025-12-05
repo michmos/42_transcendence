@@ -18,6 +18,7 @@ export default class WSocket {
   private isProcessingQueue: boolean = false;
 
   public uuid: string;
+  // public nickname: string; ------------------------------------------------------- <<
   public jwt: string;
   public lastSeen?: Date;
   public connected: boolean;
