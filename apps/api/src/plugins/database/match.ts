@@ -19,6 +19,20 @@ export async function addMatch(data: {
   });
 }
 
+export async function updateMatchesByStatus(
+  newData: Partial<Match>,
+  status?: status
+) {
+  return Database.match.updateManyAndReturn({
+    where: {
+      ...(status !== undefined ? { status } : {}),
+    },
+    data: {
+      ...newData,
+    },
+  });
+}
+
 export async function updateMatch(
   match: Partial<Match> & { uuid: string }
 ): Promise<Match> {

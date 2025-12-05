@@ -65,6 +65,29 @@ export default function (app: FastifyInstance): void {
   );
 
   app.patch<{
+    Body: schemas.updateMatchesBodyType;
+    Querystring: schemas.updateMatchesQuerystringType;
+  }>(
+    '/',
+    {
+      schema: schemas.updateMatches,
+      preHandler: (request, reply, done) => {
+        if (!isAdmin(request, reply)) {
+        }
+        done();
+        return;
+      },
+    },
+    async (request, reply) => {
+      if (Object.keys(request.body).length === 0) {
+        return reply.status(400).send({ error: 'Body cannot be empty' });
+      }
+      await app.db.updateMatchesByStatus(request.body, request.query.status);
+      return reply.status(204).send();
+    }
+  );
+
+  app.patch<{
     Body: schemas.updateMatchBodyType;
     Params: schemas.singleUuidParam;
   }>(

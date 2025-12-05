@@ -1,6 +1,23 @@
 import { Type, type Static } from '@sinclair/typebox';
 import { status as statusEnum } from 'db/generated/client/index.js';
 
+export const updateMatches = {
+  querystring: Type.Object({
+    status: Type.Optional(
+      Type.Union(Object.values(statusEnum).map((value) => Type.Literal(value)))
+    ),
+  }),
+  body: Type.Object({
+    status: Type.Optional(
+      Type.Union(Object.values(statusEnum).map((value) => Type.Literal(value)))
+    ),
+  }),
+};
+export type updateMatchesQuerystringType = Static<
+  typeof updateMatches.querystring
+>;
+export type updateMatchesBodyType = Static<typeof updateMatches.body>;
+
 export const getMatch = {
   params: Type.Object({
     uuid: Type.String(),
