@@ -12,7 +12,6 @@ export default class WSocket {
   private socket: WebSocket;
   private user: User | null;
   public uuid: string;
-  // public nickname: string; ------------------------------------------------------- <<
   public jwt: string;
   public lastSeen?: Date;
   public connected: boolean;
