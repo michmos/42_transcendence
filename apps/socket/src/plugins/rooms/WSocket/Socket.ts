@@ -11,6 +11,7 @@ export interface SocketMetaData {
 export default class WSocket {
   private socket: WebSocket;
   private user: User | null;
+  public gameRoom: string | null;
   public uuid: string;
   public jwt: string;
   public lastSeen?: Date;
@@ -20,6 +21,7 @@ export default class WSocket {
     this.socket = socket;
     this.uuid = uuid;
     this.jwt = jwt;
+	this.gameRoom = null;
     this.connected = true;
     this.user = getUser(this);
 
