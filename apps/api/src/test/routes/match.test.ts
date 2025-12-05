@@ -4,7 +4,7 @@ import { app } from '../setup.js';
 import { type MatchResponse } from 'types';
 import { type TournamentRoundResponse } from 'types';
 
-describe('GET /match/:uuid', () => {
+describe('GET /matches/:uuid', () => {
   setUserTo('MEMBER');
 
   test('get existing match -> 200', async () => {
@@ -15,7 +15,7 @@ describe('GET /match/:uuid', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: `/match/${match.uuid}`,
+      url: `/matches/${match.uuid}`,
     });
     expect(response.statusCode).toBe(200);
   });
@@ -60,7 +60,7 @@ describe('GET /match/:uuid', () => {
     // get match
     const response = await app.inject({
       method: 'GET',
-      url: `/match/${matchId}`,
+      url: `/matches/${matchId}`,
     });
 
     const matchResponse = JSON.parse(response.body) as MatchResponse;
@@ -72,18 +72,18 @@ describe('GET /match/:uuid', () => {
   test('get non-existent match -> 404', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/match/non-existent-match-uuid`,
+      url: `/matches/non-existent-match-uuid`,
     });
     expect(response.statusCode).toBe(404);
   });
 });
 
-describe('POST /match', () => {
+describe('POST /matches', () => {
   test('valid: post -> 201', async () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
-      url: '/match',
+      url: '/matches',
       body: {
         status: 'ongoing',
         player1Id: normalUser.uuid,
@@ -96,7 +96,7 @@ describe('POST /match', () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
-      url: '/match',
+      url: '/matches',
       body: {
         status: 'ongoing',
         player1Id: normalUser.uuid,
@@ -110,7 +110,7 @@ describe('POST /match', () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
-      url: '/match',
+      url: '/matches',
       body: {
         status: 'ongoing',
         player1Id: normalUser.uuid,
@@ -122,7 +122,7 @@ describe('POST /match', () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
-      url: '/match',
+      url: '/matches',
       body: {
         status: 'ongoing',
         player1Id: 'some-non-existent-uuid',
@@ -135,7 +135,7 @@ describe('POST /match', () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
-      url: '/match',
+      url: '/matches',
       body: {
         status: 'wrong status value',
         player1Id: normalUser.uuid,
@@ -148,7 +148,7 @@ describe('POST /match', () => {
     setUserTo('MEMBER');
     const response = await app.inject({
       method: 'POST',
-      url: '/match',
+      url: '/matches',
       body: {
         status: 'ongoing',
         player1Id: normalUser.uuid,
@@ -159,7 +159,7 @@ describe('POST /match', () => {
   });
 });
 
-describe('PATCH /match/:uuid', () => {
+describe('PATCH /matches/:uuid', () => {
   test('valid: patch -> 200', async () => {
     setUserTo('ADMIN');
     const match = await app.db.addMatch({
@@ -169,7 +169,7 @@ describe('PATCH /match/:uuid', () => {
 
     const response = await app.inject({
       method: 'PATCH',
-      url: `/match/${match.uuid}`,
+      url: `/matches/${match.uuid}`,
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
@@ -188,7 +188,7 @@ describe('PATCH /match/:uuid', () => {
 
     const response = await app.inject({
       method: 'PATCH',
-      url: `/match/${match.uuid}`,
+      url: `/matches/${match.uuid}`,
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
@@ -203,7 +203,7 @@ describe('PATCH /match/:uuid', () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'PATCH',
-      url: `/match/invalid-match-uuid`,
+      url: `/matches/invalid-match-uuid`,
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
@@ -222,7 +222,7 @@ describe('PATCH /match/:uuid', () => {
 
     const response = await app.inject({
       method: 'PATCH',
-      url: `/match/${match.uuid}`,
+      url: `/matches/${match.uuid}`,
       body: {
         status: 'wrong status value',
         winnerId: normalUser.uuid,
@@ -241,7 +241,7 @@ describe('PATCH /match/:uuid', () => {
 
     const response = await app.inject({
       method: 'PATCH',
-      url: `/match/${match.uuid}`,
+      url: `/matches/${match.uuid}`,
       body: {
         status: 'finished',
         winnerId: normalUser.uuid,
@@ -252,3 +252,4 @@ describe('PATCH /match/:uuid', () => {
     expect(response.statusCode).toBe(403);
   });
 });
+
