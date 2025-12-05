@@ -119,8 +119,8 @@ describe('GET /user/me/dashboard', () => {
         const uuid: string = match.uuid;
         await app.db.updateMatch({
           uuid,
-          Score1: 5,
-          Score2: 10,
+          score1: 5,
+          score2: 10,
           winnerId: otherUser.uuid,
           status: 'finished',
         });
@@ -135,8 +135,8 @@ describe('GET /user/me/dashboard', () => {
         const uuid: string = match.uuid;
         await app.db.updateMatch({
           uuid,
-          Score1: 10,
-          Score2: 2,
+          score1: 10,
+          score2: 2,
           winnerId: normalUser.uuid,
           status: 'finished',
         });
@@ -163,8 +163,8 @@ describe('GET /user/me/dashboard', () => {
         const uuid: string = match.uuid;
         await app.db.updateMatch({
           uuid,
-          Score1: 10,
-          Score2: 2,
+          score1: 10,
+          score2: 2,
           winnerId: normalUser.uuid,
           status: 'finished',
           // tournamentRoundId: `t-round-${i}`,

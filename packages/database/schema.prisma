@@ -141,8 +141,8 @@ model Match {
 
   // Data
   status            status    @default(outstanding)
-  Score1            Int       @default(0)
-  Score2            Int       @default(0)
+  score1            Int       @default(0)
+  score2            Int       @default(0)
   player1Id         String?
   player2Id         String?
   winnerId          String?

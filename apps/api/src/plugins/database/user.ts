@@ -65,8 +65,8 @@ export async function getUserMatchHistory(
     },
     select: {
       updatedAt: true,
-      Score1: true,
-      Score2: true,
+      score1: true,
+      score2: true,
       player1: { select: { nickname: true } },
       player2: { select: { nickname: true } },
       tournamentRoundId: true,
@@ -76,8 +76,8 @@ export async function getUserMatchHistory(
   });
   return matches.map((match) => ({
     date: match.updatedAt.toISOString().slice(0, 10),
-    score1: match.Score1,
-    score2: match.Score2,
+    score1: match.score1,
+    score2: match.score2,
     player1: match.player1?.nickname ?? 'Guest',
     player2: match.player2?.nickname ?? 'Guest',
     result: match.winnerId === uuid ? 'WON' : 'LOST',
