@@ -13,7 +13,7 @@ import UserAPI, {
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
-import { getCurrentSession, setSession } from '../../utils/auth-state.js';
+import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -60,35 +60,27 @@ export default async function initRoute() {
   const profileData = await UserAPI.getUserProfile();
 
   if (!profileData) {
-    // Check if we have a session in memory (from app.ts checkSessionAndRedirect)
+    // Re-check session in memory (might have been cleared by logout)
     const currentSession = getCurrentSession();
-    if (currentSession && currentSession.uuid) {
-      const errorMsg = document.createElement('div');
-      errorMsg.className = 'text-center text-muted-foreground py-8';
-      errorMsg.innerHTML = `
-        <p class="mb-4">Failed to load profile data.</p>
-        <button 
-          onclick="window.location.reload()" 
-          class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
-        >
-          Refresh Page
-        </button>
-      `;
-      mainWrapper.appendChild(errorMsg);
+    if (!currentSession || !currentSession.uuid) {
+      // Session was cleared (e.g., during logout) - redirect immediately
+      navigateTo('/login');
       return;
     }
 
-    // Double-check with getMe() which is lighter weight and has its own retry logic
-    console.log('[profile] No session in memory, checking with getMe()...');
+    // Session exists in memory, verify with API
     const user = await UserAPI.getMe();
-    if (user && user.uuid) {
-      // User is authenticated but profile fetch failed - show error instead of redirecting
-      console.log(
-        '[profile] ✅ User authenticated via getMe() but profile fetch failed, showing error'
-      );
-      const errorMsg = document.createElement('div');
-      errorMsg.className = 'text-center text-muted-foreground py-8';
-      errorMsg.innerHTML = `
+    if (!user || !user.uuid) {
+      // User is not actually authenticated - clear stale session and redirect
+      clearSession();
+      navigateTo('/login');
+      return;
+    }
+
+    // User is authenticated but profile fetch failed - show error
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'text-center text-muted-foreground py-8';
+    errorMsg.innerHTML = `
         <p class="mb-4">Failed to load profile data.</p>
         <button 
           onclick="window.location.reload()" 
@@ -97,15 +89,7 @@ export default async function initRoute() {
           Refresh Page
         </button>
       `;
-      mainWrapper.appendChild(errorMsg);
-      return;
-    }
-
-    // Only redirect if we're absolutely sure user is not authenticated
-    console.log(
-      '[profile] ❌ User not authenticated after all checks, redirecting to login'
-    );
-    navigateTo('/login');
+    mainWrapper.appendChild(errorMsg);
     return;
   }
 
@@ -121,9 +105,11 @@ export default async function initRoute() {
     ...(cleanedUserData.nickname && { userNickname: cleanedUserData.nickname }),
     ...(cleanedUserData.avatar && { userAvatar: cleanedUserData.avatar }),
     onSettingsClick: () => {
-      navigateTo('/settings');
+      void navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // ===== MAIN CONTENT =====
@@ -607,7 +593,7 @@ function renderFriendsTab(
 
     // Debounce search (wait 500ms after typing stops)
     searchTimeout = setTimeout(() => {
-      performSearch(query);
+      void performSearch(query);
     }, 500);
   });
 
@@ -626,14 +612,14 @@ function renderFriendsTab(
       e.preventDefault();
       const query = newSearchInput.value.trim();
       if (query.length >= 3) {
-        performSearch(query);
+        void performSearch(query);
       }
     }
   });
 
   // If there's a saved search query, perform it
   if (currentSearchQuery && currentSearchQuery.length >= 3) {
-    performSearch(currentSearchQuery);
+    void performSearch(currentSearchQuery);
   }
 
   container.appendChild(searchResultsContainer);
@@ -772,99 +758,103 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
   const acceptBtn = item.querySelector(
     '.accept-request-btn'
   ) as HTMLButtonElement;
-  acceptBtn.addEventListener('click', async (e) => {
+  acceptBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const nickname = acceptBtn.dataset.nickname || '';
-    acceptBtn.disabled = true;
-    acceptBtn.textContent = 'Accepting...';
+    void (async () => {
+      const nickname = acceptBtn.dataset.nickname || '';
+      acceptBtn.disabled = true;
+      acceptBtn.textContent = 'Accepting...';
 
-    try {
-      const result = await FriendsAPI.acceptFriendRequest(nickname);
-      if (result) {
-        // Get updated profile data
-        const updatedProfileData = await UserAPI.getUserProfile();
-        if (updatedProfileData && friendsCardBody && friendsCardHeader) {
-          currentFriendsData = updatedProfileData.cleanedUserFriends;
-          // Update tab badges
-          updateTabBadges(updatedProfileData.cleanedUserFriends);
-          // Re-render the active tab content
-          const contentArea = friendsCardBody.querySelector(
-            '.min-h-\\[200px\\]'
-          ) as HTMLElement;
-          if (contentArea) {
-            if (activeTabName === 'Pending') {
-              contentArea.innerHTML = '';
-              renderPendingRequestsTab(
-                contentArea,
-                updatedProfileData.cleanedUserFriends
-              );
-            } else if (activeTabName === 'Friends') {
-              contentArea.innerHTML = '';
-              renderFriendsTab(
-                contentArea,
-                updatedProfileData.cleanedUserFriends,
-                friendsCardHeader
-              );
+      try {
+        const result = await FriendsAPI.acceptFriendRequest(nickname);
+        if (result) {
+          // Get updated profile data
+          const updatedProfileData = await UserAPI.getUserProfile();
+          if (updatedProfileData && friendsCardBody && friendsCardHeader) {
+            currentFriendsData = updatedProfileData.cleanedUserFriends;
+            // Update tab badges
+            updateTabBadges(updatedProfileData.cleanedUserFriends);
+            // Re-render the active tab content
+            const contentArea = friendsCardBody.querySelector(
+              '.min-h-\\[200px\\]'
+            ) as HTMLElement;
+            if (contentArea) {
+              if (activeTabName === 'Pending') {
+                contentArea.innerHTML = '';
+                renderPendingRequestsTab(
+                  contentArea,
+                  updatedProfileData.cleanedUserFriends
+                );
+              } else if (activeTabName === 'Friends') {
+                contentArea.innerHTML = '';
+                renderFriendsTab(
+                  contentArea,
+                  updatedProfileData.cleanedUserFriends,
+                  friendsCardHeader
+                );
+              }
             }
           }
         }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to accept request';
+        alert(errorMessage);
+        acceptBtn.disabled = false;
+        acceptBtn.textContent = 'Accept';
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to accept request';
-      alert(errorMessage);
-      acceptBtn.disabled = false;
-      acceptBtn.textContent = 'Accept';
-    }
+    })();
   });
 
   // Reject button handler
   const rejectBtn = item.querySelector(
     '.reject-request-btn'
   ) as HTMLButtonElement;
-  rejectBtn.addEventListener('click', async (e) => {
+  rejectBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const nickname = rejectBtn.dataset.nickname || '';
-    rejectBtn.disabled = true;
-    rejectBtn.textContent = 'Rejecting...';
+    void (async () => {
+      const nickname = rejectBtn.dataset.nickname || '';
+      rejectBtn.disabled = true;
+      rejectBtn.textContent = 'Rejecting...';
 
-    try {
-      const result = await FriendsAPI.rejectFriendRequest(nickname);
-      if (result) {
-        // Get updated profile data
-        const updatedProfileData = await UserAPI.getUserProfile();
-        if (updatedProfileData && friendsCardBody && friendsCardHeader) {
-          currentFriendsData = updatedProfileData.cleanedUserFriends;
-          // Update tab badges
-          updateTabBadges(updatedProfileData.cleanedUserFriends);
-          // Re-render the active tab content
-          const contentArea = friendsCardBody.querySelector(
-            '.min-h-\\[200px\\]'
-          ) as HTMLElement;
-          if (contentArea) {
-            if (activeTabName === 'Pending') {
-              contentArea.innerHTML = '';
-              renderPendingRequestsTab(
-                contentArea,
-                updatedProfileData.cleanedUserFriends
-              );
-            } else if (activeTabName === 'Blocked') {
-              contentArea.innerHTML = '';
-              renderBlockedUsersTab(
-                contentArea,
-                updatedProfileData.cleanedUserFriends
-              );
+      try {
+        const result = await FriendsAPI.rejectFriendRequest(nickname);
+        if (result) {
+          // Get updated profile data
+          const updatedProfileData = await UserAPI.getUserProfile();
+          if (updatedProfileData && friendsCardBody && friendsCardHeader) {
+            currentFriendsData = updatedProfileData.cleanedUserFriends;
+            // Update tab badges
+            updateTabBadges(updatedProfileData.cleanedUserFriends);
+            // Re-render the active tab content
+            const contentArea = friendsCardBody.querySelector(
+              '.min-h-\\[200px\\]'
+            ) as HTMLElement;
+            if (contentArea) {
+              if (activeTabName === 'Pending') {
+                contentArea.innerHTML = '';
+                renderPendingRequestsTab(
+                  contentArea,
+                  updatedProfileData.cleanedUserFriends
+                );
+              } else if (activeTabName === 'Blocked') {
+                contentArea.innerHTML = '';
+                renderBlockedUsersTab(
+                  contentArea,
+                  updatedProfileData.cleanedUserFriends
+                );
+              }
             }
           }
         }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to reject request';
+        alert(errorMessage);
+        rejectBtn.disabled = false;
+        rejectBtn.textContent = 'Reject';
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to reject request';
-      alert(errorMessage);
-      rejectBtn.disabled = false;
-      rejectBtn.textContent = 'Reject';
-    }
+    })();
   });
 
   return item;
@@ -967,66 +957,68 @@ function createSearchResultItem(
     '.add-friend-btn'
   ) as HTMLButtonElement;
   if (addFriendBtn) {
-    addFriendBtn.addEventListener('click', async (e) => {
+    addFriendBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const nickname = addFriendBtn.dataset.nickname || '';
-      addFriendBtn.disabled = true;
-      addFriendBtn.textContent = 'Sending...';
+      void (async () => {
+        const nickname = addFriendBtn.dataset.nickname || '';
+        addFriendBtn.disabled = true;
+        addFriendBtn.textContent = 'Sending...';
 
-      try {
-        const result = await FriendsAPI.sendFriendRequest(nickname);
-        if (result) {
-          // Get updated profile data
-          const updatedProfileData = await UserAPI.getUserProfile();
-          if (updatedProfileData) {
-            currentFriendsData = updatedProfileData.cleanedUserFriends;
-            const updatedFriendship =
-              updatedProfileData.cleanedUserFriends.find(
-                (f) => f.otherUser.toLowerCase() === nickname.toLowerCase()
+        try {
+          const result = await FriendsAPI.sendFriendRequest(nickname);
+          if (result) {
+            // Get updated profile data
+            const updatedProfileData = await UserAPI.getUserProfile();
+            if (updatedProfileData) {
+              currentFriendsData = updatedProfileData.cleanedUserFriends;
+              const updatedFriendship =
+                updatedProfileData.cleanedUserFriends.find(
+                  (f) => f.otherUser.toLowerCase() === nickname.toLowerCase()
+                );
+              // Update the search result by replacing the item
+              const newResultItem = createSearchResultItem(
+                user,
+                updatedFriendship,
+                isSelf
               );
-            // Update the search result by replacing the item
-            const newResultItem = createSearchResultItem(
-              user,
-              updatedFriendship,
-              isSelf
-            );
-            item.replaceWith(newResultItem);
-            // Update tab badges and content without full refresh
-            if (friendsCardBody && friendsCardHeader) {
-              // Update only the content area, preserving tab state
-              const contentArea = friendsCardBody.querySelector(
-                '.min-h-\\[200px\\]'
-              ) as HTMLElement;
-              if (contentArea && activeTabName === 'Friends') {
-                // Re-render just the Friends tab with updated data
-                contentArea.innerHTML = '';
-                renderFriendsTab(
-                  contentArea,
-                  updatedProfileData.cleanedUserFriends,
-                  friendsCardHeader
-                );
-              } else if (contentArea && activeTabName === 'Pending') {
-                // Re-render just the Pending tab with updated data
-                contentArea.innerHTML = '';
-                renderPendingRequestsTab(
-                  contentArea,
-                  updatedProfileData.cleanedUserFriends
-                );
+              item.replaceWith(newResultItem);
+              // Update tab badges and content without full refresh
+              if (friendsCardBody && friendsCardHeader) {
+                // Update only the content area, preserving tab state
+                const contentArea = friendsCardBody.querySelector(
+                  '.min-h-\\[200px\\]'
+                ) as HTMLElement;
+                if (contentArea && activeTabName === 'Friends') {
+                  // Re-render just the Friends tab with updated data
+                  contentArea.innerHTML = '';
+                  renderFriendsTab(
+                    contentArea,
+                    updatedProfileData.cleanedUserFriends,
+                    friendsCardHeader
+                  );
+                } else if (contentArea && activeTabName === 'Pending') {
+                  // Re-render just the Pending tab with updated data
+                  contentArea.innerHTML = '';
+                  renderPendingRequestsTab(
+                    contentArea,
+                    updatedProfileData.cleanedUserFriends
+                  );
+                }
+                // Update tab badges
+                updateTabBadges(updatedProfileData.cleanedUserFriends);
               }
-              // Update tab badges
-              updateTabBadges(updatedProfileData.cleanedUserFriends);
             }
           }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to send friend request';
+          alert(errorMessage);
+          addFriendBtn.disabled = false;
+          addFriendBtn.textContent = 'Add Friend';
         }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to send friend request';
-        alert(errorMessage);
-        addFriendBtn.disabled = false;
-        addFriendBtn.textContent = 'Add Friend';
-      }
+      })();
     });
   }
 
@@ -1038,7 +1030,7 @@ function createSearchResultItem(
     viewProfileBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const nickname = viewProfileBtn.dataset.nickname || '';
-      navigateTo(`/user/${nickname}`);
+      void navigateTo(`/user/${nickname}`);
     });
   }
 
@@ -1080,27 +1072,29 @@ function createBlockedUserItem(user: ProfileFriend): HTMLElement {
 
   // Unblock button handler
   const unblockBtn = item.querySelector('.unblock-btn') as HTMLButtonElement;
-  unblockBtn.addEventListener('click', async (e) => {
+  unblockBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const nickname = unblockBtn.dataset.nickname || '';
+    void (async () => {
+      const nickname = unblockBtn.dataset.nickname || '';
 
-    if (!confirm(`Remove ${nickname} from blocked users?`)) {
-      return;
-    }
+      if (!confirm(`Remove ${nickname} from blocked users?`)) {
+        return;
+      }
 
-    unblockBtn.disabled = true;
-    unblockBtn.textContent = 'Removing...';
+      unblockBtn.disabled = true;
+      unblockBtn.textContent = 'Removing...';
 
-    try {
-      await FriendsAPI.unblockUser(nickname);
-      await refreshFriendsData();
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to remove user';
-      alert(errorMessage);
-      unblockBtn.disabled = false;
-      unblockBtn.textContent = 'Remove';
-    }
+      try {
+        await FriendsAPI.unblockUser(nickname);
+        await refreshFriendsData();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to remove user';
+        alert(errorMessage);
+        unblockBtn.disabled = false;
+        unblockBtn.textContent = 'Remove';
+      }
+    })();
   });
 
   return item;
@@ -1341,75 +1335,79 @@ function showNewTournamentDialog() {
     '#max-players'
   ) as HTMLInputElement;
 
-  createBtn.addEventListener('click', async () => {
-    // Get form values
-    const tournamentName = nameInput.value.trim();
-    const minPlayers = parseInt(minSizeInput.value, 10);
-    const maxPlayers = parseInt(maxPlayersInput.value, 10);
+  createBtn.addEventListener('click', () => {
+    void (async () => {
+      // Get form values
+      const tournamentName = nameInput.value.trim();
+      const minPlayers = parseInt(minSizeInput.value, 10);
+      const maxPlayers = parseInt(maxPlayersInput.value, 10);
 
-    // Validation
-    if (!tournamentName) {
-      alert('Please enter a tournament name');
-      nameInput.focus();
-      return;
-    }
+      // Validation
+      if (!tournamentName) {
+        alert('Please enter a tournament name');
+        nameInput.focus();
+        return;
+      }
 
-    if (isNaN(minPlayers) || minPlayers < 4) {
-      alert('Min players must be 4 or higher');
-      minSizeInput.focus();
-      return;
-    }
+      if (isNaN(minPlayers) || minPlayers < 4) {
+        alert('Min players must be 4 or higher');
+        minSizeInput.focus();
+        return;
+      }
 
-    if (isNaN(maxPlayers) || maxPlayers > 16) {
-      alert('Max players must be 16 or lower');
-      maxPlayersInput.focus();
-      return;
-    }
+      if (isNaN(maxPlayers) || maxPlayers > 16) {
+        alert('Max players must be 16 or lower');
+        maxPlayersInput.focus();
+        return;
+      }
 
-    if (maxPlayers < minPlayers) {
-      alert('Max players must be greater than or equal to min players');
-      maxPlayersInput.focus();
-      return;
-    }
+      if (maxPlayers < minPlayers) {
+        alert('Max players must be greater than or equal to min players');
+        maxPlayersInput.focus();
+        return;
+      }
 
-    // Disable button and show loading state
-    createBtn.disabled = true;
-    createBtn.textContent = 'Creating...';
+      // Disable button and show loading state
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
 
-    try {
-      // Import TournamentAPI dynamically to avoid circular dependencies
-      const TournamentAPI = (await import('../../plugins/api/tournaments.js'))
-        .default;
+      try {
+        // Import TournamentAPI dynamically to avoid circular dependencies
+        const TournamentAPI = (await import('../../plugins/api/tournaments.js'))
+          .default;
 
-      // Prepare tournament data
-      const tournamentData: {
-        tournamentName: string;
-        minPlayers: number;
-        maxPlayers: number;
-      } = {
-        tournamentName,
-        minPlayers,
-        maxPlayers,
-      };
+        // Prepare tournament data
+        const tournamentData: {
+          tournamentName: string;
+          minPlayers: number;
+          maxPlayers: number;
+        } = {
+          tournamentName,
+          minPlayers,
+          maxPlayers,
+        };
 
-      // Call API
-      const tournament = await TournamentAPI.createTournament(tournamentData);
+        // Call API
+        const tournament = await TournamentAPI.createTournament(tournamentData);
 
-      // Success - close dialog and navigate to new tournament
-      closeDialog();
+        // Success - close dialog and navigate to new tournament
+        closeDialog();
 
-      // Navigate to new tournament
-      navigateTo(`/tournament/${tournament.uuid}`);
-    } catch (error) {
-      // Handle errors
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to create tournament';
+        // Navigate to new tournament
+        void navigateTo(`/tournament/${tournament.uuid}`);
+      } catch (error) {
+        // Handle errors
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to create tournament';
 
-      alert(errorMessage);
+        alert(errorMessage);
 
-      // Re-enable button
-      createBtn.disabled = false;
-      createBtn.textContent = 'Save';
-    }
+        // Re-enable button
+        createBtn.disabled = false;
+        createBtn.textContent = 'Save';
+      }
+    })();
   });
 }

@@ -26,14 +26,14 @@ export default function (app: FastifyInstance): void {
       const tournament = await app.db.createTournament({
         ...request.body,
       });
-      
+
       // Automatically add the creator as a participant
       const creatorUuid = getUuid(request);
       const updatedTournament = await app.db.addUserToTournament(
         creatorUuid,
         tournament.uuid
       );
-      
+
       reply.status(201).send(updatedTournament);
       await messageSocketServer('/tournaments/broadcast/created', {
         tournamentUuid: tournament.uuid,

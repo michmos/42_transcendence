@@ -3,11 +3,6 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import TournamentAPI from '../../plugins/api/tournaments.js';
 import UserAPI from '../../plugins/api/user.js';
-import type {
-  TournamentRound,
-  Match as BackendMatch,
-  Tournament,
-} from '../../types/api.js';
 import { showApiError } from '../../utils/api-helpers.js';
 
 // Extend Window interface for SPA navigation
@@ -297,7 +292,9 @@ export default async function initRoute() {
     onSettingsClick: () => {
       navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // Add back button
@@ -365,11 +362,17 @@ export default async function initRoute() {
       const opponent1 =
         match.player1Id && playerMap.has(match.player1Id)
           ? (playerMap.get(match.player1Id) ?? 'Unknown')
-          : getPlayerNickname((match as any).player1, match.player1Id);
+          : getPlayerNickname(
+              (match as { player1?: { nickname?: string | null } }).player1,
+              match.player1Id
+            );
       const opponent2 =
         match.player2Id && playerMap.has(match.player2Id)
           ? (playerMap.get(match.player2Id) ?? 'Unknown')
-          : getPlayerNickname((match as any).player2, match.player2Id);
+          : getPlayerNickname(
+              (match as { player2?: { nickname?: string | null } }).player2,
+              match.player2Id
+            );
 
       return {
         id: match.uuid,

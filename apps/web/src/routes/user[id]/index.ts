@@ -4,7 +4,7 @@ import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI, { type ProfileFriend } from '../../plugins/api/user.js';
 import FriendsAPI from '../../plugins/api/friends.js';
 
-export default async function initRoute() {
+export default function initRoute() {
   // Get the nickname from route parameters
   const routeParams = window.routeParams;
   const nickname = routeParams?.id || '';
@@ -25,10 +25,10 @@ export default async function initRoute() {
     container.className = 'user-container';
     app.innerHTML = '';
     app.appendChild(container);
-    renderUserProfile(container, nickname);
+    void renderUserProfile(container, nickname);
   } else {
     pageRoot.innerHTML = '';
-    renderUserProfile(pageRoot, nickname);
+    void renderUserProfile(pageRoot, nickname);
   }
 }
 
@@ -53,9 +53,11 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     userNickname: currentUserInfo?.nickname,
     userAvatar: currentUserInfo?.avatar || undefined,
     onSettingsClick: () => {
-      navigateTo('/settings');
+      void navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // ===== MAIN CONTENT =====
@@ -110,12 +112,6 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
 
     const avatar = userData.avatar || null;
     const userNickname = userData.nickname || nickname;
-    const initials = userNickname
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
 
     const avatarDisplay = document.createElement('div');
     avatarDisplay.className =
@@ -251,27 +247,29 @@ function createFriendshipActionButton(
     button.className =
       'px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer';
     button.textContent = 'Add Friend';
-    button.addEventListener('click', async () => {
-      button.disabled = true;
-      button.textContent = 'Sending...';
-      try {
-        await FriendsAPI.sendFriendRequest(nickname);
-        button.textContent = 'Request Sent';
-        button.className =
-          'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
-        // Refresh page to update friendship status
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to send friend request';
-        alert(errorMessage);
-        button.disabled = false;
-        button.textContent = 'Add Friend';
-      }
+    button.addEventListener('click', () => {
+      void (async () => {
+        button.disabled = true;
+        button.textContent = 'Sending...';
+        try {
+          await FriendsAPI.sendFriendRequest(nickname);
+          button.textContent = 'Request Sent';
+          button.className =
+            'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
+          // Refresh page to update friendship status
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to send friend request';
+          alert(errorMessage);
+          button.disabled = false;
+          button.textContent = 'Add Friend';
+        }
+      })();
     });
   } else if (friendship.state === 'ACCEPTED') {
     // Friends - show Remove Friend button
@@ -279,27 +277,29 @@ function createFriendshipActionButton(
     button.className =
       'px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors cursor-pointer';
     button.textContent = 'Remove Friend';
-    button.addEventListener('click', async () => {
-      if (!confirm(`Remove ${nickname} from your friends?`)) {
-        return;
-      }
-      button.disabled = true;
-      button.textContent = 'Removing...';
-      try {
-        await FriendsAPI.removeFriend(nickname);
-        button.textContent = 'Removed';
-        button.className =
-          'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to remove friend';
-        alert(errorMessage);
-        button.disabled = false;
-        button.textContent = 'Remove Friend';
-      }
+    button.addEventListener('click', () => {
+      void (async () => {
+        if (!confirm(`Remove ${nickname} from your friends?`)) {
+          return;
+        }
+        button.disabled = true;
+        button.textContent = 'Removing...';
+        try {
+          await FriendsAPI.removeFriend(nickname);
+          button.textContent = 'Removed';
+          button.className =
+            'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to remove friend';
+          alert(errorMessage);
+          button.disabled = false;
+          button.textContent = 'Remove Friend';
+        }
+      })();
     });
   } else if (friendship.state === 'REQUESTED') {
     if (friendship.isRequester) {
@@ -318,45 +318,53 @@ function createFriendshipActionButton(
       acceptBtn.className =
         'px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors cursor-pointer';
       acceptBtn.textContent = 'Accept';
-      acceptBtn.addEventListener('click', async () => {
-        acceptBtn.disabled = true;
-        acceptBtn.textContent = 'Accepting...';
-        try {
-          await FriendsAPI.acceptFriendRequest(nickname);
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to accept request';
-          alert(errorMessage);
-          acceptBtn.disabled = false;
-          acceptBtn.textContent = 'Accept';
-        }
+      acceptBtn.addEventListener('click', () => {
+        void (async () => {
+          acceptBtn.disabled = true;
+          acceptBtn.textContent = 'Accepting...';
+          try {
+            await FriendsAPI.acceptFriendRequest(nickname);
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'Failed to accept request';
+            alert(errorMessage);
+            acceptBtn.disabled = false;
+            acceptBtn.textContent = 'Accept';
+          }
+        })();
       });
 
       const rejectBtn = document.createElement('button');
       rejectBtn.className =
         'px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors cursor-pointer';
       rejectBtn.textContent = 'Reject';
-      rejectBtn.addEventListener('click', async () => {
-        if (!confirm(`Reject ${nickname}'s friend request?`)) {
-          return;
-        }
-        rejectBtn.disabled = true;
-        rejectBtn.textContent = 'Rejecting...';
-        try {
-          await FriendsAPI.rejectFriendRequest(nickname);
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to reject request';
-          alert(errorMessage);
-          rejectBtn.disabled = false;
-          rejectBtn.textContent = 'Reject';
-        }
+      rejectBtn.addEventListener('click', () => {
+        void (async () => {
+          if (!confirm(`Reject ${nickname}'s friend request?`)) {
+            return;
+          }
+          rejectBtn.disabled = true;
+          rejectBtn.textContent = 'Rejecting...';
+          try {
+            await FriendsAPI.rejectFriendRequest(nickname);
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'Failed to reject request';
+            alert(errorMessage);
+            rejectBtn.disabled = false;
+            rejectBtn.textContent = 'Reject';
+          }
+        })();
       });
 
       buttonGroup.appendChild(acceptBtn);
@@ -385,7 +393,7 @@ function createFriendshipActionButton(
 function renderFriendshipStatus(
   container: HTMLElement,
   friendship: ProfileFriend | undefined,
-  nickname: string
+  _nickname: string
 ): void {
   let statusText = '';
   let statusColor = 'text-muted-foreground';

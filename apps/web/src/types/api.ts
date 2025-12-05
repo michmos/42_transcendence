@@ -16,7 +16,7 @@ import type {
 } from 'db/generated/client/index.js';
 
 // Extend types to include relations used in the frontend
-export interface Match extends PrismaMatch {}
+export type Match = PrismaMatch;
 
 export interface TournamentRound extends PrismaTournamentRound {
   matches: Match[];

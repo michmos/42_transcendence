@@ -109,7 +109,7 @@ const UserAPI = {
         return null;
       }
 
-      return await response.json();
+      return (await response.json()) as Partial<User>;
     } catch (error) {
       console.error('Error fetching user by nickname:', error);
       return null;
@@ -184,7 +184,9 @@ const UserAPI = {
         // Extract error message for logging
         let errorMessage = 'Failed to fetch user profile';
         try {
-          const errorData = await response.json().catch(() => ({}));
+          const errorData = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
           if (errorData.error && typeof errorData.error === 'string') {
             errorMessage = errorData.error;
           }
@@ -198,42 +200,10 @@ const UserAPI = {
         return null;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as UserProfileData;
       return data;
     } catch (error) {
       console.error('[getUserProfile] Network error:', error);
-      return null;
-    }
-  },
-
-  /**
-   * Get current user's basic info (nickname and avatar) for navbar display
-   * Uses cached data if available, otherwise fetches from API
-   * @returns Promise<{ nickname: string; avatar: string | null } | null>
-   */
-  async getUserBasicInfo(): Promise<{
-    nickname: string;
-    avatar: string | null;
-  } | null> {
-    try {
-      const response = await fetch('/api/user/me', {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        // Don't show error for navbar - just return null
-        return null;
-      }
-
-      const data: UserProfileData = await response.json();
-      return {
-        nickname: data.cleanedUserData.nickname || 'User',
-        avatar: data.cleanedUserData.avatar || null,
-      };
-    } catch (error) {
-      // Silently fail for navbar - don't log errors
-      console.error('Error fetching user basic info:', error);
       return null;
     }
   },
@@ -253,13 +223,15 @@ const UserAPI = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as {
+          Error?: string;
+        };
         throw new Error(
           errorData.Error || `Failed to update nickname: ${response.status}`
         );
       }
 
-      return await response.json();
+      return (await response.json()) as Partial<User>;
     } catch (error) {
       console.error('Error updating nickname:', error);
       throw error;
@@ -283,13 +255,15 @@ const UserAPI = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as {
+          Error?: string;
+        };
         throw new Error(
           errorData.Error || `Failed to upload avatar: ${response.status}`
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as string | { avatarUrl?: string };
       return typeof result === 'string' ? result : result.avatarUrl || null;
     } catch (error) {
       console.error('Error uploading avatar:', error);

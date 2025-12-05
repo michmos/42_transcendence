@@ -5,9 +5,7 @@ import UserAPI from '../../plugins/api/user.js';
 import { setPlayerNickname, getPlayerNickname } from '../game/state.js';
 
 export default function initRoute() {
-  const pageRoot = document.querySelector(
-    '.waiting-room-page'
-  ) as HTMLElement | null;
+  const pageRoot = document.querySelector('.waiting-room-page');
   if (!pageRoot) return;
 
   pageRoot.innerHTML = '';
@@ -15,7 +13,7 @@ export default function initRoute() {
   // Show nickname input dialog before entering waiting room
   showNicknameDialog(() => {
     // Callback after nickname is set - show waiting room
-    renderWaitingRoom(pageRoot);
+    void renderWaitingRoom(pageRoot);
   });
 }
 
@@ -28,7 +26,7 @@ async function renderWaitingRoom(pageRoot: HTMLElement) {
   // Navbar
   const navbarContainer = document.createElement('div');
   mainWrapper.appendChild(navbarContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(navbarContainer, {
@@ -40,14 +38,17 @@ async function renderWaitingRoom(pageRoot: HTMLElement) {
     userNickname: userInfo?.nickname,
     userAvatar: userInfo?.avatar || undefined,
     onSettingsClick: () => {
-      navigateTo('/settings');
+      void navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // Main content
   const mainContent = document.createElement('main');
-  mainContent.className = 'max-w-4xl mx-auto px-6 py-8 flex items-center justify-center';
+  mainContent.className =
+    'max-w-4xl mx-auto px-6 py-8 flex items-center justify-center';
   mainWrapper.appendChild(mainContent);
 
   // Waiting room content
@@ -56,7 +57,7 @@ async function renderWaitingRoom(pageRoot: HTMLElement) {
     'w-full rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm p-8 text-center';
 
   const nickname = getPlayerNickname() || 'Player';
-  
+
   waitingRoomCard.innerHTML = `
     <div class="mb-6">
       <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-white mb-4"></div>
@@ -174,10 +175,10 @@ function showNicknameDialog(onConfirm: () => void) {
       '#nickname-input'
     ) as HTMLInputElement;
     const nickname = nicknameInput.value.trim() || 'Player';
-    
+
     // Set nickname (max 20 chars)
     setPlayerNickname(nickname.substring(0, 20));
-    
+
     closeDialog();
     onConfirm();
   };
@@ -204,7 +205,9 @@ function showNicknameDialog(onConfirm: () => void) {
   }
 
   // Allow Enter key to enter waiting room
-  const nicknameInput = dialog.querySelector('#nickname-input') as HTMLInputElement;
+  const nicknameInput = dialog.querySelector(
+    '#nickname-input'
+  ) as HTMLInputElement;
   if (nicknameInput) {
     nicknameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -214,4 +217,3 @@ function showNicknameDialog(onConfirm: () => void) {
     });
   }
 }
-

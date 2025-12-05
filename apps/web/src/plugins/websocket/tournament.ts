@@ -1,5 +1,4 @@
 import { Socket } from './index.js';
-import type { Tournament, status } from '../../types/api.js';
 
 /**
  * Tournament Socket Message Types
@@ -16,15 +15,15 @@ interface TournamentSocketMessage {
     | 'round-completed';
   uuid?: string;
   playerCount?: number;
-  data?: any;
+  data?: unknown;
 }
 
 /**
  * Tournament Socket Client
- * 
+ *
  * Handles WebSocket connections for tournament real-time updates.
  * Works gracefully without backend support (falls back to polling).
- * 
+ *
  * Note: Your teammate will provide joinTournament/leaveTournament functions
  * that use window.socket - this client is for listening to updates.
  */
@@ -34,7 +33,7 @@ class TournamentSocket {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private listeners: Map<string, Set<(data: any) => void>> = new Map();
+  private listeners: Map<string, Set<(data: unknown) => void>> = new Map();
   private isInitialized = false;
 
   constructor() {
@@ -58,9 +57,16 @@ class TournamentSocket {
 
       this.socket.registerWebSocketHook((event: MessageEvent) => {
         try {
-          const message = JSON.parse(event.data);
-          this.handleMessage(message);
-        } catch (error) {
+          const parsed = JSON.parse(event.data as string) as unknown;
+          if (
+            typeof parsed === 'object' &&
+            parsed !== null &&
+            'event' in parsed
+          ) {
+            const message = parsed as TournamentSocketMessage;
+            this.handleMessage(message);
+          }
+        } catch {
           // Not a tournament message, ignore
         }
       });
@@ -99,7 +105,7 @@ class TournamentSocket {
     const listeners = this.listeners.get(message.event);
     if (listeners) {
       // Pass the full message data (uuid, playerCount, etc.)
-      const eventData = {
+      const eventData: unknown = {
         uuid: message.uuid,
         playerCount: message.playerCount,
         ...message.data,
@@ -166,12 +172,15 @@ class TournamentSocket {
       | 'tournament-updated'
       | 'match-updated'
       | 'round-completed',
-    callback: (data: any) => void
+    callback: (data: unknown) => void
   ) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(callback);
+    const eventListeners = this.listeners.get(event);
+    if (eventListeners) {
+      eventListeners.add(callback);
+    }
   }
 
   /**
@@ -186,7 +195,7 @@ class TournamentSocket {
       | 'tournament-updated'
       | 'match-updated'
       | 'round-completed',
-    callback: (data: any) => void
+    callback: (data: unknown) => void
   ) {
     const listeners = this.listeners.get(event);
     if (listeners) {
@@ -235,4 +244,3 @@ class TournamentSocket {
 // Export singleton instance
 export const tournamentSocket = new TournamentSocket();
 export default tournamentSocket;
-

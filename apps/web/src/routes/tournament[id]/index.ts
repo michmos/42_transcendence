@@ -199,13 +199,15 @@ function renderTournamentHeader(
       new Button(buttonContainer, {
         text: 'Start Tournament',
         variant: 'primary',
-        onClick: async () => {
-          try {
-            await TournamentAPI.startTournament(tournament.uuid);
-            // Will refresh via socket
-          } catch (error) {
-            alert(error instanceof Error ? error.message : 'Failed to start');
-          }
+        onClick: () => {
+          void (async () => {
+            try {
+              await TournamentAPI.startTournament(tournament.uuid);
+              // Will refresh via socket
+            } catch (error) {
+              alert(error instanceof Error ? error.message : 'Failed to start');
+            }
+          })();
         },
         className: '!bg-green-600 hover:!bg-green-700',
       });
@@ -217,18 +219,20 @@ function renderTournamentHeader(
     new Button(buttonContainer, {
       text: 'Join Tournament',
       variant: 'secondary',
-      onClick: async () => {
-        try {
-          // Get current user nickname for alias
-          const currentUser = await UserAPI.getUserBasicInfo();
-          const alias =
-            currentUser?.nickname || `Player-${currentUserId.slice(0, 8)}`;
-          await TournamentAPI.joinTournament(tournament.uuid, alias);
-          // Will refresh via socket or manual reload if needed
-          window.location.reload();
-        } catch (error) {
-          alert(error instanceof Error ? error.message : 'Failed to join');
-        }
+      onClick: () => {
+        void (async () => {
+          try {
+            // Get current user nickname for alias
+            const currentUser = await UserAPI.getUserBasicInfo();
+            const alias =
+              currentUser?.nickname || `Player-${currentUserId.slice(0, 8)}`;
+            await TournamentAPI.joinTournament(tournament.uuid, alias);
+            // Will refresh via socket or manual reload if needed
+            window.location.reload();
+          } catch (error) {
+            alert(error instanceof Error ? error.message : 'Failed to join');
+          }
+        })();
       },
       className: '!bg-accent !text-white hover:!bg-accent/90',
     });
@@ -350,7 +354,7 @@ function renderTournamentProgress(
         e.stopPropagation();
         // Store tournamentId in sessionStorage for round page to use
         sessionStorage.setItem('lastTournamentId', tournamentUuid);
-        navigateTo(`/round/${round.id}`);
+        void navigateTo(`/round/${round.id}`);
       });
     }
 
@@ -492,9 +496,11 @@ export default async function initRoute() {
     ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
     ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
-      navigateTo('/settings');
+      void navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // Add back button
@@ -516,7 +522,7 @@ export default async function initRoute() {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      navigateTo('/tournaments');
+      void navigateTo('/tournaments');
     });
   }
   backButtonContainer.appendChild(backButton);
@@ -749,7 +755,7 @@ export default async function initRoute() {
           currentTournament.playerCount = data.playerCount;
         }
         // Refresh the page to show updates
-        refreshTournamentData();
+        void refreshTournamentData();
       }
     };
 
@@ -759,7 +765,7 @@ export default async function initRoute() {
     }) => {
       if (data.tournamentUuid === tournamentUuid) {
         // Refresh tournament to show updated player count
-        refreshTournamentData();
+        void refreshTournamentData();
       }
     };
 
@@ -769,7 +775,7 @@ export default async function initRoute() {
     }) => {
       if (data.tournamentUuid === tournamentUuid) {
         // Refresh tournament to show updated player count
-        refreshTournamentData();
+        void refreshTournamentData();
       }
     };
 
@@ -779,7 +785,7 @@ export default async function initRoute() {
     }) => {
       if (data.uuid === tournamentUuid) {
         // Tournament started - refresh to show rounds
-        refreshTournamentData();
+        void refreshTournamentData();
       }
     };
 
@@ -790,7 +796,7 @@ export default async function initRoute() {
     }) => {
       if (data.tournamentUuid === tournamentUuid) {
         // Match updated - refresh to show updated scores
-        refreshTournamentData();
+        void refreshTournamentData();
       }
     };
 
@@ -800,7 +806,7 @@ export default async function initRoute() {
     }) => {
       if (data.tournamentUuid === tournamentUuid) {
         // Round completed - refresh to show updated status
-        refreshTournamentData();
+        void refreshTournamentData();
       }
     };
 

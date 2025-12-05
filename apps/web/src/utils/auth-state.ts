@@ -41,14 +41,3 @@ export function setSession(session: Session | null): void {
 export function clearSession(): void {
   currentSession = null;
 }
-
-
-
-
-
-
-
-
-
-
-

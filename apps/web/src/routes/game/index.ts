@@ -28,7 +28,6 @@ import {
   setNetworkBlocked,
   resetCanvas,
   setPlayerNickname,
-  getPlayerNickname,
   setPlayer1Nickname,
   getPlayer1Nickname,
   setPlayer2Nickname,
@@ -70,16 +69,16 @@ function cleanup() {
   if (ws) {
     try {
       ws.close(1000, 'Route cleanup');
-    } catch (e) {
+    } catch {
       // Ignore errors when closing
     }
-    setWebSocket(undefined as any);
+    setWebSocket(undefined as unknown as WebSocket);
   }
 
   // Clear any reconnection timeouts
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
-    setReconnectTimeout(undefined as any);
+    setReconnectTimeout(undefined as unknown as NodeJS.Timeout);
   }
 
   // Clear intervals
@@ -107,6 +106,7 @@ function cleanup() {
 
   // Clear keys state
   Object.keys(keys).forEach((key) => {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete keys[key];
   });
 
@@ -155,9 +155,11 @@ export default async function initRoute() {
     userNickname: userInfo?.nickname,
     userAvatar: userInfo?.avatar || undefined,
     onSettingsClick: () => {
-      navigateTo('/settings');
+      void navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // ===== MAIN CONTENT =====
@@ -345,7 +347,7 @@ function showLocalGameNicknameDialog(onConfirm: () => void) {
 
 function initializeGame() {
   // Get canvas after it's been created
-  const canvas = getCanvas();
+  getCanvas();
 
   // Setup controls display
   setupControlsDisplay();
@@ -458,10 +460,10 @@ function createWebSocket() {
   if (ws) {
     try {
       ws.close();
-    } catch (e) {
+    } catch {
       // Ignore errors when closing
     }
-    setWebSocket(undefined as any);
+    setWebSocket(undefined as unknown as WebSocket);
   }
 
   // If network is blocked, immediately fail

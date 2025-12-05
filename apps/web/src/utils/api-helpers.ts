@@ -25,7 +25,9 @@ export async function handleApiError(response: Response): Promise<ApiError> {
 
   // Try to extract error message from response body
   try {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
     if (errorData.error && typeof errorData.error === 'string') {
       errorMessage = errorData.error;
     }

@@ -22,8 +22,6 @@ window.router = router;
 
 // Check session on app load
 async function checkSessionAndRedirect() {
-  const currentPath = window.location.pathname;
-
   // Check if we're coming from OAuth callback
   // The OAuth callback sets a cookie and redirects to /, so we need to wait for the cookie
   const oauthFlag = sessionStorage.getItem('oauth_redirect');

@@ -1,4 +1,4 @@
-import { type User, status } from 'db/generated/client/index.js';
+import { type User } from 'db/generated/client/index.js';
 import Database from 'db';
 import { generateNickName } from './utils.js';
 import type { UserMatchRecord } from 'types';

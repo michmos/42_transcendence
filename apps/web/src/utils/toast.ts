@@ -82,7 +82,9 @@ class ToastManager {
     }
 
     // Add to container
-    this.container!.appendChild(toast);
+    if (this.container) {
+      this.container.appendChild(toast);
+    }
     this.toasts.add(toast);
 
     // Auto-remove after duration

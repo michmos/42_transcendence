@@ -33,7 +33,7 @@ const TournamentAPI = {
         throw new Error(`Failed to fetch tournaments: ${response.status}`);
       }
 
-      return await response.json();
+      return (await response.json()) as Tournament[];
     } catch (error) {
       console.error('Error fetching tournaments:', error);
       return [];
@@ -60,7 +60,7 @@ const TournamentAPI = {
         throw new Error(`Failed to fetch tournament: ${response.status}`);
       }
 
-      return await response.json();
+      return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error fetching tournament:', error);
       return null;
@@ -87,7 +87,9 @@ const TournamentAPI = {
       }
 
       if (response.status === 400) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           errorData.error || 'Validation error - Please check your input'
         );
@@ -97,7 +99,7 @@ const TournamentAPI = {
         throw new Error(`Failed to create tournament: ${response.status}`);
       }
 
-      return await response.json();
+      return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error creating tournament:', error);
       throw error;
@@ -135,12 +137,16 @@ const TournamentAPI = {
       }
 
       if (response.status === 404) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(errorData.error || 'Tournament or user not found');
       }
 
       if (response.status === 422) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           errorData.error ||
             'Tournament cannot be joined (full, locked, or canceled)'
@@ -152,7 +158,7 @@ const TournamentAPI = {
       }
 
       // Response is 204, but backend returns tournament in body
-      return await response.json();
+      return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error joining tournament:', error);
       throw error;
@@ -185,12 +191,16 @@ const TournamentAPI = {
       }
 
       if (response.status === 404) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(errorData.error || 'Tournament not found');
       }
 
       if (response.status === 422) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           errorData.error ||
             'Tournament cannot be started (not enough players or wrong status)'
@@ -201,7 +211,7 @@ const TournamentAPI = {
         throw new Error(`Failed to start tournament: ${response.status}`);
       }
 
-      return await response.json();
+      return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error starting tournament:', error);
       throw error;
@@ -242,7 +252,7 @@ const TournamentAPI = {
         throw new Error(`Failed to fetch tournament round: ${response.status}`);
       }
 
-      return await response.json();
+      return (await response.json()) as TournamentRound;
     } catch (error) {
       console.error('Error fetching tournament round:', error);
       return null;

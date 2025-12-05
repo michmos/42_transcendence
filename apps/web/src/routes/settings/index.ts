@@ -1,7 +1,6 @@
 import { Navbar, Card, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import { handleApiError, showApiError } from '../../utils/api-helpers.js';
 import UserAPI from '../../plugins/api/user.js';
 
 // Extend Window interface for SPA navigation
@@ -36,9 +35,11 @@ export default async function initRoute() {
     userNickname: userInfo?.nickname,
     userAvatar: userInfo?.avatar || undefined,
     onSettingsClick: () => {
-      navigateTo('/settings');
+      void navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // Fetch full user profile data
@@ -54,8 +55,6 @@ export default async function initRoute() {
   const userData = profileData.cleanedUserData;
   const currentNickname = userData.nickname || '';
   const currentAvatar = userData.avatar || null;
-  // Email is not included in cleanedUserData for security reasons
-  const userEmail = '';
 
   // ===== MAIN CONTENT =====
   const mainContent = document.createElement('div');
@@ -109,12 +108,7 @@ export default async function initRoute() {
     avatarImg.className = 'w-full h-full object-cover';
     avatarDisplay.appendChild(avatarImg);
   } else {
-    const initials = currentNickname
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    // Show default avatar icon (initials not used in current design)
     avatarDisplay.innerHTML = `
       <svg class="w-12 h-12 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
@@ -298,90 +292,94 @@ export default async function initRoute() {
   saveButton.className =
     'ml-auto px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
 
-  saveButton.addEventListener('click', async () => {
-    const displayNameInput = document.getElementById(
-      'display-name'
-    ) as HTMLInputElement;
-    const nicknameError = document.getElementById(
-      'nickname-error'
-    ) as HTMLElement;
-    const newNickname = displayNameInput?.value.trim();
+  saveButton.addEventListener('click', () => {
+    void (async () => {
+      const displayNameInput = document.getElementById(
+        'display-name'
+      ) as HTMLInputElement;
+      const nicknameError = document.getElementById(
+        'nickname-error'
+      ) as HTMLElement;
+      const newNickname = displayNameInput?.value.trim();
 
-    // Validate nickname
-    if (!newNickname || newNickname.length < 3 || newNickname.length > 30) {
-      nicknameError.textContent =
-        'Nickname must be between 3 and 30 characters';
-      nicknameError.classList.remove('hidden');
-      return;
-    }
-
-    // Validate nickname pattern (letters, numbers, underscores, hyphens)
-    if (!/^[a-zA-Z0-9_-]+$/.test(newNickname)) {
-      nicknameError.textContent =
-        'Nickname can only contain letters, numbers, underscores, and hyphens';
-      nicknameError.classList.remove('hidden');
-      return;
-    }
-
-    nicknameError.classList.add('hidden');
-    saveButton.disabled = true;
-    saveButton.textContent = 'Saving...';
-
-    let hasError = false;
-    let errorMessage = 'Failed to save settings';
-
-    try {
-      // Update nickname if changed
-      if (newNickname !== currentNickname) {
-        try {
-          const result = await UserAPI.updateNickname(newNickname);
-          if (!result) {
-            hasError = true;
-            errorMessage = 'Failed to update nickname';
-          }
-        } catch (error) {
-          hasError = true;
-          errorMessage =
-            error instanceof Error
-              ? error.message
-              : 'Failed to update nickname';
-          console.error('Error updating nickname:', error);
-        }
+      // Validate nickname
+      if (!newNickname || newNickname.length < 3 || newNickname.length > 30) {
+        nicknameError.textContent =
+          'Nickname must be between 3 and 30 characters';
+        nicknameError.classList.remove('hidden');
+        return;
       }
 
-      // Upload avatar if selected (only if nickname update succeeded or wasn't needed)
-      if (selectedAvatarFile && !hasError) {
-        try {
-          const result = await UserAPI.uploadAvatar(selectedAvatarFile);
-          if (!result) {
-            hasError = true;
-            errorMessage = 'Failed to upload avatar';
-          }
-        } catch (error) {
-          hasError = true;
-          errorMessage =
-            error instanceof Error ? error.message : 'Failed to upload avatar';
-          console.error('Error uploading avatar:', error);
-        }
+      // Validate nickname pattern (letters, numbers, underscores, hyphens)
+      if (!/^[a-zA-Z0-9_-]+$/.test(newNickname)) {
+        nicknameError.textContent =
+          'Nickname can only contain letters, numbers, underscores, and hyphens';
+        nicknameError.classList.remove('hidden');
+        return;
       }
 
-      if (hasError) {
-        alert(`Error: ${errorMessage}`);
+      nicknameError.classList.add('hidden');
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saving...';
+
+      let hasError = false;
+      let errorMessage = 'Failed to save settings';
+
+      try {
+        // Update nickname if changed
+        if (newNickname !== currentNickname) {
+          try {
+            const result = await UserAPI.updateNickname(newNickname);
+            if (!result) {
+              hasError = true;
+              errorMessage = 'Failed to update nickname';
+            }
+          } catch (error) {
+            hasError = true;
+            errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'Failed to update nickname';
+            console.error('Error updating nickname:', error);
+          }
+        }
+
+        // Upload avatar if selected (only if nickname update succeeded or wasn't needed)
+        if (selectedAvatarFile && !hasError) {
+          try {
+            const result = await UserAPI.uploadAvatar(selectedAvatarFile);
+            if (!result) {
+              hasError = true;
+              errorMessage = 'Failed to upload avatar';
+            }
+          } catch (error) {
+            hasError = true;
+            errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'Failed to upload avatar';
+            console.error('Error uploading avatar:', error);
+          }
+        }
+
+        if (hasError) {
+          alert(`Error: ${errorMessage}`);
+          saveButton.disabled = false;
+          saveButton.textContent = 'Save Changes';
+        } else {
+          // Show success message
+          alert('Settings saved successfully!');
+          void navigateTo('/profile');
+        }
+      } catch (error) {
+        const finalErrorMessage =
+          error instanceof Error ? error.message : 'Failed to save settings';
+        alert(`Error: ${finalErrorMessage}`);
+        console.error('Unexpected error saving settings:', error);
         saveButton.disabled = false;
         saveButton.textContent = 'Save Changes';
-      } else {
-        // Show success message
-        alert('Settings saved successfully!');
-        navigateTo('/profile');
       }
-    } catch (error) {
-      const finalErrorMessage =
-        error instanceof Error ? error.message : 'Failed to save settings';
-      alert(`Error: ${finalErrorMessage}`);
-      console.error('Unexpected error saving settings:', error);
-      saveButton.disabled = false;
-      saveButton.textContent = 'Save Changes';
-    }
+    })();
   });
 
   saveBtnWrapper.appendChild(saveButton);

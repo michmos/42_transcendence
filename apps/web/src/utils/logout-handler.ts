@@ -5,6 +5,7 @@
 
 import { logout } from '../plugins/api/auth.js';
 import { navigateTo } from './navigation.js';
+import { clearSession } from './auth-state.js';
 
 /**
  * Handle user logout
@@ -12,11 +13,14 @@ import { navigateTo } from './navigation.js';
  */
 export async function handleLogout(): Promise<void> {
   try {
+    // Clear session from memory immediately to prevent race conditions
+    clearSession();
     await logout();
     navigateTo('/login');
   } catch (error) {
     console.error('Logout failed:', error);
-    // Still redirect to login even if logout API call fails
+    // Still clear session and redirect to login even if logout API call fails
+    clearSession();
     navigateTo('/login');
   }
 }

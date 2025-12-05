@@ -45,7 +45,7 @@ const FriendsAPI = {
         return null;
       }
 
-      return await response.json();
+      return (await response.json()) as FriendRequestResponse;
     } catch (error) {
       console.error('Error sending friend request:', error);
       throw error;
@@ -76,7 +76,7 @@ const FriendsAPI = {
         return null;
       }
 
-      return await response.json();
+      return (await response.json()) as FriendRequestResponse;
     } catch (error) {
       console.error('Error accepting friend request:', error);
       throw error;
@@ -107,7 +107,7 @@ const FriendsAPI = {
         return null;
       }
 
-      return await response.json();
+      return (await response.json()) as FriendRequestResponse;
     } catch (error) {
       console.error('Error rejecting friend request:', error);
       throw error;
@@ -135,7 +135,7 @@ const FriendsAPI = {
         return null;
       }
 
-      return await response.json();
+      return (await response.json()) as FriendRequestResponse;
     } catch (error) {
       console.error('Error removing friend:', error);
       throw error;
