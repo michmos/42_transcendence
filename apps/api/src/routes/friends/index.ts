@@ -3,6 +3,7 @@ import type { User, Friendship } from 'db/generated/client/client.js';
 import { friendshipState } from 'db/generated/client/client.js';
 import {
   findFriendRecord,
+  getFriendsUuid,
   modifyFriendsState,
 } from '../../plugins/database/friendship.js';
 import {
@@ -192,6 +193,18 @@ export default function (app: FastifyInstance): void {
       }
     }
   );
+
+  app.get('/', async function (request, reply) {
+    try {
+      const uuidSelf: string = request.user.uuid;
+      return reply.code(200).send(await getFriendsUuid(uuidSelf));
+    } catch (error) {
+      app.log.error(error);
+      return reply
+        .code(500)
+        .send({ Error: 'Failed fetching accepted friends for socket' });
+    }
+  });
 
   // ------------- Helper function
 

@@ -51,7 +51,6 @@ async function authenticateClient(request: FastifyRequest) {
   request.setDecorator('identifiers', {
     jwt: sessionCookie,
     uuid,
-    // nickname, ------------------------------------------------------- <<
   });
   console.log(`User authenticated: ${uuid}`);
 }
