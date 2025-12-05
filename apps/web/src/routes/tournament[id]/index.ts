@@ -221,7 +221,8 @@ function renderTournamentHeader(
         try {
           // Get current user nickname for alias
           const currentUser = await UserAPI.getUserBasicInfo();
-          const alias = currentUser?.nickname || `Player-${currentUserId.slice(0, 8)}`;
+          const alias =
+            currentUser?.nickname || `Player-${currentUserId.slice(0, 8)}`;
           await TournamentAPI.joinTournament(tournament.uuid, alias);
           // Will refresh via socket or manual reload if needed
           window.location.reload();

@@ -225,7 +225,7 @@ function renderErrorState(container: HTMLElement, message: string) {
 
 // Extended tournament type that includes participants
 type TournamentWithParticipants = BackendTournament & {
-  participants?: { uuid: string; nickname?: string }[];
+  participants?: Array<{ uuid: string; nickname?: string }>;
 };
 
 function renderTournamentGrid(
@@ -490,7 +490,9 @@ function renderTournamentGrid(
         try {
           // Get current user nickname for alias
           const currentUser = await UserAPI.getUserBasicInfo();
-          const alias = currentUser?.nickname || `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+          const alias =
+            currentUser?.nickname ||
+            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
           await TournamentAPI.joinTournament(tournamentUuid, alias);
 
           // Success - refresh tournaments list

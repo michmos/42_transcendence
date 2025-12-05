@@ -53,19 +53,19 @@ let visibilityChangeHandler: (() => void) | null = null;
 
 function cleanup() {
   isRouteActive = false;
-  
+
   // Stop game loop
   if (gameLoopAnimationFrame !== null) {
     cancelAnimationFrame(gameLoopAnimationFrame);
     gameLoopAnimationFrame = null;
   }
-  
+
   // Clear input interval
   if (inputInterval) {
     clearInterval(inputInterval);
     inputInterval = null;
   }
-  
+
   // Close WebSocket connection
   if (ws) {
     try {
@@ -75,19 +75,19 @@ function cleanup() {
     }
     setWebSocket(undefined as any);
   }
-  
+
   // Clear any reconnection timeouts
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
     setReconnectTimeout(undefined as any);
   }
-  
+
   // Clear intervals
   if (controlsUpdateInterval) {
     clearInterval(controlsUpdateInterval);
     controlsUpdateInterval = null;
   }
-  
+
   // Remove event listeners
   if (keydownHandler) {
     document.removeEventListener('keydown', keydownHandler);
@@ -101,18 +101,18 @@ function cleanup() {
     document.removeEventListener('visibilitychange', visibilityChangeHandler);
     visibilityChangeHandler = null;
   }
-  
+
   // Reset reconnection attempts
   setReconnectAttempts(0);
-  
+
   // Clear keys state
-  Object.keys(keys).forEach(key => {
+  Object.keys(keys).forEach((key) => {
     delete keys[key];
   });
-  
+
   // Reset canvas references so they get reinitialized on next visit
   resetCanvas();
-  
+
   // Clear player nicknames (session-only, cleared when leaving)
   setPlayerNickname(null);
   setPlayer1Nickname(null);
@@ -123,7 +123,7 @@ function cleanup() {
 export default async function initRoute() {
   // Cleanup any existing connections first
   cleanup();
-  
+
   // Mark route as active
   isRouteActive = true;
   const pageRoot = document.querySelector('.game-page') as HTMLElement;
@@ -131,19 +131,19 @@ export default async function initRoute() {
     console.error('Game page root not found');
     return;
   }
-  
+
   // Clear and set up page structure
   pageRoot.innerHTML = '';
-  
+
   // Main wrapper with gradient background
   const mainWrapper = document.createElement('div');
   mainWrapper.className = 'min-h-screen bg-gradient-primary';
   pageRoot.appendChild(mainWrapper);
-  
+
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
@@ -159,17 +159,18 @@ export default async function initRoute() {
     },
     onLogoutClick: handleLogout,
   });
-  
+
   // ===== MAIN CONTENT =====
   const mainContent = document.createElement('main');
-  mainContent.className = 'max-w-7xl mx-auto px-6 py-8 flex items-center justify-center';
+  mainContent.className =
+    'max-w-7xl mx-auto px-6 py-8 flex items-center justify-center';
   mainWrapper.appendChild(mainContent);
-  
+
   // Canvas container
   const canvasContainer = document.createElement('div');
   canvasContainer.className = 'flex flex-col items-center justify-center gap-4';
   mainContent.appendChild(canvasContainer);
-  
+
   // Create canvas element - MUST exist before game logic tries to access it
   const gameCanvas = document.createElement('canvas');
   gameCanvas.id = 'gameCanvas';
@@ -177,14 +178,15 @@ export default async function initRoute() {
   gameCanvas.height = 600;
   gameCanvas.className = 'pong-canvas';
   canvasContainer.appendChild(gameCanvas);
-  
+
   // Controls display below canvas
   const controlsContainer = document.createElement('div');
   controlsContainer.id = 'gameControls';
-  controlsContainer.className = 'flex items-center justify-center gap-8 text-white';
+  controlsContainer.className =
+    'flex items-center justify-center gap-8 text-white';
   controlsContainer.style.minHeight = '60px';
   canvasContainer.appendChild(controlsContainer);
-  
+
   // Show nickname input dialog before starting game (local = 2 players)
   showLocalGameNicknameDialog(() => {
     // Callback after nicknames are set - initialize game
@@ -281,14 +283,14 @@ function showLocalGameNicknameDialog(onConfirm: () => void) {
     const player2Input = dialog.querySelector(
       '#player2-nickname-input'
     ) as HTMLInputElement;
-    
+
     const player1Nickname = player1Input.value.trim() || 'Player 1';
     const player2Nickname = player2Input.value.trim() || 'Player 2';
-    
+
     // Set nicknames (max 20 chars each)
     setPlayer1Nickname(player1Nickname.substring(0, 20));
     setPlayer2Nickname(player2Nickname.substring(0, 20));
-    
+
     closeDialog();
     onConfirm();
   };
@@ -315,9 +317,13 @@ function showLocalGameNicknameDialog(onConfirm: () => void) {
   }
 
   // Allow Enter key to start game (from either input)
-  const player1Input = dialog.querySelector('#player1-nickname-input') as HTMLInputElement;
-  const player2Input = dialog.querySelector('#player2-nickname-input') as HTMLInputElement;
-  
+  const player1Input = dialog.querySelector(
+    '#player1-nickname-input'
+  ) as HTMLInputElement;
+  const player2Input = dialog.querySelector(
+    '#player2-nickname-input'
+  ) as HTMLInputElement;
+
   if (player1Input) {
     player1Input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -326,7 +332,7 @@ function showLocalGameNicknameDialog(onConfirm: () => void) {
       }
     });
   }
-  
+
   if (player2Input) {
     player2Input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -340,23 +346,23 @@ function showLocalGameNicknameDialog(onConfirm: () => void) {
 function initializeGame() {
   // Get canvas after it's been created
   const canvas = getCanvas();
-  
+
   // Setup controls display
   setupControlsDisplay();
-  
+
   // Setup event listeners
   setupEventListeners();
-  
+
   // Setup game input handling
   setupGameInput();
-  
+
   // Initialize WebSocket connection
   if (document.readyState === 'loading') {
     window.addEventListener('DOMContentLoaded', createWebSocket);
   } else {
     createWebSocket();
   }
-  
+
   // Start game loop
   gameLoop();
 }
@@ -364,11 +370,11 @@ function initializeGame() {
 function setupControlsDisplay() {
   const controlsContainer = document.getElementById('gameControls');
   if (!controlsContainer) return;
-  
+
   // Update controls display based on role
   function updateControls() {
     controlsContainer.innerHTML = '';
-    
+
     if (role === 'player1') {
       controlsContainer.innerHTML = `
         <div class="flex flex-col items-center gap-2">
@@ -427,10 +433,10 @@ function setupControlsDisplay() {
       `;
     }
   }
-  
+
   // Update initially
   updateControls();
-  
+
   // Watch for role changes and update controls
   let lastRole = role;
   controlsUpdateInterval = setInterval(() => {
@@ -447,7 +453,7 @@ function createWebSocket() {
     console.log('🚫 Skipping WebSocket creation - route no longer active');
     return;
   }
-  
+
   // Close existing connection if any
   if (ws) {
     try {
@@ -479,7 +485,7 @@ function createWebSocket() {
       socket.close();
       return;
     }
-    
+
     setConnectionState('connected');
     setReconnectAttempts(0);
     console.log('🏓 Connected to game server');
@@ -541,7 +547,7 @@ function attemptReconnection() {
     console.log('🚫 Skipping reconnection - route no longer active');
     return;
   }
-  
+
   if (reconnectAttempts >= maxReconnectAttempts) {
     setConnectionState('disconnected');
     console.log(
@@ -653,7 +659,7 @@ function setupEventListeners() {
 
   visibilityChangeHandler = () => {
     if (!isRouteActive) return; // Don't handle if route is not active
-    
+
     if (document.hidden) {
       console.log('🕶️ Page hidden');
       sendMessage({ type: 'game', action: 'hidden' });
@@ -673,25 +679,25 @@ function gameLoop() {
     // Stop loop if route is no longer active
     return;
   }
-  
+
   draw();
   gameLoopAnimationFrame = requestAnimationFrame(gameLoop);
 }
 
 function setupGameInput() {
   const canvas = getCanvas();
-  
+
   // Clear any existing interval first
   if (inputInterval) {
     clearInterval(inputInterval);
   }
-  
+
   inputInterval = setInterval(() => {
     if (!isRouteActive) {
       // Stop if route is no longer active
       return;
     }
-    
+
     if (
       (role === 'local' || role === 'player1' || role === 'player2') &&
       !serverState.gamePaused &&

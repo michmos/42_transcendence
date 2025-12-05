@@ -1,6 +1,6 @@
 /**
  * API Type Definitions
- * 
+ *
  * This file provides type definitions for API requests and responses.
  * It imports Prisma-generated types from the database package and defines
  * input types for API requests based on backend validation schemas.

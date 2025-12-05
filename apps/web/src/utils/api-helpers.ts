@@ -1,5 +1,5 @@
-<<<<<<< HEAD
 import { navigateTo } from './navigation.js';
+import { createToast } from './toast.js';
 
 /**
  * API Error Response Structure
@@ -105,21 +105,13 @@ export function handleNetworkError(): ApiError {
 }
 
 /**
- * Shows an error message to the user
- * Can be extended to use a toast/notification system in the future
+ * Shows an error message to the user using toast notifications
  *
  * @param error - ApiError object
  */
 export function showApiError(error: ApiError): void {
-  // For now, just log to console
-  // TODO: Integrate with toast/notification system when available
   console.error(`API Error [${error.status}]:`, error.message);
-
-  // You can extend this to show UI notifications:
-  // - Toast notifications
-  // - Alert dialogs
-  // - Inline error messages
-  // - etc.
+  createToast(error.message, 'error');
 }
 
 /**
@@ -134,24 +126,3 @@ export async function handleFetchError(response?: Response): Promise<ApiError> {
   }
   return handleApiError(response);
 }
-
-
-
-=======
-import { createToast } from './toast.js';
-
-export interface ApiErrorOptions {
-  message: string;
-  status?: number;
-  shouldRedirect?: boolean;
-}
-
-export function showApiError(options: ApiErrorOptions): void {
-  console.error('API Error:', options);
-  createToast(options.message, 'error');
-
-  if (options.shouldRedirect) {
-    // Handle redirect if needed
-  }
-}
->>>>>>> origin/main
