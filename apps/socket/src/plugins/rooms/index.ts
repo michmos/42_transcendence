@@ -15,6 +15,7 @@ import { WSocket } from './WSocket/index.js';
 interface IIdentifiers {
   uuid: string;
   jwt: string;
+  // nickname: string; ------------------------------------------------------- <<
 }
 
 /**
@@ -37,7 +38,7 @@ async function roomPlugin(app: FastifyInstance) {
         console.error('Unauthorized websocket connection attempt');
         return;
       }
-      const socket = new WSocket(webSocket, identifiers.uuid, identifiers.jwt);
+      const socket = new WSocket(webSocket, identifiers.uuid, identifiers.jwt); // Add indentifier nickname to list ------------------------------------------------------- <<
 
       socket.onClose(async () => {
         socket.lastSeen = new Date(Date.now());
