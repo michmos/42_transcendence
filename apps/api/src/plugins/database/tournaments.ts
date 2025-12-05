@@ -248,6 +248,42 @@ export async function getTournamentRound(tournamentId: string, index: number) {
   });
 }
 
+export async function isFinishedTournamentRound(roundId: string) {
+  const round = await Database.tournamentRound.findUniqueOrThrow({
+    where: { uuid: roundId },
+  });
+  if (round.status === 'finished') {
+    return true;
+  }
+  // check whether all matches are already finished
+  const unfinishedMatch = await Database.match.findFirst({
+    where: {
+      tournamentRoundId: roundId,
+      status: {
+        not: 'finished',
+      },
+    },
+  });
+  if (unfinishedMatch) {
+    return false;
+  }
+  // update tournament round
+  await Database.tournamentRound.update({
+    where: {
+      uuid: roundId,
+    },
+    data: {
+      status: 'finished',
+      tournament: {
+        update: {
+          currentRound: { increment: 1 },
+        },
+      },
+    },
+  });
+  return true;
+}
+
 export async function getCurrentTournamentRound(tournamentId: string) {
   const tournament = await Database.tournament.findUnique({
     where: { uuid: tournamentId },

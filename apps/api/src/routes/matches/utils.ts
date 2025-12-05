@@ -22,3 +22,21 @@ export async function getPlayerName(
   }
   return user.nickname;
 }
+
+const finishedRoundsCache = new Set<string>();
+
+export async function isFinishedTournamentRound(
+  app: FastifyInstance,
+  roundId: string
+): Promise<boolean> {
+  // check cache first
+  if (finishedRoundsCache.has(roundId)) {
+    return false;
+  }
+  // check db
+  if (await app.db.isFinishedTournamentRound(roundId)) {
+    finishedRoundsCache.add(roundId);
+    return false;
+  }
+  return true;
+}

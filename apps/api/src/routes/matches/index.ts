@@ -1,9 +1,10 @@
 import { type FastifyInstance } from 'fastify';
 import * as schemas from './validation.js';
 import { type Match, Prisma } from 'db/generated/client/index.js';
-import { getPlayerName } from './utils.js';
+import { getPlayerName, isFinishedTournamentRound } from './utils.js';
 import { type MatchResponse } from 'types';
 import { isAdmin } from '../../plugins/auth/utils.js';
+import { messageSocketServer } from '../tournaments/utils.js';
 
 export default function (app: FastifyInstance): void {
   app.get<{ Params: schemas.singleUuidParam }>(
@@ -82,8 +83,24 @@ export default function (app: FastifyInstance): void {
       if (Object.keys(request.body).length === 0) {
         return reply.status(400).send({ error: 'Body cannot be empty' });
       }
-      await app.db.updateMatchesByStatus(request.body, request.query.status);
-      return reply.status(204).send();
+      const matches = await app.db.updateMatchesByStatus(
+        request.body,
+        request.query.status
+      );
+      reply.status(204).send();
+
+      // notify socket server about finished rounds
+      for (const match of matches) {
+        if (
+          match.tournamentRoundId !== null &&
+          (await isFinishedTournamentRound(app, match.tournamentRoundId))
+        ) {
+          messageSocketServer('/tournaments/broadcast/updated', {
+            matchUuid: match.uuid,
+            ...request.body,
+          });
+        }
+      }
     }
   );
 
