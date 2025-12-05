@@ -253,3 +253,101 @@ describe('PATCH /matches/:uuid', () => {
   });
 });
 
+describe('PATCH /matches', () => {
+  test('valid bulk update without querystring -> 204', async () => {
+    setUserTo('ADMIN');
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/matches`,
+      body: {
+        status: 'finished',
+      },
+    });
+    expect(response.statusCode).toBe(204);
+  });
+  test('valid bulk update with querystring -> 204', async () => {
+    setUserTo('ADMIN');
+    const match1 = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    const match2 = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/matches?status=outstanding`,
+      body: {
+        status: 'finished',
+      },
+    });
+    expect(response.statusCode).toBe(204);
+    const updatedMatch1 = await app.db.getMatch(match1.uuid);
+    const updatedMatch2 = await app.db.getMatch(match2.uuid);
+    expect(updatedMatch1?.status).toBe('finished');
+    expect(updatedMatch2?.status).toBe('finished');
+  });
+  test('non admin attempt -> 403', async () => {
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/matches?status=outstanding`,
+      body: {
+        status: 'finished',
+      },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+  test('invalid querystring -> 400', async () => {
+    setUserTo('ADMIN');
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/matches?status=invalid-query`,
+      body: {
+        status: 'finished',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+  test('empty body -> 400', async () => {
+    setUserTo('ADMIN');
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/matches`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(400);
+  });
+});
