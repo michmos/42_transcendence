@@ -30,6 +30,7 @@ export default defineConfig(() => {
           target: `http://localhost:${env.CDN_PORT}`,
           changeOrigin: true,
           secure: false,
+          rewrite: (path) => path.replace(/^\/cdn/, ''),
         },
       },
     },

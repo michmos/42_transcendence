@@ -13,6 +13,7 @@ import UserAPI, {
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -64,7 +65,7 @@ export default async function initRoute() {
     title: 'The Pong Game',
     links: [{ label: 'Tournaments', href: '/tournaments', active: false }],
     ...(cleanedUserData.nickname && { userNickname: cleanedUserData.nickname }),
-    ...(cleanedUserData.avatar && { userAvatar: cleanedUserData.avatar }),
+    ...(cleanedUserData.avatar && { userAvatar: getAvatarSrc(cleanedUserData.avatar) || null }),
     onSettingsClick: () => {
       navigateTo('/settings');
     },

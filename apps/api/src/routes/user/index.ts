@@ -110,6 +110,8 @@ export default async function (app: FastifyInstance): Promise<void> {
         'public/userAvatars',
         newFilename
       );
+
+      // Store relative path from the CDN root: /userAvatars/filename.png
       const relPath = `/userAvatars/${newFilename}`;
 
       // ensure that directory exists

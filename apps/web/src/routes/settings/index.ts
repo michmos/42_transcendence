@@ -1,8 +1,15 @@
 import { Navbar, Card, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import { handleApiError, showApiError } from '../../utils/api-helpers.js';
 import UserAPI from '../../plugins/api/user.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
+
+// Extend Window interface for SPA navigation
+declare global {
+  interface Window {
+    navigateToRoute?: (href: string) => void;
+  }
+}
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -35,8 +42,8 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userInfo?.nickname,
-    userAvatar: userInfo?.avatar || undefined,
+    userNickname: userInfo?.nickname || 'User',
+    userAvatar: getAvatarSrc(userInfo?.avatar) || null,
     onSettingsClick: () => {
       navigateTo('/settings');
     },
@@ -55,9 +62,8 @@ export default async function initRoute() {
 
   const userData = profileData.cleanedUserData;
   const currentNickname = userData.nickname || '';
-  const currentAvatar = userData.avatar || null;
+  const currentAvatar = getAvatarSrc(userData.avatar || null);
   // Email is not included in cleanedUserData for security reasons
-  const userEmail = '';
 
   // ===== MAIN CONTENT =====
   const mainContent = document.createElement('div');
@@ -111,12 +117,6 @@ export default async function initRoute() {
     avatarImg.className = 'w-full h-full object-cover';
     avatarDisplay.appendChild(avatarImg);
   } else {
-    const initials = currentNickname
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
     avatarDisplay.innerHTML = `
       <svg class="w-12 h-12 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
@@ -355,7 +355,12 @@ export default async function initRoute() {
       if (selectedAvatarFile && !hasError) {
         try {
           const result = await UserAPI.uploadAvatar(selectedAvatarFile);
-          if (!result) {
+          console.log('Avatar upload result:', result);
+          // uploadAvatar returns the avatar path string, so any truthy value means success
+          if (result) {
+            // Avatar uploaded successfully - result contains the path
+            console.log('Avatar uploaded successfully:', result);
+          } else {
             hasError = true;
             errorMessage = 'Failed to upload avatar';
           }

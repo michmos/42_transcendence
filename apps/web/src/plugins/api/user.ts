@@ -256,7 +256,9 @@ const UserAPI = {
       }
 
       const result = await response.json();
-      return typeof result === 'string' ? result : result.avatarUrl || null;
+      // API returns a cleaned user object with avatar property
+      // Return the avatar path (which is the relative path like /userAvatars/xxx.png)
+      return result?.avatar || null;
     } catch (error) {
       console.error('Error uploading avatar:', error);
       throw error;
