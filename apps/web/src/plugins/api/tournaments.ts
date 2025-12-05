@@ -107,16 +107,18 @@ const TournamentAPI = {
   /**
    * Join a tournament (add user to tournament)
    * @param tournamentUuid - Tournament UUID
+   * @param alias - Alias/display name for the tournament
    * @param userUuid - Optional user UUID (if not provided, adds current user)
    * @returns Promise<Tournament> - Updated tournament
    * @throws Error if join fails (401, 404, 422)
    */
   async joinTournament(
     tournamentUuid: string,
+    alias: string,
     userUuid?: string
   ): Promise<Tournament> {
     try {
-      const body: JoinTournamentInput = {};
+      const body: JoinTournamentInput = { alias };
       if (userUuid) {
         body.uuid = userUuid;
       }
@@ -243,7 +245,7 @@ const TournamentAPI = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching tournament round:', error);
-      throw error;
+      return null;
     }
   },
 };

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * Shared logout handler
  * Can be used by all routes to handle logout consistently
@@ -31,3 +32,17 @@ export async function handleLogout(): Promise<void> {
 
 
 
+=======
+export function handleLogout(): void {
+  fetch('/api/auth/logout', {
+    method: 'GET',
+    credentials: 'include',
+  })
+    .then(() => {
+      window.location.href = '/login';
+    })
+    .catch((error) => {
+      console.error('Logout failed:', error);
+    });
+}
+>>>>>>> origin/main

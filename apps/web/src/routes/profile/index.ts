@@ -13,6 +13,7 @@ import UserAPI, {
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
+import { getCurrentSession, setSession } from '../../utils/auth-state.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -32,7 +33,10 @@ interface MatchData {
 
 export default async function initRoute() {
   const profileRoot = document.querySelector('.profile-page') as HTMLElement;
-  if (!profileRoot) return;
+  if (!profileRoot) {
+    console.error('[profile] Profile root element not found');
+    return;
+  }
   profileRoot.innerHTML = '';
 
   // Main wrapper with gradient background
@@ -44,17 +48,68 @@ export default async function initRoute() {
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
 
+  // Check if we have a session in memory (from app.ts)
+  // app.ts already checked auth, so we should have a session
+  const currentSession = getCurrentSession();
+  if (!currentSession || !currentSession.uuid) {
+    navigateTo('/login');
+    return;
+  }
+
   // Fetch profile data from API
   const profileData = await UserAPI.getUserProfile();
 
   if (!profileData) {
-    // Show error state or loading state
-    const errorMsg = document.createElement('div');
-    errorMsg.className = 'text-center text-muted-foreground py-8';
-    errorMsg.textContent = 'Failed to load profile data. Please try again.';
-    mainWrapper.appendChild(errorMsg);
+    // Check if we have a session in memory (from app.ts checkSessionAndRedirect)
+    const currentSession = getCurrentSession();
+    if (currentSession && currentSession.uuid) {
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'text-center text-muted-foreground py-8';
+      errorMsg.innerHTML = `
+        <p class="mb-4">Failed to load profile data.</p>
+        <button 
+          onclick="window.location.reload()" 
+          class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
+        >
+          Refresh Page
+        </button>
+      `;
+      mainWrapper.appendChild(errorMsg);
+      return;
+    }
+
+    // Double-check with getMe() which is lighter weight and has its own retry logic
+    console.log('[profile] No session in memory, checking with getMe()...');
+    const user = await UserAPI.getMe();
+    if (user && user.uuid) {
+      // User is authenticated but profile fetch failed - show error instead of redirecting
+      console.log(
+        '[profile] ✅ User authenticated via getMe() but profile fetch failed, showing error'
+      );
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'text-center text-muted-foreground py-8';
+      errorMsg.innerHTML = `
+        <p class="mb-4">Failed to load profile data.</p>
+        <button 
+          onclick="window.location.reload()" 
+          class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
+        >
+          Refresh Page
+        </button>
+      `;
+      mainWrapper.appendChild(errorMsg);
+      return;
+    }
+
+    // Only redirect if we're absolutely sure user is not authenticated
+    console.log(
+      '[profile] ❌ User not authenticated after all checks, redirecting to login'
+    );
+    navigateTo('/login');
     return;
   }
+
+  console.log('[profile] Profile data loaded successfully, rendering page');
 
   // Calculate stats from API data
   const { cleanedUserData, cleanedUserFriends, userMatches } = profileData;

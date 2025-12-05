@@ -15,7 +15,7 @@ export default async function initRoute() {
   }
 
   // Get page root
-  const pageRoot = document.querySelector('.user-container') as HTMLElement;
+  const pageRoot = document.querySelector<HTMLElement>('.user-container');
   if (!pageRoot) {
     // If container doesn't exist, create it
     const app = document.getElementById('app');

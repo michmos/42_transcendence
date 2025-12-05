@@ -52,7 +52,10 @@ function mapMatchStatusToUI(
  * Handles both cases: when player relation is loaded and when only ID is available
  */
 function getPlayerNickname(
-  player: { nickname?: string | null; email?: string | null } | null | undefined,
+  player:
+    | { nickname?: string | null; email?: string | null }
+    | null
+    | undefined,
   playerId?: string | null
 ): string {
   // If player object exists with nickname/email, use it
@@ -65,26 +68,6 @@ function getPlayerNickname(
     return 'Player'; // Placeholder - could fetch user data if needed
   }
   return 'TBD';
-}
-
-/**
- * Map backend match to UI match format
- */
-function mapMatchToUI(match: BackendMatch): Match {
-  return {
-    id: match.uuid,
-    opponent1: getPlayerNickname(
-      (match as any).player1, // Type assertion for player relation
-      match.player1Id
-    ),
-    opponent2: getPlayerNickname(
-      (match as any).player2, // Type assertion for player relation
-      match.player2Id
-    ),
-    score1: match.Score1 || 0,
-    score2: match.Score2 || 0,
-    status: mapMatchStatusToUI(match.status),
-  };
 }
 
 function renderRoundHeader(
@@ -114,9 +97,9 @@ function renderRoundHeader(
   `;
 
   // Add badge
-  const badgeContainer = roundHeader.querySelector('#round-badge');
+  const badgeContainer = roundHeader.querySelector<HTMLElement>('#round-badge');
   if (badgeContainer) {
-    new Badge(badgeContainer as HTMLElement, {
+    new Badge(badgeContainer, {
       text: `Round ${roundIndex + 1}`,
       variant: 'info',
     });
@@ -143,11 +126,11 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
     `;
   } else {
     matches.forEach((match) => {
-    const matchItem = document.createElement('div');
-    matchItem.className =
-      'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all hover:bg-white/10';
+      const matchItem = document.createElement('div');
+      matchItem.className =
+        'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all hover:bg-white/10';
 
-    matchItem.innerHTML = `
+      matchItem.innerHTML = `
       <div class="flex items-center p-6">
         <!-- Opponent 1 -->
         <div class="flex-1 min-w-0">
@@ -180,26 +163,28 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
       </div>
     `;
 
-    // Append status badge
-    const badgeContainer = matchItem.querySelector(`#status-badge-${match.id}`);
-    if (badgeContainer) {
-      const statusText =
-        match.status === 'completed'
-          ? 'Final'
-          : match.status === 'live'
-            ? 'LIVE'
-            : 'Scheduled';
-      const variant =
-        match.status === 'completed'
-          ? 'success'
-          : match.status === 'live'
-            ? 'warning'
-            : 'default';
-      new Badge(badgeContainer as HTMLElement, {
-        text: statusText,
-        variant: variant,
-      });
-    }
+      // Append status badge
+      const badgeContainer = matchItem.querySelector<HTMLElement>(
+        `#status-badge-${match.id}`
+      );
+      if (badgeContainer) {
+        const statusText =
+          match.status === 'completed'
+            ? 'Final'
+            : match.status === 'live'
+              ? 'LIVE'
+              : 'Scheduled';
+        const variant =
+          match.status === 'completed'
+            ? 'success'
+            : match.status === 'live'
+              ? 'warning'
+              : 'default';
+        new Badge(badgeContainer, {
+          text: statusText,
+          variant: variant,
+        });
+      }
 
       matchesContainer.appendChild(matchItem);
     });
@@ -269,22 +254,20 @@ function renderErrorState(container: HTMLElement, message: string) {
 }
 
 export default async function initRoute() {
-  const roundRoot = document.querySelector(
-    '.round-detail-page'
-  ) as HTMLElement | null;
+  const roundRoot = document.querySelector<HTMLElement>('.round-detail-page');
   if (!roundRoot) return;
 
   roundRoot.innerHTML = '';
 
   // Get route parameters from window.routeParams (set by router)
   const routeParams = window.routeParams || {};
-  const roundId = routeParams.roundId || '1';
+  const roundId = routeParams['roundId'] || '1';
   const roundIndex = parseInt(roundId, 10) - 1; // Convert to 0-based index
 
   // Get tournamentId from sessionStorage (set when navigating from tournament page)
   // This allows us to navigate back to the correct tournament
   const tournamentId =
-    sessionStorage.getItem('lastTournamentId') || routeParams.tournamentId;
+    sessionStorage.getItem('lastTournamentId') || routeParams['tournamentId'];
 
   if (!tournamentId) {
     roundRoot.innerHTML =
@@ -300,7 +283,7 @@ export default async function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-  
+
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
@@ -359,7 +342,10 @@ export default async function initRoute() {
     }
 
     // Fetch round
-    const round = await TournamentAPI.getTournamentRound(tournamentId, roundIndex);
+    const round = await TournamentAPI.getTournamentRound(
+      tournamentId,
+      roundIndex
+    );
     if (!round) {
       renderErrorState(innerContainer, 'Round not found');
       return;
@@ -378,19 +364,19 @@ export default async function initRoute() {
     const uiMatches: Match[] = round.matches.map((match) => {
       const opponent1 =
         match.player1Id && playerMap.has(match.player1Id)
-          ? playerMap.get(match.player1Id)!
+          ? (playerMap.get(match.player1Id) ?? 'Unknown')
           : getPlayerNickname((match as any).player1, match.player1Id);
       const opponent2 =
         match.player2Id && playerMap.has(match.player2Id)
-          ? playerMap.get(match.player2Id)!
+          ? (playerMap.get(match.player2Id) ?? 'Unknown')
           : getPlayerNickname((match as any).player2, match.player2Id);
 
       return {
         id: match.uuid,
         opponent1,
         opponent2,
-        score1: match.Score1 || 0,
-        score2: match.Score2 || 0,
+        score1: match.score1 || 0,
+        score2: match.score2 || 0,
         status: mapMatchStatusToUI(match.status),
       };
     });

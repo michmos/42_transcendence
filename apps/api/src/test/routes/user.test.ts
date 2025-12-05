@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { describe, test, expect } from 'vitest';
 import { app } from '../setup.js';
 import { setUserTo, normalUser, createValidTournament } from '../utils.js';
@@ -55,7 +57,7 @@ describe('GET /user', () => {
 });
 
 // -----   /user/me   -   USER'S OWN PROFILE
-describe('GET /user/me', () => {
+describe('GET /user/me/dashboard', () => {
   // ------------------------------------------------------------------------ 4
   test('User, no friends - valid', async () => {
     await app.db.setUserMeAvatar(
@@ -64,7 +66,7 @@ describe('GET /user/me', () => {
     );
     const response = await app.inject({
       method: 'GET',
-      url: '/user/me',
+      url: '/user/me/dashboard',
     });
 
     expect(response.statusCode).toBe(200);
@@ -117,8 +119,8 @@ describe('GET /user/me', () => {
         const uuid: string = match.uuid;
         await app.db.updateMatch({
           uuid,
-          Score1: 5,
-          Score2: 10,
+          score1: 5,
+          score2: 10,
           winnerId: otherUser.uuid,
           status: 'finished',
         });
@@ -133,8 +135,8 @@ describe('GET /user/me', () => {
         const uuid: string = match.uuid;
         await app.db.updateMatch({
           uuid,
-          Score1: 10,
-          Score2: 2,
+          score1: 10,
+          score2: 2,
           winnerId: normalUser.uuid,
           status: 'finished',
         });
@@ -161,8 +163,8 @@ describe('GET /user/me', () => {
         const uuid: string = match.uuid;
         await app.db.updateMatch({
           uuid,
-          Score1: 10,
-          Score2: 2,
+          score1: 10,
+          score2: 2,
           winnerId: normalUser.uuid,
           status: 'finished',
           // tournamentRoundId: `t-round-${i}`,
@@ -189,7 +191,7 @@ describe('GET /user/me', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/user/me',
+      url: '/user/me/dashboard',
     });
 
     expect(response.statusCode).toBe(200);
@@ -372,13 +374,29 @@ describe('GET /user/me/tournaments', () => {
   // ------------------------------------------------------------------------ 13
   test('several tournaments -> 200', async () => {
     let tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     const response = await app.inject({
       method: 'GET',
       url: '/user/me/tournaments',
@@ -392,7 +410,11 @@ describe('GET /user/me/tournaments', () => {
   test('VALID - tournaments by status -> 200', async () => {
     const testStatus = async (status: statusEnum) => {
       const tournament = await createValidTournament(app);
-      await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+      await app.db.addUserToTournament(
+        normalUser.uuid,
+        tournament.uuid,
+        'someAlias'
+      );
       await app.db.updateTournament({ uuid: tournament.uuid, status });
       const response = await app.inject({
         method: 'GET',

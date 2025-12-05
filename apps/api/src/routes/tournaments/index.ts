@@ -4,19 +4,22 @@ import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
 import { status as statusEnum } from 'db/generated/client/index.js';
+import { type TournamentRoundResponse } from 'types';
+import { Prisma } from 'db/generated/client';
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default function (app: FastifyInstance): void {
   // create tournament
   app.post<{ Body: schemas.createTournamentBody }>(
     '/',
     {
       schema: schemas.createTournament,
-      preHandler: async (request, reply) => {
+      preHandler: (request, reply, done) => {
         if (request.body.minPlayers > request.body.maxPlayers) {
           reply.status(400).send({
             error: 'maxPlayers must be >= minPlayers',
           });
         }
+        done();
       },
     },
     async function (request, reply) {
@@ -102,12 +105,17 @@ export default async function (app: FastifyInstance): Promise<void> {
   );
 
   // join tournament
-  app.post<{ Params: schemas.singleUuidParam; Body: schemas.addUserBody }>(
+  app.post<{
+    Params: schemas.singleUuidParam;
+    Body: schemas.joinTournamentBody;
+  }>(
     '/:uuid/users',
     {
-      schema: schemas.joinOrLeave,
-      preHandler: async (request, reply) => {
-        if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
+      schema: schemas.joinTournament,
+      preHandler: (request, reply, done) => {
+        if (request.body.uuid !== undefined && !isAdmin(request, reply)) {
+        }
+        done();
       },
     },
     async function (request, reply) {
@@ -151,28 +159,47 @@ export default async function (app: FastifyInstance): Promise<void> {
       }
 
       // add user
-      const updatedTournament = await app.db.addUserToTournament(
-        userUuid,
-        tournamentUuid
-      );
+      try {
+        const updatedTournament = await app.db.addUserToTournament(
+          userUuid,
+          tournamentUuid,
+          request.body.alias
+        );
 
-      // notify socket server
-      await messageSocketServer(`/tournaments/broadcast/joined`, {
-        tournamentUuid: tournament.uuid,
-        userUuid,
-        playerCount: updatedTournament.playerCount,
-      });
-      return reply.status(200).send(updatedTournament);
+        // notify socket server
+        await messageSocketServer(`/tournaments/broadcast/joined`, {
+          tournamentUuid: tournament.uuid,
+          userUuid,
+          playerCount: updatedTournament.playerCount,
+        });
+        return reply.status(200).send(updatedTournament);
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          return reply
+            .status(409)
+            .send('Alias already taken in this tournament');
+        } else {
+          throw error;
+        }
+      }
     }
   );
 
   // leave tournament
-  app.delete<{ Params: schemas.singleUuidParam; Body: schemas.rmvUserBody }>(
+  app.delete<{
+    Params: schemas.singleUuidParam;
+    Body: schemas.leaveTournamentBody;
+  }>(
     '/:uuid/users',
     {
-      schema: schemas.joinOrLeave,
-      preHandler: async (request, reply) => {
-        if (request.body.uuid !== undefined && !isAdmin(request, reply)) return;
+      schema: schemas.leaveTournament,
+      preHandler: (request, reply, done) => {
+        if (request.body.uuid !== undefined && !isAdmin(request, reply)) {
+        }
+        done();
       },
     },
     async function (request, reply) {
@@ -232,13 +259,17 @@ export default async function (app: FastifyInstance): Promise<void> {
     '/:uuid',
     {
       schema: schemas.updateTournament,
-      preHandler: async (request, reply) => {
-        if (!isAdmin(request, reply)) return;
+      preHandler: (request, reply, done) => {
+        if (!isAdmin(request, reply)) {
+          return done();
+        }
         if (Object.values(request.body).length === 0) {
-          return reply.status(400).send({
+          reply.status(400).send({
             error: 'Only status and tournamentName can be updated',
           });
+          return done();
         }
+        done();
       },
     },
     async function (request, reply) {
@@ -270,7 +301,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   );
 
   // get tournaments
-  app.get<{ Querystring: schemas.getTournaments }>(
+  app.get<{ Querystring: schemas.getTournamentsQuerystring }>(
     '/',
     { schema: schemas.getTournaments },
     async function (request, reply) {
@@ -300,7 +331,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   );
 
   // get tournament round
-  app.get<{ Params: schemas.getTournamentRound }>(
+  app.get<{ Params: schemas.getTournamentRoundParams }>(
     '/:uuid/rounds/:roundIndex',
     {
       schema: schemas.getTournamentRound,
@@ -317,15 +348,17 @@ export default async function (app: FastifyInstance): Promise<void> {
       }
 
       // get round
-      const round = await app.db.getTournamentRound(
-        request.params.uuid,
-        request.params.roundIndex
-      );
+      const round: TournamentRoundResponse | null =
+        await app.db.getTournamentRound(
+          request.params.uuid,
+          request.params.roundIndex
+        );
       if (!round) {
         return reply.status(404).send({
           error: `Tournament round with index: ${request.params.roundIndex} not found`,
         });
       }
+
       return reply.status(200).send(round);
     }
   );

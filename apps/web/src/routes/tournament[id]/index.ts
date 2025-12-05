@@ -95,8 +95,8 @@ function buildLeaderboard(
 
       if (!player1Id || !player2Id) return;
 
-      const score1 = match.Score1 || 0;
-      const score2 = match.Score2 || 0;
+      const score1 = match.score1 || 0;
+      const score2 = match.score2 || 0;
 
       // Update player 1 stats
       const player1Stats = playerStats.get(player1Id);
@@ -219,7 +219,10 @@ function renderTournamentHeader(
       variant: 'secondary',
       onClick: async () => {
         try {
-          await TournamentAPI.joinTournament(tournament.uuid);
+          // Get current user nickname for alias
+          const currentUser = await UserAPI.getUserBasicInfo();
+          const alias = currentUser?.nickname || `Player-${currentUserId.slice(0, 8)}`;
+          await TournamentAPI.joinTournament(tournament.uuid, alias);
           // Will refresh via socket or manual reload if needed
           window.location.reload();
         } catch (error) {
@@ -453,9 +456,7 @@ function renderErrorState(container: HTMLElement, message: string) {
 }
 
 export default async function initRoute() {
-  const pageRoot = document.querySelector(
-    '.tournament-page'
-  ) as HTMLElement | null;
+  const pageRoot = document.querySelector<HTMLElement>('.tournament-page');
   if (!pageRoot) return;
 
   // Get tournament UUID from route params

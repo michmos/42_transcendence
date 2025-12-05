@@ -1,3 +1,4 @@
+// TODO: Please move this out of the src folder as it should be in seperate test folder to create production builds without copying the test files
 import { beforeAll, beforeEach, afterAll } from 'vitest';
 import { build } from '../build.js';
 import { type FastifyInstance } from 'fastify';
@@ -21,9 +22,10 @@ beforeAll(async () => {
       throw error;
     }
 
-    app.addHook('onRequest', async (request) => {
+    app.addHook('onRequest', (request, _reply, done) => {
       // Mock authentication by attaching a user object to the request
       request.user = testUser;
+      done();
     });
   }
 });

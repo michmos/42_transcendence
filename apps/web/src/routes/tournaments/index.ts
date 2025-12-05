@@ -78,9 +78,15 @@ function mapTournamentToUI(tournament: BackendTournament): Tournament {
   };
 }
 
+interface WebSocketMessage {
+  event: string;
+  data?: unknown;
+  message?: string;
+}
+
 // TODO: handle events
 window.socket.registerWebSocketHook((event: MessageEvent) => {
-  const data = JSON.parse(event.data);
+  const data = JSON.parse(event.data as string) as WebSocketMessage;
   if (data.event === 'tournament-updated') {
     console.log('Tournament updated:', data);
   } else if (data.event === 'tournament-joined') {
@@ -482,7 +488,10 @@ function renderTournamentGrid(
         `;
 
         try {
-          await TournamentAPI.joinTournament(tournamentUuid);
+          // Get current user nickname for alias
+          const currentUser = await UserAPI.getUserBasicInfo();
+          const alias = currentUser?.nickname || `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+          await TournamentAPI.joinTournament(tournamentUuid, alias);
 
           // Success - refresh tournaments list
           const windowWithTournaments = window as WindowWithTournaments;
@@ -614,7 +623,7 @@ function showNewTournamentDialog() {
       <h2 class="text-2xl font-bold mb-2 text-gray-900">Create New Tournament</h2>
       <p class="text-sm text-gray-600">Set up a new tournament with your preferred settings</p>
     </div>
-    
+
     <div class="space-y-4">
       <div class="space-y-2">
         <label for="tournament-name" class="text-sm font-semibold text-gray-700">Tournament Name</label>
@@ -625,7 +634,7 @@ function showNewTournamentDialog() {
           class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
         />
       </div>
-      
+
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-2">
           <label for="min-size" class="text-sm font-semibold text-gray-700">Min Players (min: 2)</label>
@@ -648,7 +657,7 @@ function showNewTournamentDialog() {
           />
         </div>
       </div>
-      
+
       <div class="flex gap-3 pt-4">
         <button class="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="create-btn">
           Save
@@ -762,9 +771,7 @@ function showNewTournamentDialog() {
 }
 
 export default async function initRoute() {
-  const pageRoot = document.querySelector(
-    '.tournaments-page'
-  ) as HTMLElement | null;
+  const pageRoot = document.querySelector<HTMLElement>('.tournaments-page');
   if (!pageRoot) return;
 
   pageRoot.innerHTML = '';

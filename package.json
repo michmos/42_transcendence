@@ -2,16 +2,18 @@
   "private": true,
   "name": "trancendence",
   "scripts": {
-    "predev": "turbo run dep:build",
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "db:generate": "turbo run db:generate",
     "prebuild": "turbo run dep:build",
     "build": "turbo run build",
+    "dep:build": "turbo run dep:build",
     "dev": "turbo run dev",
     "preview": "turbo run preview",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
+    "lint": "turbo run lint --continue",
+    "lint:fix": "turbo run lint:fix --continue",
+    "lint:all": "eslint .",
+    "lint:all:fix": "eslint . --fix",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch"
   },
@@ -31,5 +33,8 @@
   "packageManager": "pnpm@10.13.1",
   "pnpm": {
     "overrides": {}
+  },
+  "dependencies": {
+    "globals": "^16.5.0"
   }
 }

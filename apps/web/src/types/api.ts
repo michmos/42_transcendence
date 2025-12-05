@@ -47,11 +47,6 @@ export interface CreateTournamentInput {
  * Based on validation schema: apps/api/src/routes/tournaments/validationSchemas.ts
  */
 export interface JoinTournamentInput {
+  alias: string; // required - alias/display name for the tournament
   uuid?: string; // optional - if not provided, adds current user
 }
-
-
-
-
-
-

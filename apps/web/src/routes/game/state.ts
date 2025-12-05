@@ -58,7 +58,7 @@ export let serverState = {
   gameStartTime: 0,
 };
 
-interface ServerState {
+export interface ServerState {
   paddleWidth: number;
   paddleHeight: number;
   ballX: number;

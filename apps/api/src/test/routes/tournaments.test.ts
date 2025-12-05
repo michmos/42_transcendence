@@ -12,6 +12,8 @@ import {
   type Tournament,
 } from 'db/generated/client/index.js';
 
+import { type TournamentRoundResponse } from 'types';
+
 describe('POST /tournaments', () => {
   setUserTo('MEMBER');
 
@@ -173,7 +175,7 @@ describe('POST /tournaments', () => {
   });
 });
 
-describe('GET /tournaments', async () => {
+describe('GET /tournaments', () => {
   setUserTo('MEMBER');
 
   test('valid: Get tournaments without status filter', async () => {
@@ -363,7 +365,11 @@ describe('PATCH /tournaments/{uuid}', () => {
 describe('PATCH /tournaments/{uuid}/start', () => {
   test('valid: start tournament -> 200', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     await app.db.updateTournament({
       uuid: tournament.uuid,
       playerCount: tournament.minPlayers,
@@ -379,7 +385,11 @@ describe('PATCH /tournaments/{uuid}/start', () => {
 
   test('invalid: start non-outstanding tournament', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
     await app.db.updateTournament({
       uuid: tournament.uuid,
       playerCount: tournament.minPlayers,
@@ -396,7 +406,11 @@ describe('PATCH /tournaments/{uuid}/start', () => {
 
   test('invalid: start tournament with playerCount < minPlayers -> 422', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
 
     const response = await app.inject({
       method: 'PATCH',
@@ -408,7 +422,11 @@ describe('PATCH /tournaments/{uuid}/start', () => {
 
   test('invalid: start non-existent tournament -> 404', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
 
     const response = await app.inject({
       method: 'PATCH',
@@ -443,7 +461,9 @@ describe('POST /tournaments/{uuid}/users', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tournaments/${tournament.uuid}/users`,
-      body: {},
+      body: {
+        alias: 'someAlias',
+      },
     });
     expect(response.statusCode).toBe(200);
 
@@ -470,7 +490,9 @@ describe('POST /tournaments/{uuid}/users', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tournaments/${tournament.uuid}/users`,
-      body: {},
+      body: {
+        alias: 'someAlias',
+      },
     });
     expect(response.statusCode).toBe(200);
 
@@ -489,6 +511,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {
         uuid: normalUser.uuid,
+        alias: 'someAlias',
       },
     });
     expect(response.statusCode).toBe(200);
@@ -506,9 +529,16 @@ describe('POST /tournaments/{uuid}/users', () => {
       try {
         const tempUser = await app.db.addUser(`email${i}`, `user${i}`);
         assert(tempUser !== null);
-        await app.db.addUserToTournament(tempUser.uuid, tournament.uuid);
+        await app.db.addUserToTournament(
+          tempUser.uuid,
+          tournament.uuid,
+          `someAlias${i}`
+        );
       } catch (error) {
-        assert(false, `Failed to add user to tournament: ${error}`);
+        assert(
+          false,
+          `Failed to add user to tournament: ${(error as Error).message}`
+        );
       }
     }
 
@@ -516,7 +546,9 @@ describe('POST /tournaments/{uuid}/users', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tournaments/${tournament.uuid}/users`,
-      body: {},
+      body: {
+        alias: 'someAlias',
+      },
     });
     expect(response.statusCode).toBe(409);
 
@@ -531,13 +563,17 @@ describe('POST /tournaments/{uuid}/users', () => {
     let response = await app.inject({
       method: 'POST',
       url: `/tournaments/${tournament.uuid}/users`,
-      body: {},
+      body: {
+        alias: 'someAlias',
+      },
     });
     assert(response.statusCode === 200);
     response = await app.inject({
       method: 'POST',
       url: `/tournaments/${tournament.uuid}/users`,
-      body: {},
+      body: {
+        alias: 'someAlias',
+      },
     });
     expect(response.statusCode).toBe(409);
 
@@ -556,6 +592,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {
         uuid: normalUser.uuid,
+        alias: 'someAlias',
       },
     });
     assert(response.statusCode === 200);
@@ -564,6 +601,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {
         uuid: normalUser.uuid,
+        alias: 'someAlias',
       },
     });
     expect(response.statusCode).toBe(409);
@@ -591,7 +629,9 @@ describe('POST /tournaments/{uuid}/users', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tournaments/${tournament.uuid}/users`,
-      body: {},
+      body: {
+        alias: 'someAlias',
+      },
     });
     expect(response.statusCode).toBe(422);
   });
@@ -609,6 +649,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {
         uuid: normalUser.uuid,
+        alias: 'someAlias',
       },
     });
     expect(response.statusCode).toBe(422);
@@ -624,6 +665,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {
         uuid: randomUserUuid,
+        alias: 'someAlias',
       },
     });
     expect(response.statusCode).toBe(404);
@@ -638,6 +680,7 @@ describe('POST /tournaments/{uuid}/users', () => {
       url: `/tournaments/${tournament.uuid}/users`,
       body: {
         uuid: adminUser.uuid,
+        alias: 'someAlias',
       },
     });
     expect(response.statusCode).toBe(403);
@@ -647,15 +690,48 @@ describe('POST /tournaments/{uuid}/users', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tournaments/12345678-1234-1234-1234-123456789012/users',
+      body: {
+        alias: 'someAlias',
+      },
     });
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('invalid: join with same alias as other player-> 409', async () => {
+    setUserTo('MEMBER');
+    const tournament = await createValidTournament(app);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        alias: 'sameAlias',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    setUserTo('ADMIN');
+    const response2 = await app.inject({
+      method: 'POST',
+      url: `/tournaments/${tournament.uuid}/users`,
+      body: {
+        alias: 'sameAlias',
+      },
+    });
+    expect(response2.statusCode).toBe(409);
+    const updatedTournament = await app.db.getTournament(tournament.uuid);
+    assert(updatedTournament);
+    expect(updatedTournament.playerCount).toBe(1);
   });
 });
 
 describe('DELETE /tournaments/{tournamentId}/users/', () => {
   test('valid: remove yourself from tournament -> 200', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
 
     const response = await app.inject({
       method: 'DELETE',
@@ -666,7 +742,11 @@ describe('DELETE /tournaments/{tournamentId}/users/', () => {
   });
   test('valid: remove sb else from tournament as Admin -> 200', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
 
     setUserTo('ADMIN');
     const response = await app.inject({
@@ -748,14 +828,16 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
   test('valid: Get tournament round data as participant -> 200', async () => {
     // Create tournament and add a round
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
 
     // Create a tournament round using the database function
-    const roundData = await app.db.createTournamentRound(
-      tournament.uuid,
-      0,
-      []
-    );
+    const roundData = await app.db.createTournamentRound(tournament.uuid, 0, [
+      { player1Id: normalUser.uuid, player2Id: adminUser.uuid },
+    ]);
     assert(roundData !== null);
 
     const response = await app.inject({
@@ -764,15 +846,22 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
     });
     expect(response.statusCode).toBe(200);
 
-    const responseRoundData = JSON.parse(response.payload);
+    const responseRoundData = JSON.parse(
+      response.payload
+    ) as TournamentRoundResponse;
     expect(responseRoundData.index).toBe(0);
     expect(Array.isArray(responseRoundData.matches)).toBe(true);
-    expect(responseRoundData.tournamentId).toBe(tournament.uuid);
+    expect(responseRoundData.matches).toHaveLength(1);
+    expect(responseRoundData.matches[0]).toHaveProperty('uuid');
   });
 
   test('valid: Get tournament round data as admin -> 200', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(adminUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      adminUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
 
     // Create a tournament round
     await app.db.createTournamentRound(tournament.uuid, 0, []);
@@ -784,7 +873,7 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
     });
     expect(response.statusCode).toBe(200);
 
-    const roundData = JSON.parse(response.payload);
+    const roundData = JSON.parse(response.payload) as TournamentRoundResponse;
     expect(roundData.index).toBe(0);
   });
 
@@ -798,7 +887,11 @@ describe('GET /tournaments/{uuid}/rounds/{roundIdx}', () => {
 
   test('invalid: Get non-existent round -> 404', async () => {
     const tournament = await createValidTournament(app);
-    await app.db.addUserToTournament(normalUser.uuid, tournament.uuid);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
 
     const response = await app.inject({
       method: 'GET',

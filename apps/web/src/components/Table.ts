@@ -2,17 +2,17 @@ export interface TableColumn<Row> {
   key: keyof Row | string;
   header: string;
   widthClass?: string;
-  render?: (row: Row) => string | HTMLElement;
+  render?: (_row: Row) => string | HTMLElement;
   sortable?: boolean;
 }
 
 export interface TableProps<Row> {
-  columns: TableColumn<Row>[];
+  columns: Array<TableColumn<Row>>;
   rows: Row[];
   emptyTitle?: string;
   emptyMessage?: string;
   className?: string;
-  onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
+  onSortChange?: (_key: string, _direction: 'asc' | 'desc') => void;
 }
 
 export class Table<Row extends Record<string, unknown>> {
@@ -28,7 +28,8 @@ export class Table<Row extends Record<string, unknown>> {
   }
 
   update(newProps: Partial<TableProps<Row>>): void {
-    this.props = { ...this.props, ...newProps } as TableProps<Row>;
+    const mergedProps: TableProps<Row> = { ...this.props, ...newProps };
+    this.props = mergedProps;
     this.render();
   }
 
@@ -119,7 +120,13 @@ export class Table<Row extends Record<string, unknown>> {
           else td.textContent = String(content);
         } else {
           const value = (row as Record<string, unknown>)[String(col.key)];
-          td.textContent = value == null ? '' : String(value);
+          if (value == null) {
+            td.textContent = '';
+          } else if (typeof value === 'object') {
+            td.textContent = JSON.stringify(value);
+          } else {
+            td.textContent = String(value as unknown);
+          }
         }
         tr.appendChild(td);
       });

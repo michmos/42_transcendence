@@ -1,13 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { z } from 'zod';
+import { z, type ZodSafeParseResult } from 'zod';
 import { WSocket } from './WSocket/index.js';
-import { SocketMessage } from './validation.js';
+import { SocketMessage, type SocketMessageType } from './validation.js';
 
 const ZodWSocket = z.custom<WSocket>((val) => {
   return val instanceof WSocket;
 });
-type ZodWSocket = z.infer<typeof ZodWSocket>;
 
 /**
  * Schema for handler exports
@@ -18,9 +17,9 @@ const Handler = z.object({
   onMessage: z.optional(z.function({ input: [ZodWSocket, SocketMessage] })),
   onClose: z.optional(z.function({ input: [ZodWSocket] })),
 });
-type Handler = z.infer<typeof Handler>;
+type HandlerType = z.infer<typeof Handler>;
 
-const roomHandlers: Record<string, Handler> = {};
+const roomHandlers: Record<string, HandlerType> = {};
 
 /**
  * Registers all room Handlers
@@ -30,17 +29,21 @@ export async function loadRoomHandlers() {
   const roomsDir = path.resolve(__dirname, '../../roomHandlers/');
   const rooms = fs.readdirSync(roomsDir);
 
-  console.info('⚙️  Auto-loading room handlers...');
   for (const room of rooms) {
     const roomName = room;
     try {
-      const module = await import(`${roomsDir}/${roomName}/index.js`);
-      const result = Handler.safeParse(module.default);
+      const module: unknown = await import(`${roomsDir}/${roomName}/index.js`);
+      if (!module || typeof module !== 'object' || !('default' in module)) {
+        throw new Error('Module does not have a default export');
+      }
+      const result: ZodSafeParseResult<HandlerType> = Handler.safeParse(
+        module.default
+      );
       if (!result.success) {
         throw new Error(z.prettifyError(result.error));
       }
       roomHandlers[roomName] = result.data;
-      console.info(`☑️ Handler: ${roomName} loaded`);
+      console.info(`☑️  Handler: ${roomName} loaded`);
     } catch (error) {
       console.error(
         `❌ Handler: ${roomName} could not be loaded: `,
@@ -68,7 +71,7 @@ export async function runOnCloseHooks(socket: WSocket) {
 
 export async function runMessageHandler(
   socket: WSocket,
-  message: SocketMessage
+  message: SocketMessageType
 ) {
   // handlerName can't be undefined since zod validation ensures it matches the regex
   const handlerName = message.room.split(':')[0] as string;

@@ -3,7 +3,7 @@
  * Handles session management and logout
  */
 
-import { fetchSessionData } from 'fastify-oauth/client';
+import UserAPI from './user.js';
 
 export interface Session {
   uuid: string;
@@ -12,24 +12,26 @@ export interface Session {
 
 /**
  * Get current session from backend
- * Uses fastify-oauth/client's fetchSessionData which is the official way
+ * Uses UserAPI.getMe() to fetch current user data
  * @returns Session object if logged in, null otherwise
  */
 export async function getSession(): Promise<Session | null> {
   try {
-    const userUuid = await fetchSessionData();
+    const user = await UserAPI.getMe();
 
-    if (!userUuid) {
+    if (!user || !user.uuid) {
       return null;
     }
 
-    // fetchSessionData returns the uuid string directly
     return {
-      uuid: userUuid,
-      role: 'USER' as const, // TODO: Fetch actual role from backend if needed
+      uuid: user.uuid,
+      role: (user.role as 'ADMIN' | 'USER') || 'USER',
     };
   } catch (error) {
-    console.error('Error fetching session:', error);
+    // Only log unexpected errors (not 401s which are handled gracefully)
+    if (error instanceof Error && !error.message.includes('401')) {
+      console.error('[getSession] Error:', error);
+    }
     return null;
   }
 }

@@ -2,9 +2,11 @@ import { env } from '../../env.js';
 import Fastify from 'fastify';
 import fp from 'fastify-plugin';
 
-import Auth, { FortyTwo, Google, type oAuthUser } from 'fastify-oauth/server';
+import Auth, { FortyTwo, Google, type oAuthUser } from 'fastify-oauth';
 
-async function authPlugin(app: Fastify.FastifyInstance) {
+import { userRole } from 'db/generated/client/index.js';
+
+function authPlugin(app: Fastify.FastifyInstance) {
   console.info('🔐 Loading auth plugin...');
 
   if (!app.db || !app.db.getUsers) {
@@ -13,9 +15,13 @@ async function authPlugin(app: Fastify.FastifyInstance) {
 
   // Initialize the auth plugin
   Auth(app, env.REDIRECT_URL, '/', '/error', env.JWT_SECRET)
-    .add(Google)
-    .add(FortyTwo)
-    .addAuthenticationHook((uuid: string) => app.db.getUserRole(uuid))
+    .addProvider(Google)
+    .addProvider(FortyTwo)
+    .registerAuthCallback(
+      (uuid: string) => app.db.getUserRole(uuid),
+      env.ADMIN_API_KEY,
+      userRole.ADMIN
+    )
     .on('login', async (args: unknown) => {
       const user = args as oAuthUser;
 
@@ -26,10 +32,9 @@ async function authPlugin(app: Fastify.FastifyInstance) {
         uuid: user.uuid,
         email: user.email ?? null,
         email_verified: user.email_verified ?? false,
-        fullName: user.fullName ?? null,
         nickname:
           existingUser?.nickname ?? (await app.db.generateUniqueNickName()),
-        avatar: user.avatar ?? null,
+        avatar: existingUser?.avatar ?? user.avatar ?? null,
       });
     })
     .on('logout', (args: unknown) => {

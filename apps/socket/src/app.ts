@@ -20,40 +20,25 @@ const app = Fastify({
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-const start = async () => {
-  try {
-    app.register(fastifyWebsocket);
+try {
+  app.register(fastifyWebsocket);
 
-    console.info('⚙️  Auto-loading plugins...');
+  // Load all plugins FIRST (especially auth plugin)
+  await app.register(AutoLoad, {
+    dir: path.join(__dirname, 'plugins'),
+    dirNameRoutePrefix: false,
+  });
 
-    // Load all plugins FIRST (especially auth plugin)
-    await app.register(AutoLoad, {
-      dir: path.join(__dirname, 'plugins'),
-      dirNameRoutePrefix: false,
-    });
+  // Load all routes (used for API -> Socket communication)
+  await app.register(AutoLoad, {
+    dir: path.join(__dirname, 'routes'),
+    dirNameRoutePrefix: true,
+  });
 
-    console.info('✅ Plugins loaded');
+  await app.listen({ port: env.SOCKET_PORT, host: '0.0.0.0' });
 
-    // Load all routes (used for API -> Socket communication)
-    await app.register(AutoLoad, {
-      dir: path.join(__dirname, 'routes'),
-      dirNameRoutePrefix: true,
-    });
-
-    console.info('✅ Routes loaded');
-
-    await app.listen({ port: env.SOCKET_PORT, host: '0.0.0.0' });
-
-    console.info(
-      '🌐 Socket server started on port',
-      env.SOCKET_PORT,
-      'with cors url',
-      env.SOCKET_URL
-    );
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
-};
-
-start();
+  console.info('🌐 Socket server started on port', env.SOCKET_PORT);
+} catch (err) {
+  app.log.error(err);
+  process.exit(1);
+}

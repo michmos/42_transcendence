@@ -16,13 +16,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
+          node-version: "24.x"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-
-      - name: Install dependencies
-        run: pnpm install
 
       # populates environment with variables defined in .env.example
       # mode: add on to .env
@@ -30,14 +27,21 @@ jobs:
       - name: Load .env file
         uses: xom9ikk/dotenv@v2.3.0
         with:
+          path: ./
           mode: example
           load-mode: strict
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Prisma - Generate client
         run: pnpm db:generate
 
       - name: Build all packages
         run: pnpm build
+
+      - name: Prisma push database
+        run: pnpm db:push
 
       - name: Run tests
         run: pnpm test

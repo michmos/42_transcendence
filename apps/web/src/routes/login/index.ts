@@ -1,21 +1,23 @@
 import { Card, Button } from '../../components/index.js';
 import { getSession } from '../../plugins/api/auth.js';
-import { setSession } from '../../utils/auth-state.js';
+import { setSession, getCurrentSession } from '../../utils/auth-state.js';
 import { navigateTo } from '../../utils/navigation.js';
 
 export default async function initRoute() {
-  // Check if user is already logged in (e.g., after OAuth callback)
-  const session = await getSession();
-  if (session) {
-    setSession(session);
-    // User is logged in, redirect to profile
+  // Check if we already have a session in memory (from app.ts)
+  // app.ts already checked auth, so just use that session
+  const currentSession = getCurrentSession();
+  if (currentSession && currentSession.uuid) {
     navigateTo('/profile');
     return;
   }
 
+  // No session - show login page
+  // (app.ts should have redirected if needed, but just in case we're here)
+
   // Clear any stale session
   setSession(null);
-  const pageRoot = document.querySelector('.root-page') as HTMLElement | null;
+  const pageRoot = document.querySelector('.root-page');
   if (!pageRoot) return;
   pageRoot.classList.add('overflow-hidden', 'h-screen', 'bg-gradient-primary');
 
@@ -28,7 +30,7 @@ export default async function initRoute() {
     pageTitle.style.marginTop = '0';
   }
 
-  const cardMount = document.getElementById('loginCard') as HTMLElement | null;
+  const cardMount = document.getElementById('loginCard');
   if (!cardMount) return;
   cardMount.innerHTML = '';
 
@@ -104,6 +106,8 @@ export default async function initRoute() {
     new Button(btnWrapper, {
       text: buttonText,
       onClick: () => {
+        // Set flag so app.ts knows we're doing OAuth
+        sessionStorage.setItem('oauth_redirect', 'true');
         window.location.href = `/api/auth/login?provider=${provider}`;
       },
       variant: 'secondary',

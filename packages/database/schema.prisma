@@ -1,7 +1,7 @@
 generator client {
   provider = "prisma-client-js"
   output   = "./generated/client"
-  binaryTargets = ["native"]
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -46,7 +46,7 @@ model User {
   role              userRole    @default(MEMBER)
 
   // Games
-  tournaments       Tournament[]
+  tournaments       TournamentParticipations[]
   matches1          Match[]    @relation("MatchesAsPlayer1")
   matches2          Match[]    @relation("MatchesAsPlayer2")
 
@@ -60,6 +60,22 @@ model User {
   // Relations / Friendships
   friendsA          Friendship[]  @relation(name: "friendsA")
   friendsB          Friendship[]  @relation(name: "friendsB")
+}
+
+model TournamentParticipations {
+  uuid              String      @id @default(uuid())
+  alias             String
+
+  // Scalar fields
+  tournamentId      String
+  userId            String
+
+  // Relations
+  tournament      Tournament    @relation(fields: [tournamentId], references: [uuid], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@unique([alias, tournamentId])
 }
 
 model Friendship {
@@ -97,7 +113,7 @@ model Tournament {
   currentRound      Int       @default(0)
 
   // Relations
-  participants      User[]
+  participants      TournamentParticipations[]
   rounds            TournamentRound[]
 }
 
@@ -125,8 +141,8 @@ model Match {
 
   // Data
   status            status    @default(outstanding)
-  Score1            Int       @default(0)
-  Score2            Int       @default(0)
+  score1            Int       @default(0)
+  score2            Int       @default(0)
   player1Id         String?
   player2Id         String?
   winnerId          String?

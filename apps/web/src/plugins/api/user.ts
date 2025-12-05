@@ -27,6 +27,42 @@ export interface UserProfileData {
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
+  async getMe(): Promise<Partial<User> | null> {
+    try {
+      const response = await fetch('/api/user/me', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        return null;
+      }
+
+      if (!response.ok) {
+        console.error(
+          `[getMe] Error ${response.status}: Failed to fetch user data`
+        );
+        throw new Error('Failed to fetch user data');
+      }
+
+      const res = (await response.json()) as Partial<User>;
+
+      // Check if response has required fields
+      if (!res.nickname || !res.uuid) {
+        return null;
+      }
+
+      return res;
+    } catch (error) {
+      console.error('[getMe] ❌ Network/parse error:', error);
+      return null;
+    }
+  },
+
+  async getUserBasicInfo(): Promise<Partial<User> | null> {
+    return this.getMe();
+  },
+
   async getUsers(): Promise<User[]> {
     try {
       const response = await fetch('/api/user', {
@@ -42,7 +78,7 @@ const UserAPI = {
         throw new Error('Unauthorized');
       }
 
-      const res = await response.json();
+      const res = (await response.json()) as User[];
       return res;
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -86,7 +122,7 @@ const UserAPI = {
       if (response.status === 404) {
         return null;
       }
-      return await response.json();
+      return (await response.json()) as User;
     } catch (error) {
       console.error('Error fetching user by ID:', error);
       return null;
@@ -102,7 +138,7 @@ const UserAPI = {
           email: `user${Math.floor(Math.random() * 1000)}@example.com`,
         }),
       });
-      return await response.json();
+      return (await response.json()) as User;
     } catch (error) {
       console.error('Error creating user:', error);
       return null;
@@ -130,20 +166,42 @@ const UserAPI = {
    * @returns Promise<UserProfileData | null> - Profile data or null if error/unauthorized
    */
   async getUserProfile(): Promise<UserProfileData | null> {
+    // Wait a bit for cookies to be available after OAuth redirect
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
     try {
-      const response = await fetch('/api/user/me', {
+      const response = await fetch('/api/user/me/dashboard', {
         method: 'GET',
         credentials: 'include',
       });
 
-      if (!response.ok) {
-        await handleApiError(response);
+      // Handle 401 gracefully without redirecting (let route handle it)
+      if (response.status === 401) {
         return null;
       }
 
-      return await response.json();
+      if (!response.ok) {
+        // Extract error message for logging
+        let errorMessage = 'Failed to fetch user profile';
+        try {
+          const errorData = await response.json().catch(() => ({}));
+          if (errorData.error && typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // If parsing fails, use default message
+        }
+        console.error(
+          `[getUserProfile] Error ${response.status}:`,
+          errorMessage
+        );
+        return null;
+      }
+
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('[getUserProfile] Network error:', error);
       return null;
     }
   },

@@ -33,7 +33,12 @@ import {
   getPlayer1Nickname,
   setPlayer2Nickname,
   getPlayer2Nickname,
+  type ServerState,
 } from './state';
+
+type ServerMessage =
+  | (ServerState & { type: 'state' })
+  | { type: 'role'; role: string; clientId: string };
 
 // Cleanup function to close WebSocket when leaving route
 let controlsUpdateInterval: ReturnType<typeof setInterval> | null = null;
@@ -462,6 +467,8 @@ function createWebSocket() {
   }
 
   setConnectionState('connecting');
+  // TODO: Double Websocket connection!? Already established in app.ts and loaded into window.socket
+
   const socket = new WebSocket(
     `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`
   );
@@ -494,7 +501,7 @@ function createWebSocket() {
   };
 
   socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
+    const message = JSON.parse(event.data as string) as ServerMessage;
 
     // Only update serverState
     if (message.type === 'state') {

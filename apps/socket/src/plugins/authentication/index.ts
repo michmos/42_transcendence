@@ -1,7 +1,6 @@
 import fp from 'fastify-plugin';
 import { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { env } from '../../env.js';
-import type { User } from 'db/generated/client/index.js';
 
 function getSessionCookie(request: FastifyRequest): string | null {
   if (!request.headers.cookie) {
@@ -16,9 +15,8 @@ function getSessionCookie(request: FastifyRequest): string | null {
   return remainder.split(';')[0] ?? null;
 }
 
-async function fetchUser(sessionCookie: string): Promise<User> {
-  const response = await fetch(`http://localhost:5173/api/auth/session`, {
-    // TODO: hardcoded localhost
+async function fetchUuid(sessionCookie: string): Promise<string> {
+  const response = await fetch(`${env.API_SERVER}/user/me/uuid`, {
     method: 'GET',
     headers: {
       Cookie: `session=${sessionCookie}`,
@@ -30,11 +28,11 @@ async function fetchUser(sessionCookie: string): Promise<User> {
       `Authentication failed: ${response.status} ${response.statusText}`
     );
   }
-  const user = await response.json();
-  if (!user || !user.uuid) {
+  const data = (await response.json()) as { uuid: string };
+  if (!data) {
     throw new Error(`Authentication failed: Invalid user data`);
   }
-  return user;
+  return data.uuid;
 }
 
 /**
@@ -49,29 +47,29 @@ async function authenticateClient(request: FastifyRequest) {
     throw new Error(`Authentication failed: No session cookie`);
   }
 
-  const user = await fetchUser(sessionCookie);
+  const uuid = await fetchUuid(sessionCookie);
   request.setDecorator('identifiers', {
-    uuid: user.uuid,
     jwt: sessionCookie,
+    uuid,
   });
-  console.log(`User authenticated: ${user.uuid}`);
+  console.log(`User authenticated: ${uuid}`);
 }
 
-async function authenticateAPIServer(request: FastifyRequest) {
-  const key = request.headers['x-api-server-key'];
-  if (!key || key !== env.API_SERVER_KEY) {
+function authenticateAPIServer(request: FastifyRequest) {
+  const key = request.headers['x-api-key'];
+  if (!key || key !== env.ADMIN_API_KEY) {
     throw new Error(`Unauthorized access attempt`);
   }
 }
 
-async function authPlugin(app: FastifyInstance) {
+function authPlugin(app: FastifyInstance) {
   app.decorateRequest('identifiers', null);
   app.addHook('preValidation', async function (request, reply) {
     try {
       if (request.url === '/') {
         await authenticateClient(request);
       } else {
-        await authenticateAPIServer(request);
+        authenticateAPIServer(request);
       }
     } catch (error) {
       console.error(

@@ -6,42 +6,86 @@ import { cleanSelfUserData, cleanOtherUserData } from './utils.js';
 // import { pipeline } from 'stream/promises';
 import * as schemas from './userValidationSchemas.js';
 // import fastifyMultipart from '@fastify/multipart';
-import { getTournaments } from '../tournaments/validationSchemas.js';
+import {
+  getTournaments,
+  type getTournamentsQuerystring,
+} from '../tournaments/validationSchemas.js';
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
+import type { UserMatchRecord, UserDashboardResponse } from 'types';
 
-export default async function (app: FastifyInstance): Promise<void> {
+export default function (app: FastifyInstance): void {
   app.get('/', async function (request, reply) {
     try {
       if (!isAdmin(request, reply)) return;
       const users = await app.db.getUsers();
       return reply.status(200).send(users);
     } catch (error) {
-      return reply.code(500).send({ Error: `${error}` });
+      app.log.error(error);
+      return reply.code(500).send({ Error: 'Failed getting all user data' });
     }
   });
 
-  // Getting all logged-in user's own data to display on his profile page.
-  // First getting the user data from the User table
-  // Second getting all ACCEPTED friends and friend REQUESTS from other users
-  // Third getting user's match history - both 1v1 and tournament matches
-  // Returning an object with user and friends data
+  app.get('/me/uuid', async function (request, reply) {
+    return reply.status(200).send({ uuid: getUuid(request) });
+  });
+
+  // TODO: Hacked this in as the web is requesting /me for own user data
+  //      Might need to refactor later
   app.get('/me', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;
-
       const userData = await app.db.getUserMe(uuidSelf);
       const cleanedUserData = cleanSelfUserData(userData);
-      const userFriends: fullFriendshipRecord[] =
-        await app.db.getFriendsMe(uuidSelf);
-      const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
-      const userMatches = await app.db.getUserMatchHistory(uuidSelf);
-
-      return reply
-        .code(200)
-        .send({ cleanedUserData, cleanedUserFriends, userMatches });
+      return reply.code(200).send(cleanedUserData);
     } catch (error) {
-      return reply.code(500).send({ Error: `${error}` });
+      app.log.error(error);
+      return reply.code(500).send({ Error: 'Failed getting own user data' });
+    }
+  });
+
+  app.get('/me/dashboard', async function (request, reply) {
+    try {
+      const uuidSelf: string = request.user.uuid;
+
+      // Fetch user data
+      const userData = await app.db.getUserMe(uuidSelf);
+      if (!userData) {
+        return reply.code(404).send({ Error: 'User not found' });
+      }
+
+      const cleanedUserData = cleanSelfUserData(userData);
+
+      // Fetch friends data (continue with empty array on error)
+      let userFriends: fullFriendshipRecord[] = [];
+      try {
+        userFriends = await app.db.getFriendsMe(uuidSelf);
+      } catch (error) {
+        app.log.warn('Error fetching friends data:', error);
+        userFriends = [];
+      }
+      const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
+
+      // Fetch match history (continue with empty array on error)
+      let userMatches: UserMatchRecord[] = [];
+      try {
+        userMatches = await app.db.getUserMatchHistory(uuidSelf);
+      } catch (error) {
+        app.log.warn('Error fetching match history:', error);
+        userMatches = [];
+      }
+
+      const userDashboardData: UserDashboardResponse = {
+        cleanedUserData,
+        cleanedUserFriends,
+        userMatches,
+      };
+      return reply.code(200).send(userDashboardData);
+    } catch (error) {
+      app.log.error('Dashboard endpoint error:', error);
+      return reply.code(500).send({
+        Error: 'Failed getting own user data',
+      });
     }
   });
 
@@ -67,7 +111,8 @@ export default async function (app: FastifyInstance): Promise<void> {
         const userData = await app.db.setUserMeNickname(uuidSelf, newNickname);
         return reply.code(200).send(cleanSelfUserData(userData));
       } catch (error) {
-        return reply.code(500).send({ Error: `${error}` });
+        app.log.error(error);
+        return reply.code(500).send({ Error: 'Failed changing nickname' });
       }
     }
   );
@@ -124,7 +169,7 @@ export default async function (app: FastifyInstance): Promise<void> {
   //   }
   // });
 
-  app.get<{ Querystring: getTournaments }>(
+  app.get<{ Querystring: getTournamentsQuerystring }>(
     '/me/tournaments',
     { schema: getTournaments },
     async function (request, reply) {
@@ -151,7 +196,8 @@ export default async function (app: FastifyInstance): Promise<void> {
         // console.log('Cleaned Other user data:', cleanedUser); // FOR TESTING ONLY
         return reply.code(200).send(cleanedUser);
       } catch (error) {
-        return reply.code(500).send({ Error: `${error}` });
+        app.log.error(error);
+        return reply.code(500).send({ Error: 'Failed getting user' });
       }
     }
   );

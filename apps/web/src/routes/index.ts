@@ -1,34 +1,22 @@
 import { generateUserLogic, userTableLogic } from './userTable.js';
-import { fetchSessionData } from 'fastify-oauth/client';
-import { setSession } from '../utils/auth-state.js';
+import API from '../plugins/api/index.js';
+import { setSession, getCurrentSession } from '../utils/auth-state.js';
 import { navigateTo } from '../utils/navigation.js';
 
 export default async function initRoute() {
-  console.log('🏠 Home route initializing...');
-
-  // Check if user is logged in (after OAuth callback, user lands here)
-  const user = await fetchSessionData();
-
-  if (user) {
-    console.log('User is logged in:', user);
-    // Store session in auth state
-    setSession({
-      uuid: user.uuid,
-      role: 'USER', // TODO: Fetch actual role if needed
-    });
-    
-    // Redirect to profile page after successful login
+  // Check if we already have a session in memory (from app.ts)
+  // app.ts already checked auth, so just use that session
+  const currentSession = getCurrentSession();
+  if (currentSession && currentSession.uuid) {
     navigateTo('/profile');
     return;
-  } else {
-    console.log('No user is logged in');
-    // Clear any stale session
-    setSession(null);
-    // Redirect to login if not authenticated
-    navigateTo('/login');
-    return;
   }
-  
+
+  // No session - redirect to login
+  // (app.ts should have handled this, but just in case)
+  navigateTo('/login');
+  return;
+
   // Note: The code below is unreachable due to redirects above
   // Keeping it commented for reference in case we need home route functionality later
   /*
@@ -43,15 +31,19 @@ export default async function initRoute() {
     fetch('/api/auth/logout', {
       method: 'GET',
       credentials: 'include',
-    }).then(() => {
-      user = null;
-      userTableLogic(); // Refresh user table
-      if (logoutBtn) {
-        logoutBtn.textContent = 'Login';
-        logoutBtn.removeEventListener('click', handleLogoutClick);
-        logoutBtn.addEventListener('click', handleLoginClick);
-      }
-    });
+    })
+      .then(() => {
+        user = null;
+        userTableLogic(); // Refresh user table
+        if (logoutBtn) {
+          logoutBtn.textContent = 'Login';
+          logoutBtn.removeEventListener('click', handleLogoutClick);
+          logoutBtn.addEventListener('click', handleLoginClick);
+        }
+      })
+      .catch((error) => {
+        console.error('Logout failed:', error);
+      });
   }
   function handleLoginClick() {
     window.router.navigate('/login');
