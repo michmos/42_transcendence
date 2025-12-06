@@ -239,43 +239,6 @@ export default async function initRoute() {
 
   cardBody.appendChild(profileSection);
 
-  // Game Preferences Section
-  const gameSection = document.createElement('div');
-  gameSection.className = 'space-y-6 mb-8';
-
-  const gameTitle = document.createElement('div');
-  gameTitle.className = 'flex items-center gap-3 mb-6';
-  gameTitle.innerHTML = `
-    <svg class="w-5 h-5 text-secondary" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="6" x2="10" y1="12" y2="12"/>
-      <path d="m8 6-4 6 4 6"/>
-      <path d="M17.5 6a2.5 2.5 0 0 0 0 5"/>
-      <path d="M20 6h-4"/>
-      <path d="M20 12h-4"/>
-      <path d="M20 18h-4"/>
-    </svg>
-    <h2 class="text-xl font-semibold text-white">Game Preferences</h2>
-  `;
-  gameSection.appendChild(gameTitle);
-
-  // Sound Effects Toggle
-  const soundToggle = createToggleSetting(
-    'Enable Sound Effects',
-    'Get audio feedback during gameplay',
-    true
-  );
-  gameSection.appendChild(soundToggle);
-
-  // Notifications Toggle
-  const notifToggle = createToggleSetting(
-    'Push Notifications',
-    'Get notified about tournament updates',
-    true
-  );
-  gameSection.appendChild(notifToggle);
-
-  cardBody.appendChild(gameSection);
-
   // Action Buttons
   const actionsSection = document.createElement('div');
   actionsSection.className = 'flex gap-3 pt-6 border-t border-white/20';
@@ -402,57 +365,4 @@ export default async function initRoute() {
   cardBody.appendChild(actionsSection);
 
   mainContent.appendChild(settingsCardContainer);
-}
-
-function createToggleSetting(
-  label: string,
-  description: string,
-  checked: boolean
-): HTMLElement {
-  const container = document.createElement('div');
-  container.className =
-    'flex items-center justify-between p-4 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-colors';
-
-  const leftDiv = document.createElement('div');
-  leftDiv.className = 'flex-1';
-  leftDiv.innerHTML = `
-    <h3 class="text-white font-medium mb-1">${label}</h3>
-    <p class="text-sm text-white/60">${description}</p>
-  `;
-
-  const toggleWrapper = document.createElement('div');
-  toggleWrapper.className = 'flex-shrink-0 ml-4';
-
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = `relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-    checked ? 'bg-accent' : 'bg-white/20'
-  }`;
-  toggle.setAttribute('role', 'switch');
-  toggle.setAttribute('aria-checked', checked.toString());
-
-  const toggleThumb = document.createElement('span');
-  toggleThumb.className = `inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-    checked ? 'translate-x-6' : 'translate-x-1'
-  }`;
-
-  toggle.appendChild(toggleThumb);
-
-  toggle.addEventListener('click', () => {
-    const isChecked = toggle.getAttribute('aria-checked') === 'true';
-    const newState = !isChecked;
-    toggle.setAttribute('aria-checked', newState.toString());
-    toggle.className = `relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-      newState ? 'bg-accent' : 'bg-white/20'
-    }`;
-    toggleThumb.className = `inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-      newState ? 'translate-x-6' : 'translate-x-1'
-    }`;
-  });
-
-  toggleWrapper.appendChild(toggle);
-  container.appendChild(leftDiv);
-  container.appendChild(toggleWrapper);
-
-  return container;
 }
