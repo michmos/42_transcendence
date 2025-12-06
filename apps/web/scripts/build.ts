@@ -10,7 +10,7 @@ let stdoutBuffer = '';
 let stderrBuffer = '';
 let skipNextLines = 0;
 
-function isCSSRuleLine(line) {
+function isCSSRuleLine(line: string): boolean {
   // Remove ANSI escape codes for checking
   const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '');
   const trimmed = cleanLine.trim();
@@ -35,7 +35,7 @@ function isCSSRuleLine(line) {
   );
 }
 
-function shouldSkipLine(line) {
+function shouldSkipLine(line: string): boolean {
   const trimmed = line.trim();
   return (
     line.includes('is not recognized as a valid pseudo-class') ||
@@ -49,7 +49,7 @@ function shouldSkipLine(line) {
   );
 }
 
-buildProcess.stdout.on('data', (data) => {
+buildProcess.stdout.on('data', (data: Buffer) => {
   const text = data.toString();
   stdoutBuffer += text;
 
@@ -58,12 +58,14 @@ buildProcess.stdout.on('data', (data) => {
 
   let inWarningBlock = false;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (const line of lines) {
     const trimmed = line.trim();
 
     // Detect start of warning block
-    if (line.includes('Issue #') || (line.includes('Found') && line.includes('warnings'))) {
+    if (
+      line.includes('Issue #') ||
+      (line.includes('Found') && line.includes('warnings'))
+    ) {
       inWarningBlock = true;
       skipNextLines = 5; // Skip the entire warning block
       continue;
@@ -98,7 +100,7 @@ buildProcess.stdout.on('data', (data) => {
   }
 });
 
-buildProcess.stderr.on('data', (data) => {
+buildProcess.stderr.on('data', (data: Buffer) => {
   const text = data.toString();
   stderrBuffer += text;
 
@@ -107,11 +109,13 @@ buildProcess.stderr.on('data', (data) => {
 
   let inWarningBlock = false;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (const line of lines) {
     const trimmed = line.trim();
 
-    if (line.includes('Issue #') || (line.includes('Found') && line.includes('warnings'))) {
+    if (
+      line.includes('Issue #') ||
+      (line.includes('Found') && line.includes('warnings'))
+    ) {
       inWarningBlock = true;
       skipNextLines = 5;
       continue;
@@ -143,7 +147,7 @@ buildProcess.stderr.on('data', (data) => {
   }
 });
 
-buildProcess.on('close', (code) => {
+buildProcess.on('close', (code: number | null) => {
   // Flush remaining buffers (only if not part of warnings)
   if (stdoutBuffer && !shouldSkipLine(stdoutBuffer)) {
     process.stdout.write(stdoutBuffer);

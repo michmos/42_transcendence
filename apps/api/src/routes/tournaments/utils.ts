@@ -17,7 +17,8 @@ export function transformTournamentParticipants(
   participants?: Array<{ uuid: string; nickname?: string; alias: string }>;
 } {
   if (!tournament.participants) {
-    const { participants: _, ...rest } = tournament;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { participants: _unused, ...rest } = tournament;
     return rest as Tournament & {
       participants?: Array<{ uuid: string; nickname?: string; alias: string }>;
     };

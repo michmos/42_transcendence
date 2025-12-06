@@ -34,10 +34,18 @@ export default function (app: FastifyInstance): void {
 
       // Automatically add the creator as a participant with the provided alias
       const creatorUuid = getUuid(request);
+
+      // Resolve alias: use provided alias, or fallback to user's nickname
+      let alias = request.body.alias;
+      if (!alias) {
+        const user = await app.db.getUser(creatorUuid);
+        alias = user?.nickname || `Player-${creatorUuid.slice(0, 8)}`;
+      }
+
       const updatedTournament = await app.db.addUserToTournament(
         creatorUuid,
         tournament.uuid,
-        request.body.alias
+        alias
       );
 
       // Transform tournament participants to include alias
@@ -167,12 +175,19 @@ export default function (app: FastifyInstance): void {
         });
       }
 
+      // Resolve alias: use provided alias, or fallback to user's nickname
+      let alias = request.body.alias;
+      if (!alias) {
+        const user = await app.db.getUser(userUuid);
+        alias = user?.nickname || `Player-${userUuid.slice(0, 8)}`;
+      }
+
       // add user
       try {
         const updatedTournament = await app.db.addUserToTournament(
           userUuid,
           tournamentUuid,
-          request.body.alias
+          alias
         );
 
         // Transform tournament participants to include alias
