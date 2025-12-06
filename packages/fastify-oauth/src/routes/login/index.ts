@@ -4,6 +4,7 @@ import type { OAuthProvider } from '../../index.js';
 export interface AuthorizeUrlPayload {
   redirect_uri: string;
   scope: string;
+  state: string;
   access_type: 'offline';
   prompt: 'consent select_account';
 }
