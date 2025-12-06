@@ -6,7 +6,10 @@ import {
   messageSocketServer,
   transformTournamentParticipants,
 } from './utils.js';
-import { status as statusEnum } from 'db/generated/client/index.js';
+import {
+  status as statusEnum,
+  userRole as roleEnum,
+} from 'db/generated/client/index.js';
 import { type TournamentRoundResponse } from 'types';
 import { Prisma } from 'db/generated/client';
 
@@ -32,26 +35,7 @@ export default function (app: FastifyInstance): void {
         maxPlayers: request.body.maxPlayers,
       });
 
-      // Automatically add the creator as a participant with the provided alias
-      const creatorUuid = getUuid(request);
-
-      // Resolve alias: use provided alias, or fallback to user's nickname
-      let alias = request.body.alias;
-      if (!alias) {
-        const user = await app.db.getUser(creatorUuid);
-        alias = user?.nickname || `Player-${creatorUuid.slice(0, 8)}`;
-      }
-
-      const updatedTournament = await app.db.addUserToTournament(
-        creatorUuid,
-        tournament.uuid,
-        alias
-      );
-
-      // Transform tournament participants to include alias
-      const transformedTournament =
-        transformTournamentParticipants(updatedTournament);
-      reply.status(201).send(transformedTournament);
+      reply.status(201).send(tournament);
       await messageSocketServer('/tournaments/broadcast/created', {
         tournamentUuid: tournament.uuid,
       });
@@ -395,6 +379,34 @@ export default function (app: FastifyInstance): void {
         return reply.status(404).send({
           error: `Tournament with uuid: ${request.params.uuid} not found`,
         });
+      }
+
+      // Check if user is a participant or admin
+      const userUuid = getUuid(request);
+      const user = request.user as { uuid: string; role: string } | undefined;
+
+      if (!user) {
+        return reply.status(401).send({
+          error: 'Unauthorized. Please log in.',
+        });
+      }
+
+      // Check if user is admin (without sending reply via isAdmin)
+      const isUserAdmin = user.role === roleEnum.ADMIN;
+
+      if (isUserAdmin) {
+        // Admin access granted, continue to fetch round
+      } else {
+        // Check if user is a participant
+        const isParticipant = await app.db.participatesInTournament(
+          userUuid,
+          tournamentUuid
+        );
+        if (!isParticipant) {
+          return reply.status(403).send({
+            error: 'Unauthorized: User does not participate in Tournament',
+          });
+        }
       }
 
       // get round

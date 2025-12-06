@@ -119,17 +119,13 @@ export async function participatesInTournament(
   userId: string,
   tournamentId: string
 ): Promise<boolean> {
-  const user = await Database.user.findUnique({
+  const participation = await Database.tournamentParticipations.findFirst({
     where: {
-      uuid: userId,
-      tournaments: {
-        some: {
-          tournamentId,
-        },
-      },
+      userId,
+      tournamentId,
     },
   });
-  return user != null;
+  return participation != null;
 }
 
 export async function getTournamentParticipants(
