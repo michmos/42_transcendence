@@ -17,16 +17,24 @@ export function transformTournamentParticipants(
   participants?: Array<{ uuid: string; nickname?: string; alias: string }>;
 } {
   if (!tournament.participants) {
-    return tournament;
+    const { participants: _, ...rest } = tournament;
+    return rest as Tournament & {
+      participants?: Array<{ uuid: string; nickname?: string; alias: string }>;
+    };
   }
 
   return {
     ...tournament,
-    participants: tournament.participants.map((participation) => ({
-      uuid: participation.user.uuid,
-      nickname: participation.user.nickname || undefined,
-      alias: participation.alias,
-    })),
+    participants: tournament.participants.map((participation) => {
+      const result: { uuid: string; nickname?: string; alias: string } = {
+        uuid: participation.user.uuid,
+        alias: participation.alias,
+      };
+      if (participation.user.nickname) {
+        result.nickname = participation.user.nickname;
+      }
+      return result;
+    }),
   };
 }
 
