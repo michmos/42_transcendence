@@ -13,11 +13,8 @@ import UserAPI, {
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
-<<<<<<< HEAD
 import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
-=======
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
->>>>>>> origin/user-avatar
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -107,7 +104,9 @@ export default async function initRoute() {
     title: 'The Pong Game',
     links: [{ label: 'Tournaments', href: '/tournaments', active: false }],
     ...(cleanedUserData.nickname && { userNickname: cleanedUserData.nickname }),
-    ...(cleanedUserData.avatar && { userAvatar: getAvatarSrc(cleanedUserData.avatar) || null }),
+    ...(cleanedUserData.avatar && {
+      userAvatar: getAvatarSrc(cleanedUserData.avatar) || null,
+    }),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -694,24 +693,25 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
     .toUpperCase()
     .slice(0, 2);
 
-  const isOnline = false;
+  const isOnline = false; // TODO: Implement actual online status tracking
 
+  const avatarSrc = getAvatarSrc(friend.avatar);
   item.innerHTML = `
     <div class="relative">
       ${
-        friend.avatar
-          ? `<img src="${friend.avatar}" alt="${friend.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover" />`
+        avatarSrc
+          ? `<img src="${avatarSrc}" alt="${friend.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover" />`
           : `<div class="h-10 w-10 border-2 border-border rounded-full flex items-center justify-center text-foreground bg-muted font-semibold">
               ${initials}
             </div>`
       }
-      <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline ? 'bg-accent' : 'bg-destructive'}"></div>
+      <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}"></div>
     </div>
     <div class="flex-1">
       <p class="font-semibold text-foreground">${friend.otherUser}</p>
     </div>
     <div class="text-xs text-muted-foreground">
-      ${isOnline ? '<span class="text-accent">Online</span>' : '<span class="text-muted-foreground">Offline</span>'}
+      ${isOnline ? '<span class="text-green-500">Online</span>' : '<span class="text-red-500">Offline</span>'}
     </div>
   `;
 
@@ -1280,6 +1280,18 @@ function showNewTournamentDialog() {
         />
       </div>
       
+      <div class="space-y-2">
+        <label for="player-alias" class="text-sm font-semibold text-gray-700">Your Alias (for this tournament)</label>
+        <input
+          id="player-alias"
+          type="text"
+          placeholder="Enter your alias"
+          maxlength="50"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+        <p class="text-xs text-gray-500">This is how you'll appear in the tournament</p>
+      </div>
+
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-2">
           <label for="min-size" class="text-sm font-semibold text-gray-700">Min Players (min: 4)</label>
@@ -1334,6 +1346,7 @@ function showNewTournamentDialog() {
   const nameInput = dialog.querySelector(
     '#tournament-name'
   ) as HTMLInputElement;
+  const aliasInput = dialog.querySelector('#player-alias') as HTMLInputElement;
   const minSizeInput = dialog.querySelector('#min-size') as HTMLInputElement;
   const maxPlayersInput = dialog.querySelector(
     '#max-players'
@@ -1343,6 +1356,7 @@ function showNewTournamentDialog() {
     void (async () => {
       // Get form values
       const tournamentName = nameInput.value.trim();
+      const alias = aliasInput.value.trim();
       const minPlayers = parseInt(minSizeInput.value, 10);
       const maxPlayers = parseInt(maxPlayersInput.value, 10);
 
@@ -1350,6 +1364,18 @@ function showNewTournamentDialog() {
       if (!tournamentName) {
         alert('Please enter a tournament name');
         nameInput.focus();
+        return;
+      }
+
+      if (!alias) {
+        alert('Please enter your alias for this tournament');
+        aliasInput.focus();
+        return;
+      }
+
+      if (alias.length > 50) {
+        alert('Alias must be 50 characters or less');
+        aliasInput.focus();
         return;
       }
 
@@ -1385,10 +1411,12 @@ function showNewTournamentDialog() {
           tournamentName: string;
           minPlayers: number;
           maxPlayers: number;
+          alias: string;
         } = {
           tournamentName,
           minPlayers,
           maxPlayers,
+          alias,
         };
 
         // Call API

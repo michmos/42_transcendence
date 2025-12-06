@@ -15,6 +15,7 @@ interface TournamentSocketMessage {
     | 'round-completed';
   uuid?: string;
   playerCount?: number;
+  tournamentName?: string;
   data?: unknown;
 }
 
@@ -104,10 +105,11 @@ class TournamentSocket {
     // Trigger listeners for this event type
     const listeners = this.listeners.get(message.event);
     if (listeners) {
-      // Pass the full message data (uuid, playerCount, etc.)
+      // Pass the full message data (uuid, playerCount, tournamentName, etc.)
       const eventData: unknown = {
         uuid: message.uuid,
         playerCount: message.playerCount,
+        tournamentName: message.tournamentName,
         ...message.data,
       };
       listeners.forEach((callback) => callback(eventData));

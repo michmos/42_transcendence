@@ -252,14 +252,18 @@ function renderTournamentGrid(
       backendTournament.playerCount >= backendTournament.maxPlayers;
 
     // Check if user is participant
-    // Participants array should be included in backend response with uuid and nickname
-    const participants: Array<{ uuid?: string; nickname?: string }> =
-      Array.isArray(backendTournament.participants)
-        ? (backendTournament.participants as Array<{
-            uuid?: string;
-            nickname?: string;
-          }>)
-        : [];
+    // Participants array should be included in backend response with uuid, nickname, and alias
+    const participants: Array<{
+      uuid?: string;
+      nickname?: string;
+      alias?: string;
+    }> = Array.isArray(backendTournament.participants)
+      ? (backendTournament.participants as Array<{
+          uuid?: string;
+          nickname?: string;
+          alias?: string;
+        }>)
+      : [];
 
     // Ensure participants array exists and is properly typed
     if (!backendTournament.participants) {
@@ -481,55 +485,7 @@ function renderTournamentGrid(
       joinBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        void (async () => {
-          const tournamentUuid = tournament.id;
-          const button = joinBtn as HTMLButtonElement;
-
-          // Disable button and show loading
-          button.disabled = true;
-          button.innerHTML = `
-          <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          Joining...
-        `;
-
-          try {
-            // Get current user nickname for alias
-            const currentUser = await UserAPI.getUserBasicInfo();
-            const alias =
-              currentUser?.nickname ||
-              `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
-            await TournamentAPI.joinTournament(tournamentUuid, alias);
-
-            // Success - refresh tournaments list
-            const windowWithTournaments = window as WindowWithTournaments;
-            const loadTournamentsFn = windowWithTournaments.loadTournaments;
-            if (typeof loadTournamentsFn === 'function') {
-              await loadTournamentsFn();
-            }
-          } catch (error) {
-            // Handle errors
-            const errorMessage =
-              error instanceof Error
-                ? error.message
-                : 'Failed to join tournament';
-
-            alert(errorMessage);
-
-            // Re-enable button
-            button.disabled = false;
-            button.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              <line x1="19" y1="8" x2="19" y2="16"/>
-              <line x1="23" y1="12" x2="15" y2="12"/>
-            </svg>
-            Join
-          `;
-          }
-        })();
+        showJoinTournamentDialog(tournament.id, tournament.name);
       });
     }
 
@@ -615,6 +571,126 @@ interface WindowWithTournaments extends Window {
   loadTournaments?: (statusFilter?: status) => Promise<void>;
 }
 
+function showJoinTournamentDialog(
+  tournamentUuid: string,
+  tournamentName: string
+) {
+  // Create modal backdrop
+  const backdrop = document.createElement('div');
+  backdrop.className =
+    'fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in';
+
+  // Create dialog
+  const dialog = document.createElement('div');
+  dialog.className =
+    'bg-white rounded-lg shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95';
+  dialog.style.backgroundColor = 'rgb(255, 255, 255)';
+
+  dialog.innerHTML = `
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold mb-2 text-gray-900">Join Tournament</h2>
+      <p class="text-sm text-gray-600">Enter your alias for "${tournamentName}"</p>
+    </div>
+
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <label for="join-alias" class="text-sm font-semibold text-gray-700">Your Alias</label>
+        <input
+          id="join-alias"
+          type="text"
+          placeholder="Enter your alias (leave blank to use your nickname)"
+          maxlength="50"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+        <p class="text-xs text-gray-500">This is how you'll appear in the tournament. Leave blank to use your nickname.</p>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="join-btn">
+          Join
+        </button>
+        <button class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" id="cancel-join-btn">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+
+  backdrop.appendChild(dialog);
+  document.body.appendChild(backdrop);
+
+  // Close handlers
+  const closeDialog = () => {
+    backdrop.classList.add('animate-out', 'fade-out');
+    setTimeout(() => backdrop.remove(), 200);
+  };
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) closeDialog();
+  });
+
+  dialog
+    .querySelector('#cancel-join-btn')
+    ?.addEventListener('click', closeDialog);
+
+  // Handle form submission
+  const joinBtn = dialog.querySelector('#join-btn') as HTMLButtonElement;
+  const aliasInput = dialog.querySelector('#join-alias') as HTMLInputElement;
+
+  joinBtn.addEventListener('click', () => {
+    void (async () => {
+      let alias = aliasInput.value.trim();
+
+      // If alias is blank, fetch user's nickname
+      if (!alias) {
+        try {
+          const currentUser = await UserAPI.getUserBasicInfo();
+          alias =
+            currentUser?.nickname ||
+            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+        } catch (error) {
+          console.error('Error fetching user info:', error);
+          alias = `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+        }
+      }
+
+      // Validation
+      if (alias.length > 50) {
+        alert('Alias must be 50 characters or less');
+        aliasInput.focus();
+        return;
+      }
+
+      // Disable button and show loading state
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Joining...';
+
+      try {
+        await TournamentAPI.joinTournament(tournamentUuid, alias);
+
+        // Success - close dialog and refresh tournaments list
+        closeDialog();
+
+        const windowWithTournaments = window as WindowWithTournaments;
+        const loadTournamentsFn = windowWithTournaments.loadTournaments;
+        if (typeof loadTournamentsFn === 'function') {
+          await loadTournamentsFn();
+        }
+      } catch (error) {
+        // Handle errors
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to join tournament';
+
+        alert(errorMessage);
+
+        // Re-enable button
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join';
+      }
+    })();
+  });
+}
+
 function showNewTournamentDialog() {
   // Create modal backdrop - darker for better contrast
   const backdrop = document.createElement('div');
@@ -642,6 +718,18 @@ function showNewTournamentDialog() {
           placeholder="Enter tournament name"
           class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
         />
+      </div>
+
+      <div class="space-y-2">
+        <label for="player-alias" class="text-sm font-semibold text-gray-700">Your Alias (for this tournament)</label>
+        <input
+          id="player-alias"
+          type="text"
+          placeholder="Enter your alias"
+          maxlength="50"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+        <p class="text-xs text-gray-500">This is how you'll appear in the tournament</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -698,6 +786,7 @@ function showNewTournamentDialog() {
   const nameInput = dialog.querySelector(
     '#tournament-name'
   ) as HTMLInputElement;
+  const aliasInput = dialog.querySelector('#player-alias') as HTMLInputElement;
   const minSizeInput = dialog.querySelector('#min-size') as HTMLInputElement;
   const maxPlayersInput = dialog.querySelector(
     '#max-players'
@@ -707,6 +796,7 @@ function showNewTournamentDialog() {
     void (async () => {
       // Get form values
       const tournamentName = nameInput.value.trim();
+      const alias = aliasInput.value.trim();
       const minPlayers = parseInt(minSizeInput.value, 10);
       const maxPlayers = parseInt(maxPlayersInput.value, 10);
 
@@ -714,6 +804,18 @@ function showNewTournamentDialog() {
       if (!tournamentName) {
         alert('Please enter a tournament name');
         nameInput.focus();
+        return;
+      }
+
+      if (!alias) {
+        alert('Please enter your alias for this tournament');
+        aliasInput.focus();
+        return;
+      }
+
+      if (alias.length > 50) {
+        alert('Alias must be 50 characters or less');
+        aliasInput.focus();
         return;
       }
 
@@ -745,10 +847,12 @@ function showNewTournamentDialog() {
           tournamentName: string;
           minPlayers: number;
           maxPlayers: number;
+          alias: string;
         } = {
           tournamentName,
           minPlayers,
           maxPlayers,
+          alias,
         };
 
         // Call API - creator is automatically added as participant
@@ -948,9 +1052,13 @@ export default async function initRoute() {
     void loadTournaments();
   };
 
-  const handleTournamentStarted = () => {
-    // Show toast notification
-    toast.show('Tournament has started!', { variant: 'success' });
+  const handleTournamentStarted = (data: {
+    uuid?: string;
+    tournamentName?: string;
+  }) => {
+    // Show toast notification with tournament name if available
+    const tournamentName = data.tournamentName || 'Tournament';
+    toast.show(`${tournamentName} is about to start!`, { variant: 'success' });
     // Refresh the list to show updated status
     void loadTournaments();
   };

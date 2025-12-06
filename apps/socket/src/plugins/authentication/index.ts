@@ -30,9 +30,9 @@ async function fetchUser(sessionCookie: string): Promise<User> {
       `Authentication failed: ${response.status} ${response.statusText}`
     );
   }
-  const data = await response.json();
+  const data = (await response.json()) as { cleanedUserData?: User };
   //TODO: WE get some weird type back what is not the user!
-  const user: User = data.cleanedUserData;
+  const user = data.cleanedUserData;
   if (!user) {
     throw new Error(`Authentication failed: Invalid user data`);
   }
@@ -58,21 +58,21 @@ async function authenticateClient(request: FastifyRequest) {
   console.log(`User authenticated: ${user.nickname}`);
 }
 
-async function authenticateAPIServer(request: FastifyRequest) {
+function authenticateAPIServer(request: FastifyRequest) {
   const key = request.headers['x-api-key'];
   if (!key || key !== env.ADMIN_API_KEY) {
     throw new Error(`Unauthorized access attempt`);
   }
 }
 
-async function authPlugin(app: FastifyInstance) {
+function authPlugin(app: FastifyInstance) {
   app.decorateRequest('identifiers', null);
   app.addHook('preValidation', async function (request, reply) {
     try {
       if (request.url === '/') {
         await authenticateClient(request);
       } else {
-        await authenticateAPIServer(request);
+        authenticateAPIServer(request);
       }
     } catch (error) {
       console.error(

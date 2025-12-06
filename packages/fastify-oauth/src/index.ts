@@ -181,9 +181,7 @@ class OAuth {
       }
 
       // Fetch the user object from the database using the provided callback
-      const userRole = (await getUserRoleCallback(session.uuid)) as
-        | string
-        | null;
+      const userRole = await getUserRoleCallback(session.uuid);
       console.info('Fetched user role for UUID', session.uuid, ':', userRole);
       if (!userRole)
         return reply.status(401).send({ error: 'User not found in database' });

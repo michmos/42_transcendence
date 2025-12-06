@@ -2,7 +2,10 @@ import { type FastifyInstance } from 'fastify';
 import * as schemas from './validationSchemas.js';
 import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import generateTournamentPlan from './matchmaking.js';
-import { messageSocketServer } from './utils.js';
+import {
+  messageSocketServer,
+  transformTournamentParticipants,
+} from './utils.js';
 import { status as statusEnum } from 'db/generated/client/index.js';
 import { type TournamentRoundResponse } from 'types';
 import { Prisma } from 'db/generated/client';
@@ -24,22 +27,23 @@ export default function (app: FastifyInstance): void {
     },
     async function (request, reply) {
       const tournament = await app.db.createTournament({
-        ...request.body,
+        tournamentName: request.body.tournamentName,
+        minPlayers: request.body.minPlayers,
+        maxPlayers: request.body.maxPlayers,
       });
 
-      // Automatically add the creator as a participant
+      // Automatically add the creator as a participant with the provided alias
       const creatorUuid = getUuid(request);
-      // Get user's nickname to use as alias
-      const userData = await app.db.getUserMe(creatorUuid);
-      const alias = userData?.nickname || 'Player';
-
       const updatedTournament = await app.db.addUserToTournament(
         creatorUuid,
         tournament.uuid,
-        alias
+        request.body.alias
       );
 
-      reply.status(201).send(updatedTournament);
+      // Transform tournament participants to include alias
+      const transformedTournament =
+        transformTournamentParticipants(updatedTournament);
+      reply.status(201).send(transformedTournament);
       await messageSocketServer('/tournaments/broadcast/created', {
         tournamentUuid: tournament.uuid,
       });
@@ -171,13 +175,16 @@ export default function (app: FastifyInstance): void {
           request.body.alias
         );
 
+        // Transform tournament participants to include alias
+        const transformedTournament =
+          transformTournamentParticipants(updatedTournament);
         // notify socket server
         await messageSocketServer(`/tournaments/broadcast/joined`, {
           tournamentUuid: tournament.uuid,
           userUuid,
           playerCount: updatedTournament.playerCount,
         });
-        return reply.status(200).send(updatedTournament);
+        return reply.status(200).send(transformedTournament);
       } catch (error) {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -295,6 +302,23 @@ export default function (app: FastifyInstance): void {
         ...request.body,
       });
 
+      // Fetch tournament with participants to transform
+      const tournamentWithParticipants = await app.db.getTournament(
+        updatedTournament.uuid
+      );
+      if (tournamentWithParticipants) {
+        const transformedTournament = transformTournamentParticipants(
+          tournamentWithParticipants
+        );
+        // notify socket server
+        await messageSocketServer(`/tournaments/broadcast/updated`, {
+          tournamentUuid: updatedTournament.uuid,
+          status: updatedTournament.status,
+          tournamentName: updatedTournament.tournamentName,
+        });
+        return reply.status(200).send(transformedTournament);
+      }
+      // Fallback if getTournament fails (shouldn't happen)
       // notify socket server
       await messageSocketServer(`/tournaments/broadcast/updated`, {
         tournamentUuid: updatedTournament.uuid,
@@ -316,7 +340,11 @@ export default function (app: FastifyInstance): void {
       } else {
         tournaments = await app.db.getAllTournaments();
       }
-      return reply.status(200).send(tournaments);
+      // Transform participants to include alias
+      const transformedTournaments = tournaments.map(
+        transformTournamentParticipants
+      );
+      return reply.status(200).send(transformedTournaments);
     }
   );
 
@@ -331,7 +359,9 @@ export default function (app: FastifyInstance): void {
           error: `Tournament with uuid: ${request.params.uuid} not found`,
         });
       }
-      return reply.status(200).send(tournament);
+      // Transform participants to include alias
+      const transformedTournament = transformTournamentParticipants(tournament);
+      return reply.status(200).send(transformedTournament);
     }
   );
 

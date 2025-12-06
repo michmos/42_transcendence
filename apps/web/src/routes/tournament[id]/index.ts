@@ -12,6 +12,7 @@ import type {
 import { showApiError } from '../../utils/api-helpers.js';
 import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
+import toast from '../../utils/toast.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -77,11 +78,17 @@ function buildLeaderboard(
 
   // Initialize player stats
   participants.forEach((participant) => {
+    // Use alias if available (from TournamentParticipations), otherwise fall back to nickname
+    const displayName =
+      (participant as { alias?: string }).alias ||
+      participant.nickname ||
+      (participant as { email?: string }).email ||
+      'Unknown';
     playerStats.set(participant.uuid, {
       wins: 0,
       losses: 0,
       scoreDiff: 0,
-      nickname: participant.nickname || participant.email || 'Unknown',
+      nickname: displayName,
     });
   });
 
@@ -143,6 +150,122 @@ function buildLeaderboard(
     }));
 
   return leaderboard;
+}
+
+function showJoinTournamentDialog(
+  tournamentUuid: string,
+  tournamentName: string
+) {
+  // Create modal backdrop
+  const backdrop = document.createElement('div');
+  backdrop.className =
+    'fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in';
+
+  // Create dialog
+  const dialog = document.createElement('div');
+  dialog.className =
+    'bg-white rounded-lg shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95';
+  dialog.style.backgroundColor = 'rgb(255, 255, 255)';
+
+  dialog.innerHTML = `
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold mb-2 text-gray-900">Join Tournament</h2>
+      <p class="text-sm text-gray-600">Enter your alias for "${tournamentName}"</p>
+    </div>
+
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <label for="join-alias-detail" class="text-sm font-semibold text-gray-700">Your Alias</label>
+        <input
+          id="join-alias-detail"
+          type="text"
+          placeholder="Enter your alias (leave blank to use your nickname)"
+          maxlength="50"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+        <p class="text-xs text-gray-500">This is how you'll appear in the tournament. Leave blank to use your nickname.</p>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="join-btn-detail">
+          Join
+        </button>
+        <button class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" id="cancel-join-btn-detail">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+
+  backdrop.appendChild(dialog);
+  document.body.appendChild(backdrop);
+
+  // Close handlers
+  const closeDialog = () => {
+    backdrop.classList.add('animate-out', 'fade-out');
+    setTimeout(() => backdrop.remove(), 200);
+  };
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) closeDialog();
+  });
+
+  dialog
+    .querySelector('#cancel-join-btn-detail')
+    ?.addEventListener('click', closeDialog);
+
+  // Handle form submission
+  const joinBtn = dialog.querySelector('#join-btn-detail') as HTMLButtonElement;
+  const aliasInput = dialog.querySelector(
+    '#join-alias-detail'
+  ) as HTMLInputElement;
+
+  joinBtn.addEventListener('click', () => {
+    void (async () => {
+      let alias = aliasInput.value.trim();
+
+      // If alias is blank, fetch user's nickname
+      if (!alias) {
+        try {
+          const currentUser = await UserAPI.getUserBasicInfo();
+          alias =
+            currentUser?.nickname ||
+            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+        } catch (error) {
+          console.error('Error fetching user info:', error);
+          alias = `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+        }
+      }
+
+      // Validation
+      if (alias.length > 50) {
+        alert('Alias must be 50 characters or less');
+        aliasInput.focus();
+        return;
+      }
+
+      // Disable button and show loading state
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Joining...';
+
+      try {
+        await TournamentAPI.joinTournament(tournamentUuid, alias);
+        // Success - close dialog and reload page to refresh tournament data
+        closeDialog();
+        window.location.reload();
+      } catch (error) {
+        // Handle errors
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to join tournament';
+
+        alert(errorMessage);
+
+        // Re-enable button
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join';
+      }
+    })();
+  });
 }
 
 function getRoundColor(status: string): string {
@@ -215,24 +338,12 @@ function renderTournamentHeader(
     // If participant but cannot start, show nothing or maybe "Waiting for players" label?
     // For now, just show badges.
   } else if (currentUserId && isOutstanding && !isFull) {
-    // Join button
+    // Join button - show dialog for alias input
     new Button(buttonContainer, {
       text: 'Join Tournament',
       variant: 'secondary',
       onClick: () => {
-        void (async () => {
-          try {
-            // Get current user nickname for alias
-            const currentUser = await UserAPI.getUserBasicInfo();
-            const alias =
-              currentUser?.nickname || `Player-${currentUserId.slice(0, 8)}`;
-            await TournamentAPI.joinTournament(tournament.uuid, alias);
-            // Will refresh via socket or manual reload if needed
-            window.location.reload();
-          } catch (error) {
-            alert(error instanceof Error ? error.message : 'Failed to join');
-          }
-        })();
+        showJoinTournamentDialog(tournament.uuid, tournament.tournamentName);
       },
       className: '!bg-accent !text-white hover:!bg-accent/90',
     });
@@ -782,8 +893,14 @@ export default async function initRoute() {
     const handleTournamentStarted = (data: {
       uuid: string;
       rounds: TournamentRound[];
+      tournamentName?: string;
     }) => {
       if (data.uuid === tournamentUuid) {
+        // Show toast notification
+        const tournamentName = data.tournamentName || 'Tournament';
+        toast.show(`${tournamentName} is about to start!`, {
+          variant: 'success',
+        });
         // Tournament started - refresh to show rounds
         void refreshTournamentData();
       }

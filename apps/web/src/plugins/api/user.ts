@@ -262,7 +262,7 @@ const UserAPI = {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as { avatar?: string | null };
       // API returns a cleaned user object with avatar property
       // Return the avatar path (which is the relative path like /userAvatars/xxx.png)
       return result?.avatar || null;

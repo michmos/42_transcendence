@@ -1,4 +1,34 @@
 import { env } from '../../env.js';
+import type { Tournament } from 'db/generated/client/index.js';
+
+/**
+ * Transform tournament participants from Prisma format to frontend format
+ * Prisma returns: TournamentParticipations[] with { alias, user: { uuid, nickname, ... } }
+ * Frontend expects: Array<{ uuid: string; nickname?: string; alias: string }>
+ */
+export function transformTournamentParticipants(
+  tournament: Tournament & {
+    participants?: Array<{
+      alias: string;
+      user: { uuid: string; nickname?: string | null; email?: string | null };
+    }>;
+  }
+): Tournament & {
+  participants?: Array<{ uuid: string; nickname?: string; alias: string }>;
+} {
+  if (!tournament.participants) {
+    return tournament;
+  }
+
+  return {
+    ...tournament,
+    participants: tournament.participants.map((participation) => ({
+      uuid: participation.user.uuid,
+      nickname: participation.user.nickname || undefined,
+      alias: participation.alias,
+    })),
+  };
+}
 
 export async function messageSocketServer(endpoint: string, data: unknown) {
   let response;

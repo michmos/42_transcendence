@@ -67,7 +67,10 @@ const start = async () => {
     for (const user of users) {
       if (typeof user !== 'object' || user === null) continue;
       if (!('uuid' in user) || !('fullName' in user)) continue;
-      console.info(`👤 User: ${user?.uuid} - ${user.fullName}`);
+      const userObj = user as { uuid: unknown; fullName: unknown };
+      const uuid = String(userObj.uuid);
+      const fullName = String(userObj.fullName);
+      console.info(`👤 User: ${uuid} - ${fullName}`);
     }
 
     // DEMO DEMO DEMO @michmos (temporary code to demonstrate API key usage)
@@ -77,4 +80,4 @@ const start = async () => {
   }
 };
 
-start();
+void start();

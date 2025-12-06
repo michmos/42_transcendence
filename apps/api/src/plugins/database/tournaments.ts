@@ -40,7 +40,16 @@ export async function addUserToTournament(
       },
     });
     if (user) {
-      return tx.tournament.findFirstOrThrow({ where: { uuid: tournamentId } });
+      return tx.tournament.findFirstOrThrow({
+        where: { uuid: tournamentId },
+        include: {
+          participants: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
     }
     // create participation
     await tx.tournamentParticipations.create({
@@ -54,11 +63,18 @@ export async function addUserToTournament(
         },
       },
     });
-    // update playerCount
+    // update playerCount and return tournament with participants
     return tx.tournament.update({
       where: { uuid: tournamentId },
       data: {
         playerCount: { increment: 1 },
+      },
+      include: {
+        participants: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
   });
@@ -91,6 +107,13 @@ export async function removeUserFromTournament(
       data: {
         playerCount: { decrement: 1 },
       },
+      include: {
+        participants: {
+          include: {
+            user: true,
+          },
+        },
+      },
     });
   });
 }
@@ -112,11 +135,28 @@ export async function getUserAlias(userId: string, tournamentId: string) {
 }
 
 export async function getAllTournaments(): Promise<Tournament[]> {
-  return Database.tournament.findMany();
+  return Database.tournament.findMany({
+    include: {
+      participants: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getTournament(uuid: string): Promise<Tournament | null> {
-  return Database.tournament.findUnique({ where: { uuid } });
+  return Database.tournament.findUnique({
+    where: { uuid },
+    include: {
+      participants: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getTournamentByRound(
@@ -135,7 +175,16 @@ export async function getTournamentByRound(
 export async function getTournamentsByStatus(
   status: status
 ): Promise<Tournament[]> {
-  return Database.tournament.findMany({ where: { status } });
+  return Database.tournament.findMany({
+    where: { status },
+    include: {
+      participants: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getTournamentsByParticipant(
@@ -148,6 +197,13 @@ export async function getTournamentsByParticipant(
         some: { userId: uuid },
       },
       ...(status && { status }),
+    },
+    include: {
+      participants: {
+        include: {
+          user: true,
+        },
+      },
     },
   });
 }
@@ -248,10 +304,18 @@ export async function getTournamentRound(tournamentId: string, index: number) {
       index,
     },
     select: {
+      uuid: true,
       index: true,
       status: true,
       matches: {
-        select: { uuid: true },
+        select: {
+          uuid: true,
+          player1Id: true,
+          player2Id: true,
+          score1: true,
+          score2: true,
+          status: true,
+        },
       },
     },
   });

@@ -4,7 +4,10 @@ import { z } from 'zod';
 export const env = createEnv({
   clientPrefix: 'VITE_',
   client: {
-    VITE_API_URL: z.string().default('http://localhost:3000'),
+    VITE_API_URL: z
+      .string()
+      .default('http://localhost:3000')
+      .describe('API server URL for client-side requests'),
   },
   server: {
     PORT: z.coerce.number().default(5173),

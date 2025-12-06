@@ -1,10 +1,10 @@
-// TODO: create tournament interface for return type
+import type { Tournament } from '../../types/api.js';
 
 export async function createTournament(specs: {
   tournamentName: string;
   maxPlayers: number;
   minPlayers: number;
-}) {
+}): Promise<Tournament | null> {
   const response = await fetch('/api/tournaments', {
     method: 'POST',
     headers: {
@@ -19,7 +19,7 @@ export async function createTournament(specs: {
     // TODO: handle error
     return null;
   }
-  const tournament = await response.json();
+  const tournament = (await response.json()) as Tournament;
   return tournament;
 }
 

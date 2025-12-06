@@ -368,7 +368,9 @@ export default async function initRoute() {
           } catch (error) {
             hasError = true;
             errorMessage =
-              error instanceof Error ? error.message : 'Failed to upload avatar';
+              error instanceof Error
+                ? error.message
+                : 'Failed to upload avatar';
             console.error('Error uploading avatar:', error);
           }
         }
