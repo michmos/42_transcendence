@@ -40,7 +40,7 @@ export const validTournamentBody = {
 
 export async function createValidTournament(
   app: FastifyInstance,
-  overrides?: Partial<typeof validTournamentBody>
+  overrides?: Partial<typeof validTournamentBody & { alias?: string }>
 ) {
   const response = await app.inject({
     method: 'POST',
