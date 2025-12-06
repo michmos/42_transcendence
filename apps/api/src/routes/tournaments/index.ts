@@ -29,9 +29,14 @@ export default function (app: FastifyInstance): void {
 
       // Automatically add the creator as a participant
       const creatorUuid = getUuid(request);
+      // Get user's nickname to use as alias
+      const userData = await app.db.getUserMe(creatorUuid);
+      const alias = userData?.nickname || 'Player';
+
       const updatedTournament = await app.db.addUserToTournament(
         creatorUuid,
-        tournament.uuid
+        tournament.uuid,
+        alias
       );
 
       reply.status(201).send(updatedTournament);

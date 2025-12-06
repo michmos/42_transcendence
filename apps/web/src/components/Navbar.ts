@@ -1,4 +1,5 @@
 import { navigateTo } from '../utils/navigation.js';
+import { getAvatarSrc } from '../utils/avatar-helpers.js';
 
 export interface NavbarLink {
   label: string;
@@ -109,7 +110,7 @@ export class Navbar {
 
     if (avatar) {
       const avatarImg = document.createElement('img');
-      avatarImg.src = avatar;
+      avatarImg.src = getAvatarSrc(avatar) || avatar;
       avatarImg.alt = nickname;
       avatarImg.className =
         'w-10 h-10 rounded-full object-cover border-2 border-border';

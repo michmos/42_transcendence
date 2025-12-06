@@ -62,7 +62,6 @@ const UserAPI = {
   async getUserBasicInfo(): Promise<Partial<User> | null> {
     return this.getMe();
   },
-
   async getUsers(): Promise<User[]> {
     try {
       const response = await fetch('/api/user', {
@@ -263,8 +262,10 @@ const UserAPI = {
         );
       }
 
-      const result = (await response.json()) as string | { avatarUrl?: string };
-      return typeof result === 'string' ? result : result.avatarUrl || null;
+      const result = await response.json();
+      // API returns a cleaned user object with avatar property
+      // Return the avatar path (which is the relative path like /userAvatars/xxx.png)
+      return result?.avatar || null;
     } catch (error) {
       console.error('Error uploading avatar:', error);
       throw error;

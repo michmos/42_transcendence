@@ -8,6 +8,7 @@
     "SOCKET_PORT",
     "API_PORT",
     "CDN_PATH",
+    "CDN_PORT",
     "SWAGGER_PORT",
     "API_SERVER",
     "SOCKET_SERVER",
