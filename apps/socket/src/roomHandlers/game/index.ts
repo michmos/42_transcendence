@@ -320,12 +320,14 @@ async function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
 
         // send roles
         sendRole(socket, newRoomName, 'player1');
+        sendRole(otherSocket, newRoomName, 'player2');
+
+        // update room data
         updateGameRoomData(newRoomName, {
           player1Uuid: socket.uuid,
+          player2Uuid: otherSocket.uuid,
           isLocalGame: false,
         });
-        sendRole(otherSocket, newRoomName, 'player2');
-        updateGameRoomData(newRoomName, { player2Uuid: otherSocket.uuid });
 
         // add to match map
         socketToGameroom.set(socket, newRoomName);
@@ -343,7 +345,7 @@ async function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
         gameLoop(newRoomName);
         return;
       } else {
-        console.log('adding socket to waiting list');
+        socket.consoleLog('added to waiting list for online game');
         // add to waiting list
         waitingList.push(socket);
         socket.send('waiting for opponent');
