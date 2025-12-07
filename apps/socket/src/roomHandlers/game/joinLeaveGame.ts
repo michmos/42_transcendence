@@ -2,6 +2,8 @@ import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { updateGameRoomData, type GameRoomData } from './index.js';
 import { gameLoop } from './game.js';
+import { env } from '../../env.js';
+import { type MatchParticipantsResponse } from 'types';
 
 const waitingList: WSocket[] = [];
 let lastGameId = 0; // TODO: replace with uuid from fetch Match (API Call)
@@ -96,9 +98,88 @@ async function handleJoinLocalGame(socket: WSocket) {
   gameLoop(newRoomName);
 }
 
-async function handleJoinTournamentGame(socket: WSocket, room: string) {
-  // TODO: implement
-  // check permissions (is player in that tournament match)
+// TODO: add cache expiration
+const matchParticipantsCache = new Map<string, MatchParticipantsResponse>();
+
+async function getMatchParticipants(matchUuid: string) {
+  if (matchParticipantsCache.has(matchUuid)) {
+    const participants = matchParticipantsCache.get(matchUuid)!;
+    matchParticipantsCache.delete(matchUuid);
+    return participants;
+  }
+
+  // fetch from API
+  const response = await fetch(
+    `http://localhost:5173/api/match/${matchUuid}/participants`,
+    {
+      // TODO: hardcoded localhost
+      method: 'GET',
+      headers: {
+        'x-api-key': env.ADMIN_API_KEY,
+      },
+      credentials: 'include',
+    }
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Fetching tournament match participants failed: ${response.status} ${response.statusText}`
+    );
+  }
+  const participants = (await response.json()) as MatchParticipantsResponse;
+  matchParticipantsCache.set(matchUuid, participants);
+  return participants;
+}
+
+async function handleJoinTournamentGame(socket: WSocket, roomName: string) {
+  const matchUuid = roomName.split(':')[1];
+  if (!matchUuid) {
+    socket.consoleLog('invalid tournament match uuid');
+    socket.sendError('Invalid tournament match uuid');
+    return;
+  }
+
+  // check participants
+  const participants = await getMatchParticipants(matchUuid);
+  if (
+    socket.uuid !== participants.player1Id &&
+    socket.uuid !== participants.player2Id
+  ) {
+    socket.consoleLog('tried to join a tournament match they are not in');
+    socket.sendError('You are not a participant in this tournament match');
+    return;
+  }
+
+  const room = RoomManager.get(roomName);
+  if (!room) {
+    // opponent not joined yet
+    socket.consoleLog('tournament match: waiting for opponent');
+    socket.join(roomName);
+    sendRole(socket, roomName, 'player1');
+    updateGameRoomData(roomName, {
+      player1Uuid: socket.uuid,
+      isLocalGame: false,
+    });
+    socketToGameroom.set(socket, roomName);
+    return;
+  } else {
+    // opponent joined
+    socket.consoleLog('tournament match: opponent found, starting match');
+    socket.join(roomName);
+    updateGameRoomData(roomName, { player2Uuid: socket.uuid });
+    sendRole(socket, roomName, 'player2');
+    socketToGameroom.set(socket, roomName);
+  }
+
+  // notify clients
+  RoomManager.get(roomName)?.broadcast(
+    JSON.stringify({
+      event: 'room-created',
+      uuid: roomName,
+    })
+  );
+
+  // start match
+  gameLoop(roomName);
 }
 
 export async function handleJoinRoom(
