@@ -295,6 +295,81 @@ function sendRole(
 const waitingList: WSocket[] = [];
 let lastGameId = 0; // TODO: replace with uuid from fetch Match (API Call)
 
+async function handleJoinOnlineGame(socket: WSocket) {
+  if (waitingList.length == 0) {
+    socket.consoleLog('added to waiting list for online game');
+    // add to waiting list
+    waitingList.push(socket);
+    socket.send('waiting for opponent');
+    return;
+  }
+  // get opponent
+  const otherSocket = waitingList.pop();
+  if (!otherSocket) {
+    throw new Error('No opponent found in waiting list');
+  }
+
+  const newRoomName = `game:${lastGameId}`;
+  lastGameId++;
+
+  // join room
+  socket.join(newRoomName);
+  otherSocket!.join(newRoomName); // TODO: rmv !
+
+  // send roles
+  sendRole(socket, newRoomName, 'player1');
+  sendRole(otherSocket, newRoomName, 'player2');
+
+  // update room data
+  updateGameRoomData(newRoomName, {
+    player1Uuid: socket.uuid,
+    player2Uuid: otherSocket.uuid,
+    isLocalGame: false,
+  });
+
+  // add to match map
+  socketToGameroom.set(socket, newRoomName);
+  socketToGameroom.set(otherSocket, newRoomName);
+
+  // notify clients
+  RoomManager.get(newRoomName)?.broadcast(
+    JSON.stringify({
+      event: 'room-created',
+      uuid: newRoomName,
+    })
+  );
+
+  // start match
+  gameLoop(newRoomName);
+}
+
+async function handleJoinLocalGame(socket: WSocket) {
+  const newRoomName = `game:${lastGameId}`;
+  lastGameId++;
+
+  // join room
+  socket.join(newRoomName);
+
+  // send roles
+  sendRole(socket, newRoomName, 'local');
+
+  // update room data
+  updateGameRoomData(newRoomName, {
+    player1Uuid: socket.uuid,
+    isLocalGame: true,
+  });
+
+  // add to match map
+  socketToGameroom.set(socket, newRoomName);
+
+  // start match
+  gameLoop(newRoomName);
+}
+
+async function handleJoinTournamentGame(socket: WSocket) {
+  // TODO: implement
+}
+
 async function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
   if (socketToGameroom.has(socket)) {
     socket.consoleLog('tried to join a game while already in one');
@@ -303,77 +378,11 @@ async function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
   }
   switch (message.room) {
     case 'game:online':
-      if (waitingList.length > 0) {
-        console.log('starting new game');
-        // get opponent
-        const otherSocket = waitingList.pop();
-        if (!otherSocket) {
-          throw new Error('No opponent found in waiting list');
-        }
-
-        const newRoomName = `game:${lastGameId}`;
-        lastGameId++;
-
-        // join room
-        socket.join(newRoomName);
-        otherSocket!.join(newRoomName); // TODO: rmv !
-
-        // send roles
-        sendRole(socket, newRoomName, 'player1');
-        sendRole(otherSocket, newRoomName, 'player2');
-
-        // update room data
-        updateGameRoomData(newRoomName, {
-          player1Uuid: socket.uuid,
-          player2Uuid: otherSocket.uuid,
-          isLocalGame: false,
-        });
-
-        // add to match map
-        socketToGameroom.set(socket, newRoomName);
-        socketToGameroom.set(otherSocket, newRoomName);
-
-        // notify clients
-        RoomManager.get(newRoomName)?.broadcast(
-          JSON.stringify({
-            event: 'room-created',
-            uuid: newRoomName,
-          })
-        );
-
-        // start match
-        gameLoop(newRoomName);
-        return;
-      } else {
-        socket.consoleLog('added to waiting list for online game');
-        // add to waiting list
-        waitingList.push(socket);
-        socket.send('waiting for opponent');
-        return;
-      }
+      return handleJoinOnlineGame(socket);
     case 'game:local':
-      const newRoomName = `game:${lastGameId}`;
-      lastGameId++;
-
-      // join room
-      socket.join(newRoomName);
-
-      // send roles
-      sendRole(socket, newRoomName, 'local');
-
-      // update room data
-      updateGameRoomData(newRoomName, {
-        player1Uuid: socket.uuid,
-        isLocalGame: true,
-      });
-
-      // add to match map
-      socketToGameroom.set(socket, newRoomName);
-
-      // start match
-      gameLoop(newRoomName);
-      return;
+      return handleJoinLocalGame(socket);
     case 'game:tournament':
+      return handleJoinTournamentGame(socket);
   }
 }
 
