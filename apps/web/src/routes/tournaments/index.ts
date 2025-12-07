@@ -1,7 +1,25 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
-import TournamentAPI from '../../plugins/api/tournament.js';
+import { handleLogout } from '../../utils/logout-handler.js';
+import TournamentAPI from '../../plugins/api/tournaments.js';
+import UserAPI from '../../plugins/api/user.js';
+import type {
+  Tournament as BackendTournament,
+  status,
+} from '../../types/api.js';
+import { showApiError } from '../../utils/api-helpers.js';
+import { getCurrentUserId } from '../../utils/auth-state.js';
+import tournamentSocket from '../../plugins/websocket/tournament.js';
+import toast from '../../utils/toast.js';
 
+// Extend Window interface for SPA navigation
+declare global {
+  interface Window {
+    navigateToRoute?: (href: string) => void;
+  }
+}
+
+// UI Tournament interface (mapped from backend)
 interface Tournament {
   id: string;
   name: string;
@@ -11,48 +29,54 @@ interface Tournament {
   registeredPlayers: number;
   startDate: string;
   prizePool?: number;
-  gameTime: string;
 }
 
-function getInput(element: HTMLDivElement, id: string) {
-  return (element.querySelector(id) as HTMLInputElement).value;
+/**
+ * Map backend status to UI status
+ */
+function mapStatusToUI(
+  backendStatus: status
+): 'active' | 'upcoming' | 'completed' {
+  switch (backendStatus) {
+    case 'outstanding':
+      return 'upcoming';
+    case 'ongoing':
+      return 'active';
+    case 'finished':
+    case 'canceled':
+      return 'completed';
+    default:
+      return 'upcoming';
+  }
 }
 
-const mockTournaments: Tournament[] = [
-  {
-    id: '1',
-    name: 'Championship Series 2024',
-    status: 'active',
-    minSize: 16,
-    maxPlayers: 32,
-    registeredPlayers: 28,
-    startDate: 'Dec 16, 2024',
-    prizePool: 5000,
-    gameTime: '3 min',
-  },
-  {
-    id: '2',
-    name: 'Rookie League',
-    status: 'upcoming',
-    minSize: 8,
-    maxPlayers: 16,
-    registeredPlayers: 10,
-    startDate: 'Mar 27, 2024',
-    prizePool: 1500,
-    gameTime: '3 min',
-  },
-  {
-    id: '3',
-    name: 'Speed Masters',
-    status: 'completed',
-    minSize: 16,
-    maxPlayers: 16,
-    registeredPlayers: 16,
-    startDate: 'Dec 3, 2024',
-    prizePool: 2500,
-    gameTime: 'XXSec',
-  },
-];
+/**
+ * Format date to readable string
+ */
+function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/**
+ * Map backend tournament to UI tournament format
+ */
+function mapTournamentToUI(tournament: BackendTournament): Tournament {
+  return {
+    id: tournament.uuid,
+    name: tournament.tournamentName,
+    status: mapStatusToUI(tournament.status),
+    minSize: tournament.minPlayers,
+    maxPlayers: tournament.maxPlayers,
+    registeredPlayers: tournament.playerCount,
+    startDate: formatDate(tournament.createdAt),
+    // prizePool is not in backend schema, so we'll leave it undefined
+  };
+}
 
 interface WebSocketMessage {
   event: string;
@@ -174,14 +198,127 @@ function renderSearchBar(
   container.appendChild(searchContainer);
 }
 
+function renderLoadingState(container: HTMLElement) {
+  const loadingState = document.createElement('div');
+  loadingState.className = 'py-16 text-center';
+  loadingState.innerHTML = `
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+    <p class="mt-4 text-white/60">Loading tournaments...</p>
+  `;
+  container.appendChild(loadingState);
+}
+
+function renderErrorState(container: HTMLElement, message: string) {
+  const errorState = document.createElement('div');
+  errorState.className = 'py-16 text-center';
+  errorState.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4 text-red-400">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <h3 class="mb-2 text-xl font-semibold text-white">Error loading tournaments</h3>
+    <p class="text-white/60">${message}</p>
+  `;
+  container.appendChild(errorState);
+}
+
+// Extended tournament type that includes participants
+type TournamentWithParticipants = BackendTournament & {
+  participants?: Array<{ uuid: string; nickname?: string }>;
+};
+
 function renderTournamentGrid(
   container: HTMLElement,
-  tournaments: Tournament[]
+  tournaments: Tournament[],
+  backendTournaments: Array<BackendTournament | TournamentWithParticipants>,
+  currentUserId: string | null
 ) {
   const grid = document.createElement('div');
   grid.className = 'grid gap-6 md:grid-cols-2 lg:grid-cols-3';
 
-  tournaments.forEach((tournament) => {
+  tournaments.forEach((tournament, index) => {
+    // Type assertion needed because array access can return undefined
+    const backendTournament = backendTournaments[index] as
+      | TournamentWithParticipants
+      | undefined;
+    if (!backendTournament) {
+      console.warn(`Backend tournament not found for index ${index}`);
+      return;
+    }
+
+    const isOutstanding = backendTournament.status === 'outstanding';
+    const isFull =
+      backendTournament.playerCount >= backendTournament.maxPlayers;
+
+    // Check if user is participant
+    // Participants array should be included in backend response with uuid, nickname, and alias
+    const participants: Array<{
+      uuid?: string;
+      nickname?: string;
+      alias?: string;
+    }> = Array.isArray(backendTournament.participants)
+      ? (backendTournament.participants as Array<{
+          uuid?: string;
+          nickname?: string;
+          alias?: string;
+        }>)
+      : [];
+
+    // Ensure participants array exists and is properly typed
+    if (!backendTournament.participants) {
+      console.warn('Tournament participants not loaded:', tournament.id);
+    }
+
+    // Debug logging - always log to help debug the issue
+    console.log('Tournament button logic:', {
+      tournamentName: tournament.name,
+      tournamentId: tournament.id,
+      currentUserId: currentUserId || 'NOT LOGGED IN',
+      participantsCount: participants.length,
+      participants: participants.map(
+        (p: { uuid?: string; nickname?: string }) => ({
+          uuid: p?.uuid || 'NO UUID',
+          nickname: p?.nickname || 'NO NICKNAME',
+        })
+      ),
+      playerCount: backendTournament.playerCount,
+      status: backendTournament.status,
+      isOutstanding,
+      isFull,
+    });
+
+    // Check if current user is in participants array
+    // Participants should have uuid property
+    let isParticipant = false;
+    if (currentUserId && participants.length > 0) {
+      isParticipant = participants.some((p: { uuid?: string }) => {
+        const participantUuid = p?.uuid;
+        const matches = participantUuid === currentUserId;
+        if (matches) {
+          console.log('Found matching participant:', {
+            participantUuid,
+            currentUserId,
+          });
+        }
+        return matches;
+      });
+    }
+
+    console.log('Participant check result:', {
+      isParticipant,
+      currentUserId,
+      participantsLength: participants.length,
+      tournamentId: tournament.id,
+      participants: participants.map((p) => ({
+        uuid: p?.uuid,
+        nickname: p?.nickname,
+      })),
+    });
+
+    // Check if minimum players have joined (for showing Start button)
+    const hasMinPlayers =
+      backendTournament.playerCount >= backendTournament.minPlayers;
     const card = document.createElement('div');
     card.className =
       'overflow-hidden rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm transition-all hover:scale-105 hover:bg-white/10 cursor-pointer';
@@ -211,7 +348,6 @@ function renderTournamentGrid(
           <div id="status-badge-${tournament.id}"></div>
         </div>
         <h3 class="text-xl font-bold text-white mb-2">${tournament.name}</h3>
-        <p class="text-white/70 mb-4">${tournament.gameTime} per match</p>
         
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
@@ -235,13 +371,94 @@ function renderTournamentGrid(
             </div>
           </div>
           
-          <button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            View Details
-          </button>
+          <div class="flex gap-2">
+            ${(() => {
+              // Debug logging for button logic
+              console.log(`Button logic for ${tournament.name}:`, {
+                isParticipant,
+                hasMinPlayers,
+                isOutstanding,
+                isFull,
+                currentUserId: currentUserId ? 'present' : 'null',
+                playerCount: backendTournament.playerCount,
+                minPlayers: backendTournament.minPlayers,
+                maxPlayers: backendTournament.maxPlayers,
+                participantsCount: participants.length,
+              });
+
+              // Priority order (check in this exact order):
+
+              // 1. If user IS participant
+              if (isParticipant) {
+                // 1a. If min players reached AND outstanding -> Show Start
+                if (hasMinPlayers && isOutstanding) {
+                  return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium cursor-pointer start-tournament-btn" data-tournament-id="${tournament.id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Start
+                  </button>`;
+                }
+                // 1b. Otherwise -> Show View Details
+                return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  View Details
+                </button>`;
+              }
+
+              // 2. If tournament is NOT outstanding (e.g. ongoing/finished) -> Show View Details
+              if (!isOutstanding) {
+                return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  View Details
+                </button>`;
+              }
+
+              // 3. If tournament is full -> Show Full + View Details
+              if (isFull) {
+                return `<button class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-muted text-muted-foreground rounded-lg cursor-not-allowed font-medium" disabled>
+                  Full
+                </button>
+                <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  View Details
+                </button>`;
+              }
+
+              // 4. If user is logged in -> Show Join button
+              if (currentUserId) {
+                return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors font-medium cursor-pointer join-tournament-btn" data-tournament-id="${tournament.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    <line x1="19" y1="8" x2="19" y2="16"/>
+                    <line x1="23" y1="12" x2="15" y2="12"/>
+                  </svg>
+                  Join
+                </button>`;
+              }
+
+              // 5. Default (not logged in) -> Show View Details
+              return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                View Details
+              </button>`;
+            })()}
+          </div>
         </div>
       </div>
     `;
@@ -261,6 +478,69 @@ function renderTournamentGrid(
         navigateTo(`/tournament/${tournament.id}`);
       });
     }
+
+    // Add click handler for join tournament
+    const joinBtn = card.querySelector('.join-tournament-btn');
+    if (joinBtn) {
+      joinBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showJoinTournamentDialog(tournament.id, tournament.name);
+      });
+    }
+
+    // Add click handler for start tournament button
+    const startBtn = card.querySelector('.start-tournament-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void (async () => {
+          const tournamentUuid = tournament.id;
+          const button = startBtn as HTMLButtonElement;
+
+          // Disable button and show loading
+          button.disabled = true;
+          button.innerHTML = `
+          <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          Starting...
+        `;
+
+          try {
+            await TournamentAPI.startTournament(tournamentUuid);
+
+            // Success - refresh tournaments list
+            const windowWithTournaments = window as WindowWithTournaments;
+            const loadTournamentsFn = windowWithTournaments.loadTournaments;
+            if (typeof loadTournamentsFn === 'function') {
+              await loadTournamentsFn();
+            }
+          } catch (error) {
+            // Handle errors
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'Failed to start tournament';
+
+            alert(errorMessage);
+
+            // Re-enable button
+            button.disabled = false;
+            button.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Start
+          `;
+          }
+        })();
+      });
+    }
+
+    // Add click handler for the entire card (fallback for viewing details)
+    card.addEventListener('click', () => {
+      void navigateTo(`/tournament/${tournament.id}`);
+    });
 
     grid.appendChild(card);
   });
@@ -284,6 +564,131 @@ function renderEmptyState(container: HTMLElement) {
     <p class="text-white/60">Try adjusting your search or create a new tournament</p>
   `;
   container.appendChild(emptyState);
+}
+
+// Extend Window interface for tournament functions
+interface WindowWithTournaments extends Window {
+  loadTournaments?: (statusFilter?: status) => Promise<void>;
+}
+
+function showJoinTournamentDialog(
+  tournamentUuid: string,
+  tournamentName: string
+) {
+  // Create modal backdrop
+  const backdrop = document.createElement('div');
+  backdrop.className =
+    'fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in';
+
+  // Create dialog
+  const dialog = document.createElement('div');
+  dialog.className =
+    'bg-white rounded-lg shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95';
+  dialog.style.backgroundColor = 'rgb(255, 255, 255)';
+
+  dialog.innerHTML = `
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold mb-2 text-gray-900">Join Tournament</h2>
+      <p class="text-sm text-gray-600">Enter your alias for "${tournamentName}"</p>
+    </div>
+
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <label for="join-alias" class="text-sm font-semibold text-gray-700">Your Alias</label>
+        <input
+          id="join-alias"
+          type="text"
+          placeholder="Enter your alias (leave blank to use your nickname)"
+          maxlength="50"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+        <p class="text-xs text-gray-500">This is how you'll appear in the tournament. Leave blank to use your nickname.</p>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="join-btn">
+          Join
+        </button>
+        <button class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" id="cancel-join-btn">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+
+  backdrop.appendChild(dialog);
+  document.body.appendChild(backdrop);
+
+  // Close handlers
+  const closeDialog = () => {
+    backdrop.classList.add('animate-out', 'fade-out');
+    setTimeout(() => backdrop.remove(), 200);
+  };
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) closeDialog();
+  });
+
+  dialog
+    .querySelector('#cancel-join-btn')
+    ?.addEventListener('click', closeDialog);
+
+  // Handle form submission
+  const joinBtn = dialog.querySelector('#join-btn') as HTMLButtonElement;
+  const aliasInput = dialog.querySelector('#join-alias') as HTMLInputElement;
+
+  joinBtn.addEventListener('click', () => {
+    void (async () => {
+      let alias = aliasInput.value.trim();
+
+      // If alias is blank, fetch user's nickname
+      if (!alias) {
+        try {
+          const currentUser = await UserAPI.getUserBasicInfo();
+          alias =
+            currentUser?.nickname ||
+            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+        } catch (error) {
+          console.error('Error fetching user info:', error);
+          alias = `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+        }
+      }
+
+      // Validation
+      if (alias.length > 50) {
+        alert('Alias must be 50 characters or less');
+        aliasInput.focus();
+        return;
+      }
+
+      // Disable button and show loading state
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Joining...';
+
+      try {
+        await TournamentAPI.joinTournament(tournamentUuid, alias);
+
+        // Success - close dialog and refresh tournaments list
+        closeDialog();
+
+        const windowWithTournaments = window as WindowWithTournaments;
+        const loadTournamentsFn = windowWithTournaments.loadTournaments;
+        if (typeof loadTournamentsFn === 'function') {
+          await loadTournamentsFn();
+        }
+      } catch (error) {
+        // Handle errors
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to join tournament';
+
+        alert(errorMessage);
+
+        // Re-enable button
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join';
+      }
+    })();
+  });
 }
 
 function showNewTournamentDialog() {
@@ -315,21 +720,35 @@ function showNewTournamentDialog() {
         />
       </div>
 
+      <div class="space-y-2">
+        <label for="player-alias" class="text-sm font-semibold text-gray-700">Your Alias (for this tournament)</label>
+        <input
+          id="player-alias"
+          type="text"
+          placeholder="Enter your alias"
+          maxlength="50"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        />
+        <p class="text-xs text-gray-500">This is how you'll appear in the tournament</p>
+      </div>
+
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-2">
-          <label for="min-size" class="text-sm font-semibold text-gray-700">Min Size</label>
+          <label for="min-size" class="text-sm font-semibold text-gray-700">Min Players (min: 2)</label>
           <input
             id="min-size"
             type="number"
-            placeholder="4"
+            min="2"
+            placeholder="2"
             class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
           />
         </div>
         <div class="space-y-2">
-          <label for="max-players" class="text-sm font-semibold text-gray-700">Max Players</label>
+          <label for="max-players" class="text-sm font-semibold text-gray-700">Max Players (max: 16)</label>
           <input
             id="max-players"
             type="number"
+            max="16"
             placeholder="16"
             class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
           />
@@ -361,39 +780,129 @@ function showNewTournamentDialog() {
   });
 
   dialog.querySelector('#cancel-btn')?.addEventListener('click', closeDialog);
-  dialog.querySelector('#create-btn')?.addEventListener('click', () => {
+
+  // Handle form submission
+  const createBtn = dialog.querySelector('#create-btn') as HTMLButtonElement;
+  const nameInput = dialog.querySelector(
+    '#tournament-name'
+  ) as HTMLInputElement;
+  const aliasInput = dialog.querySelector('#player-alias') as HTMLInputElement;
+  const minSizeInput = dialog.querySelector('#min-size') as HTMLInputElement;
+  const maxPlayersInput = dialog.querySelector(
+    '#max-players'
+  ) as HTMLInputElement;
+
+  createBtn.addEventListener('click', () => {
     void (async () => {
-      const tournamentName = getInput(dialog, '#tournament-name');
-      const minPlayers = parseInt(getInput(dialog, '#min-size'));
-      const maxPlayers = parseInt(getInput(dialog, '#max-players'));
+      // Get form values
+      const tournamentName = nameInput.value.trim();
+      const alias = aliasInput.value.trim();
+      const minPlayers = parseInt(minSizeInput.value, 10);
+      const maxPlayers = parseInt(maxPlayersInput.value, 10);
 
-      // TODO: add validation logic (maxPlayers >=2 , minPlayer >=2, maxPlayers >= minPlayers)
+      // Validation
+      if (!tournamentName) {
+        alert('Please enter a tournament name');
+        nameInput.focus();
+        return;
+      }
 
-      console.log('Creating tournament...');
+      if (!alias) {
+        alert('Please enter your alias for this tournament');
+        aliasInput.focus();
+        return;
+      }
+
+      if (alias.length > 50) {
+        alert('Alias must be 50 characters or less');
+        aliasInput.focus();
+        return;
+      }
+
+      if (isNaN(minPlayers) || minPlayers < 2) {
+        alert('Min players must be 2 or higher');
+        minSizeInput.focus();
+        return;
+      }
+
+      if (isNaN(maxPlayers) || maxPlayers > 16) {
+        alert('Max players must be 16 or lower');
+        maxPlayersInput.focus();
+        return;
+      }
+
+      if (maxPlayers < minPlayers) {
+        alert('Max players must be greater than or equal to min players');
+        maxPlayersInput.focus();
+        return;
+      }
+
+      // Disable button and show loading state
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
+
       try {
-        const newTournament = await TournamentAPI.createTournament({
+        // Prepare tournament data
+        const tournamentData: {
+          tournamentName: string;
+          minPlayers: number;
+          maxPlayers: number;
+          alias: string;
+        } = {
           tournamentName,
           minPlayers,
           maxPlayers,
-        });
-        // TODO: update UI with new tournament
-        console.log('Tournament created:', newTournament);
+          alias,
+        };
+
+        // Call API - creator is automatically added as participant
+        const tournament = await TournamentAPI.createTournament(tournamentData);
+
+        // Success - close dialog and navigate to new tournament
+        closeDialog();
+
+        // Refresh tournaments list
+        const windowWithTournaments = window as WindowWithTournaments;
+        const loadTournamentsFn = windowWithTournaments.loadTournaments;
+        if (typeof loadTournamentsFn === 'function') {
+          await loadTournamentsFn();
+        }
+
+        // Navigate to new tournament
+        void navigateTo(`/tournament/${tournament.uuid}`);
       } catch (error) {
-        console.error('Error creating tournament:', error);
+        // Handle errors
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to create tournament';
+
+        alert(errorMessage);
+
+        // Re-enable button
+        createBtn.disabled = false;
+        createBtn.textContent = 'Save';
       }
-      closeDialog();
-    });
+    })();
   });
 }
 
-export default function initRoute() {
+export default async function initRoute() {
   const pageRoot = document.querySelector<HTMLElement>('.tournaments-page');
   if (!pageRoot) return;
 
   pageRoot.innerHTML = '';
 
   let searchQuery = '';
-  let filteredTournaments = [...mockTournaments];
+  let allTournaments: Tournament[] = [];
+  let allBackendTournaments: BackendTournament[] = [];
+  let filteredTournaments: Tournament[] = [];
+  let filteredBackendTournaments: BackendTournament[] = [];
+  let isLoading = true;
+  let hasError = false;
+  let errorMessage = '';
+
+  const windowWithTournaments = window as WindowWithTournaments;
 
   // Main wrapper with gradient background - matching profile page structure
   const mainWrapper = document.createElement('div');
@@ -403,14 +912,19 @@ export default function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
+
+  // Fetch user data for navbar
+  const userInfo = await UserAPI.getUserBasicInfo();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [{ label: 'Profile', href: '/profile', active: false }],
+    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
+    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
-      navigateTo('/settings');
+      void navigateTo('/settings');
     },
     onLogoutClick: () => {
-      navigateTo('/login');
+      void handleLogout();
     },
   });
 
@@ -426,9 +940,16 @@ export default function initRoute() {
   const searchContainer = document.createElement('div');
   renderSearchBar(searchContainer, (query) => {
     searchQuery = query.toLowerCase();
-    filteredTournaments = mockTournaments.filter((t) =>
+    const filtered = allTournaments.filter((t) =>
       t.name.toLowerCase().includes(searchQuery)
     );
+    filteredTournaments = filtered;
+    // Map filtered tournaments to backend tournaments
+    filteredBackendTournaments = filtered
+      .map((uiTournament) => {
+        return allBackendTournaments.find((bt) => bt.uuid === uiTournament.id);
+      })
+      .filter((bt): bt is BackendTournament => bt !== undefined);
     updateTournamentGrid();
   });
   mainContent.appendChild(searchContainer);
@@ -439,12 +960,193 @@ export default function initRoute() {
 
   const updateTournamentGrid = () => {
     gridContainer.innerHTML = '';
+    if (isLoading) {
+      renderLoadingState(gridContainer);
+      return;
+    }
+    if (hasError) {
+      renderErrorState(gridContainer, errorMessage);
+      return;
+    }
     if (filteredTournaments.length === 0) {
       renderEmptyState(gridContainer);
     } else {
-      renderTournamentGrid(gridContainer, filteredTournaments);
+      const currentUserId = getCurrentUserId();
+      console.log('Current user ID:', currentUserId);
+      renderTournamentGrid(
+        gridContainer,
+        filteredTournaments,
+        filteredBackendTournaments as Array<
+          BackendTournament | TournamentWithParticipants
+        >,
+        currentUserId
+      );
     }
   };
 
-  updateTournamentGrid();
+  /**
+   * Load tournaments from API
+   */
+  async function loadTournaments(statusFilter?: status) {
+    isLoading = true;
+    hasError = false;
+    errorMessage = '';
+    updateTournamentGrid();
+
+    try {
+      const backendTournaments =
+        await TournamentAPI.getTournaments(statusFilter);
+
+      // Debug: Log the actual API response structure
+      const firstTournament = backendTournaments[0] as
+        | TournamentWithParticipants
+        | undefined;
+      console.log('Tournaments API response:', {
+        count: backendTournaments.length,
+        firstTournament: firstTournament
+          ? {
+              uuid: firstTournament.uuid,
+              tournamentName: firstTournament.tournamentName,
+              status: firstTournament.status,
+              playerCount: firstTournament.playerCount,
+              participants: firstTournament.participants,
+              participantsType: typeof firstTournament.participants,
+              participantsIsArray: Array.isArray(firstTournament.participants),
+            }
+          : 'No tournaments',
+      });
+
+      allBackendTournaments = backendTournaments;
+      allTournaments = backendTournaments.map(mapTournamentToUI);
+      filteredTournaments = [...allTournaments];
+      filteredBackendTournaments = [...allBackendTournaments];
+      isLoading = false;
+      updateTournamentGrid();
+    } catch (error) {
+      isLoading = false;
+      hasError = true;
+      errorMessage =
+        error instanceof Error ? error.message : 'Failed to load tournaments';
+      showApiError({
+        message: errorMessage,
+        status: 0,
+        shouldRedirect: false,
+      });
+      updateTournamentGrid();
+    }
+  }
+
+  // Make loadTournaments available globally for dialog callback
+  windowWithTournaments.loadTournaments = loadTournaments;
+
+  // ===== TOURNAMENT SOCKET INTEGRATION =====
+  // Initialize tournament socket for real-time updates
+  tournamentSocket.initialize();
+
+  // Set up socket listeners for real-time updates
+  // These will work once backend socket handler is implemented
+  const handleTournamentCreated = () => {
+    // Show toast notification
+    toast.show('A new tournament has been created!', { variant: 'info' });
+    // When a tournament is created, refresh the list
+    void loadTournaments();
+  };
+
+  const handleTournamentStarted = (data: {
+    uuid?: string;
+    tournamentName?: string;
+  }) => {
+    // Show toast notification with tournament name if available
+    const tournamentName = data.tournamentName || 'Tournament';
+    toast.show(`${tournamentName} is about to start!`, { variant: 'success' });
+    // Refresh the list to show updated status
+    void loadTournaments();
+  };
+
+  const handleTournamentJoined = (data: {
+    uuid: string;
+    playerCount: number;
+  }) => {
+    // Find tournament name for toast
+    const tournament = allBackendTournaments.find((t) => t.uuid === data.uuid);
+    const tournamentName = tournament?.tournamentName || 'Tournament';
+    // Show toast notification
+    toast.show(
+      `Someone joined ${tournamentName} (${data.playerCount} players)`,
+      {
+        variant: 'info',
+      }
+    );
+    // Refresh full tournament list to get updated participants
+    void loadTournaments();
+  };
+
+  const handleTournamentLeft = (data: {
+    uuid: string;
+    playerCount: number;
+  }) => {
+    // Find tournament name for toast
+    const tournament = allBackendTournaments.find((t) => t.uuid === data.uuid);
+    const tournamentName = tournament?.tournamentName || 'Tournament';
+    // Show toast notification
+    toast.show(`Someone left ${tournamentName} (${data.playerCount} players)`, {
+      variant: 'warning',
+    });
+    // Refresh full tournament list to get updated participants
+    void loadTournaments();
+  };
+
+  const handleTournamentUpdated = (data: {
+    uuid: string;
+    status?: status;
+    playerCount?: number;
+  }) => {
+    // Update existing tournament in the list
+    const index = allBackendTournaments.findIndex((t) => t.uuid === data.uuid);
+    if (index !== -1) {
+      const tournamentToUpdate = allBackendTournaments[index];
+      if (tournamentToUpdate !== undefined) {
+        // Update backend tournament data
+        if (data.status) {
+          tournamentToUpdate.status = data.status;
+        }
+        if (data.playerCount !== undefined) {
+          tournamentToUpdate.playerCount = data.playerCount;
+        }
+        // Update UI tournament
+        allTournaments[index] = mapTournamentToUI(tournamentToUpdate);
+      }
+      // Re-filter if search is active
+      if (searchQuery) {
+        const filtered = allTournaments.filter((t) =>
+          t.name.toLowerCase().includes(searchQuery)
+        );
+        filteredTournaments = filtered;
+        filteredBackendTournaments = filtered
+          .map((uiTournament) => {
+            return allBackendTournaments.find(
+              (bt) => bt.uuid === uiTournament.id
+            );
+          })
+          .filter((bt): bt is BackendTournament => bt !== undefined);
+      } else {
+        filteredTournaments = [...allTournaments];
+        filteredBackendTournaments = [...allBackendTournaments];
+      }
+      updateTournamentGrid();
+    }
+  };
+
+  // Register socket listeners
+  tournamentSocket.on('tournament-created', handleTournamentCreated);
+  tournamentSocket.on('tournament-started', handleTournamentStarted);
+  tournamentSocket.on('tournament-joined', handleTournamentJoined);
+  tournamentSocket.on('tournament-left', handleTournamentLeft);
+  tournamentSocket.on('tournament-updated', handleTournamentUpdated);
+
+  // Join tournament list room (will fail gracefully if backend not ready)
+  tournamentSocket.joinTournamentList();
+
+  // Initial load
+  await loadTournaments();
 }

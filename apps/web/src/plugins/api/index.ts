@@ -1,9 +1,14 @@
 import UserAPI from './user.js';
-import TournamentApi from './tournament.js';
+import * as AuthAPI from './auth.js';
+import TournamentAPI from './tournaments.js';
+import FriendsAPI from './friends.js';
 
 const API = {
   ...UserAPI,
-  ...TournamentApi,
+  auth: AuthAPI,
+  tournaments: TournamentAPI,
+  friends: FriendsAPI,
 };
 
 export default API;
+export { AuthAPI };

@@ -5,6 +5,15 @@ import TournamentAPI from '../../plugins/api/tournaments.js';
 import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
 
+// Extend Window interface for SPA navigation
+declare global {
+  interface Window {
+    navigateToRoute?: (href: string) => void;
+    routeParams?: Record<string, string>;
+  }
+}
+
+// UI Match interface (mapped from backend)
 interface Match {
   id: string;
   opponent1: string;
@@ -12,6 +21,7 @@ interface Match {
   score1: number;
   score2: number;
   status: 'completed' | 'live' | 'upcoming';
+  hasNullPlayer?: boolean;
 }
 
 /**
@@ -113,8 +123,12 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
   } else {
     matches.forEach((match) => {
       const matchItem = document.createElement('div');
-      matchItem.className =
-        'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all hover:bg-white/10';
+      // Gray out matches with null players (automatic wins)
+      const baseClasses =
+        'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all';
+      matchItem.className = match.hasNullPlayer
+        ? `${baseClasses} opacity-50 grayscale`
+        : `${baseClasses} hover:bg-white/10`;
 
       matchItem.innerHTML = `
       <div class="flex items-center p-6">
@@ -283,7 +297,9 @@ export default async function initRoute() {
     onSettingsClick: () => {
       navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // Add back button
@@ -337,33 +353,54 @@ export default async function initRoute() {
       return;
     }
 
-    // Create player ID to nickname map from tournament participants
+    // Create player ID to alias map from tournament participants
+    // Use alias (from TournamentParticipations) as it's tournament-specific
     const playerMap = new Map<string, string>();
     if (tournament.participants) {
       tournament.participants.forEach((participant) => {
-        const nickname = participant.nickname || participant.email || 'Unknown';
-        playerMap.set(participant.uuid, nickname);
+        // Use alias if available (tournament-specific), otherwise fall back to nickname
+        const displayName =
+          (participant as { alias?: string }).alias ||
+          participant.nickname ||
+          (participant as { email?: string }).email ||
+          'Unknown';
+        playerMap.set(participant.uuid, displayName);
       });
     }
 
-    // Map matches to UI format with player nicknames
+    // Map matches to UI format with player aliases
     const uiMatches: Match[] = round.matches.map((match) => {
-      const opponent1 =
-        match.player1Id && playerMap.has(match.player1Id)
+      // Handle player1 - use alias from map, or show "Nobody" if null
+      const opponent1 = match.player1Id
+        ? playerMap.has(match.player1Id)
           ? (playerMap.get(match.player1Id) ?? 'Unknown')
-          : getPlayerNickname(match.player1, match.player1Id);
-      const opponent2 =
-        match.player2Id && playerMap.has(match.player2Id)
+          : getPlayerNickname(
+              (match as { player1?: { nickname?: string | null } }).player1,
+              match.player1Id
+            )
+        : 'Nobody';
+
+      // Handle player2 - use alias from map, or show "Nobody" if null
+      const opponent2 = match.player2Id
+        ? playerMap.has(match.player2Id)
           ? (playerMap.get(match.player2Id) ?? 'Unknown')
-          : getPlayerNickname(match.player2, match.player2Id);
+          : getPlayerNickname(
+              (match as { player2?: { nickname?: string | null } }).player2,
+              match.player2Id
+            )
+        : 'Nobody';
+
+      // Check if this match has a null player (automatic win)
+      const hasNullPlayer = opponent1 === 'Nobody' || opponent2 === 'Nobody';
 
       return {
         id: match.uuid,
         opponent1,
         opponent2,
-        score1: match.Score1 || 0,
-        score2: match.Score2 || 0,
+        score1: match.score1 || 0,
+        score2: match.score2 || 0,
         status: mapMatchStatusToUI(match.status),
+        hasNullPlayer,
       };
     });
 

@@ -12,6 +12,7 @@ export const createTournament = {
       tournamentName: Type.String({ minLength: 1 }),
       minPlayers: Type.Integer({ minimum: 2, maximum: 8 }),
       maxPlayers: Type.Integer({ minimum: 2, maximum: 16 }),
+      alias: Type.Optional(Type.String({ minLength: 1, maxLength: 50 })),
     },
     { additionalProperties: false }
   ),
@@ -51,7 +52,7 @@ export const joinTournament = {
   }),
   body: Type.Object({
     uuid: Type.Optional(Type.String()),
-    alias: Type.String({ minLength: 1, maxLength: 50 }),
+    alias: Type.Optional(Type.String({ minLength: 1, maxLength: 50 })),
   }),
 };
 export type joinTournamentBody = Static<typeof joinTournament.body>;

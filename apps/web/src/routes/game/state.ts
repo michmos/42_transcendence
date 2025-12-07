@@ -1,5 +1,31 @@
-const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d');
+// Canvas will be created dynamically, so we get it lazily
+let canvas: HTMLCanvasElement | null = null;
+let ctx: CanvasRenderingContext2D | null = null;
+
+function initCanvas() {
+  // Check if canvas exists and is still in the DOM
+  if (!canvas || !document.body.contains(canvas)) {
+    canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+    if (!canvas) {
+      throw new Error(
+        'Canvas not found — make sure canvas element exists with id="gameCanvas"'
+      );
+    }
+    ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Failed to get 2D context');
+    }
+  }
+  return { canvas, ctx };
+}
+
+/**
+ * Reset canvas references (called during cleanup when navigating away)
+ */
+export function resetCanvas() {
+  canvas = null;
+  ctx = null;
+}
 
 export let clientId = localStorage.getItem('transcendenceClientId');
 if (!clientId) {
@@ -55,6 +81,36 @@ export interface ServerState {
 
 export let role = 'spectator';
 
+// === Player nickname (session-only, not persisted) ===
+export let playerNickname: string | null = null;
+export let player1Nickname: string | null = null;
+export let player2Nickname: string | null = null;
+
+// === Setters ===
+export function setPlayerNickname(nickname: string | null) {
+  playerNickname = nickname;
+}
+
+export function getPlayerNickname(): string | null {
+  return playerNickname;
+}
+
+export function setPlayer1Nickname(nickname: string | null) {
+  player1Nickname = nickname;
+}
+
+export function getPlayer1Nickname(): string | null {
+  return player1Nickname;
+}
+
+export function setPlayer2Nickname(nickname: string | null) {
+  player2Nickname = nickname;
+}
+
+export function getPlayer2Nickname(): string | null {
+  return player2Nickname;
+}
+
 // === Connection state ===
 export let connectionState = 'connecting';
 export let reconnectAttempts = 0;
@@ -91,12 +147,12 @@ export function setNetworkBlocked(blocked: boolean) {
 
 // === Getters ===
 export function getCanvas() {
-  if (!canvas) throw new Error('Canvas not found — DOM not ready?');
-  return canvas;
+  const { canvas: c } = initCanvas();
+  return c;
 }
 export function getCtx() {
-  if (!ctx) throw new Error('Failed to get 2D context');
-  return ctx;
+  const { ctx: c } = initCanvas();
+  return c;
 }
 export function getClientId() {
   return clientId;
