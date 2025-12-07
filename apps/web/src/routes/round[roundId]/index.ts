@@ -4,6 +4,10 @@ import { handleLogout } from '../../utils/logout-handler.js';
 import TournamentAPI from '../../plugins/api/tournaments.js';
 import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
+import { getCurrentUserId } from '../../utils/auth-state.js';
+import { joinTournamentMatch } from '../game/buttonLogic.js';
+import tournamentSocket from '../../plugins/websocket/tournament.js';
+import toast from '../../utils/toast.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -22,6 +26,8 @@ interface Match {
   score2: number;
   status: 'completed' | 'live' | 'upcoming';
   hasNullPlayer?: boolean;
+  player1Id?: string | null;
+  player2Id?: string | null;
 }
 
 /**
@@ -104,7 +110,11 @@ function renderRoundHeader(
   container.appendChild(roundHeader);
 }
 
-function renderMatches(container: HTMLElement, matches: Match[]) {
+function renderMatches(
+  container: HTMLElement,
+  matches: Match[],
+  currentUserId: string | null
+) {
   const matchesCardContainer = document.createElement('div');
   const matchesCard = new Card(matchesCardContainer, {
     title: 'Matches',
@@ -122,6 +132,14 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
     `;
   } else {
     matches.forEach((match) => {
+      // Check if this match belongs to the current user
+      const isUserMatch =
+        currentUserId &&
+        (match.player1Id === currentUserId ||
+          match.player2Id === currentUserId);
+      const showBeginButton =
+        isUserMatch && match.status === 'upcoming' && !match.hasNullPlayer;
+
       const matchItem = document.createElement('div');
       // Gray out matches with null players (automatic wins)
       const baseClasses =
@@ -150,40 +168,54 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
           </div>
         </div>
 
-        <!-- Opponent 2 + Status Badge - Fixed width container -->
+        <!-- Opponent 2 + Status Badge/Button - Fixed width container -->
         <div class="flex-1 min-w-0 flex items-center justify-end gap-4">
           <!-- Opponent 2 -->
           <div class="text-right min-w-0">
             <p class="text-lg font-semibold text-white truncate">${match.opponent2}</p>
           </div>
 
-          <!-- Status Badge - Fixed width to ensure alignment -->
-          <div class="flex-shrink-0 w-24 flex justify-end" id="status-badge-${match.id}"></div>
+          <!-- Status Badge or Begin Button - Fixed width to ensure alignment -->
+          <div class="flex-shrink-0 flex justify-end gap-2" id="status-action-${match.id}"></div>
         </div>
       </div>
     `;
 
-      // Append status badge
-      const badgeContainer = matchItem.querySelector<HTMLElement>(
-        `#status-badge-${match.id}`
+      // Append status badge or begin button
+      const actionContainer = matchItem.querySelector<HTMLElement>(
+        `#status-action-${match.id}`
       );
-      if (badgeContainer) {
-        const statusText =
-          match.status === 'completed'
-            ? 'Final'
-            : match.status === 'live'
-              ? 'LIVE'
-              : 'Scheduled';
-        const variant =
-          match.status === 'completed'
-            ? 'success'
-            : match.status === 'live'
-              ? 'warning'
-              : 'default';
-        new Badge(badgeContainer, {
-          text: statusText,
-          variant: variant,
-        });
+      if (actionContainer) {
+        if (showBeginButton) {
+          // Add "Begin Match" button
+          const beginButton = document.createElement('button');
+          beginButton.className =
+            'px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors cursor-pointer font-semibold';
+          beginButton.textContent = 'Begin Match';
+          beginButton.addEventListener('click', () => {
+            joinTournamentMatch(match.id);
+            navigateTo('/game');
+          });
+          actionContainer.appendChild(beginButton);
+        } else {
+          // Add status badge
+          const statusText =
+            match.status === 'completed'
+              ? 'Final'
+              : match.status === 'live'
+                ? 'LIVE'
+                : 'Scheduled';
+          const variant =
+            match.status === 'completed'
+              ? 'success'
+              : match.status === 'live'
+                ? 'warning'
+                : 'default';
+          new Badge(actionContainer, {
+            text: statusText,
+            variant: variant,
+          });
+        }
       }
 
       matchesContainer.appendChild(matchItem);
@@ -286,21 +318,33 @@ export default async function initRoute() {
 
   // Fetch user data for navbar
   const userInfo = await UserAPI.getUserBasicInfo();
-  new Navbar(headerContainer, {
+  const navbarProps: {
+    title: string;
+    links: Array<{ label: string; href: string; active: boolean }>;
+    userNickname?: string;
+    userAvatar?: string | null;
+    onSettingsClick: () => void;
+    onLogoutClick: () => void;
+  } = {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userInfo?.nickname,
-    userAvatar: userInfo?.avatar || undefined,
     onSettingsClick: () => {
       navigateTo('/settings');
     },
     onLogoutClick: () => {
       void handleLogout();
     },
-  });
+  };
+  if (userInfo?.nickname) {
+    navbarProps.userNickname = userInfo.nickname;
+  }
+  if (userInfo?.avatar) {
+    navbarProps.userAvatar = userInfo.avatar;
+  }
+  new Navbar(headerContainer, navbarProps);
 
   // Add back button
   const backButtonContainer = document.createElement('div');
@@ -401,16 +445,71 @@ export default async function initRoute() {
         score2: match.score2 || 0,
         status: mapMatchStatusToUI(match.status),
         hasNullPlayer,
+        player1Id: match.player1Id,
+        player2Id: match.player2Id,
       };
     });
+
+    // Get current user ID
+    const currentUserId = getCurrentUserId();
 
     // Clear loading state and render content
     innerContainer.innerHTML = '';
 
     // Render sections
     renderRoundHeader(innerContainer, roundIndex, tournament.tournamentName);
-    renderMatches(innerContainer, uiMatches);
+    renderMatches(innerContainer, uiMatches, currentUserId);
     renderInfoCard(innerContainer);
+
+    // ===== TOURNAMENT SOCKET INTEGRATION =====
+    // Initialize tournament socket for real-time updates
+    tournamentSocket.initialize();
+
+    // Set up socket listeners for match begin notifications
+    const handleMatchUpdated = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid?: string;
+        uuid?: string;
+        roundIndex?: number;
+        match?: {
+          uuid: string;
+          player1Id?: string | null;
+          player2Id?: string | null;
+          status?: string;
+        };
+      };
+      const eventTournamentUuid = eventData.tournamentUuid || eventData.uuid;
+      if (eventTournamentUuid === tournamentId && eventData.match) {
+        const match = eventData.match;
+        // Check if this match belongs to the current user and status changed to ongoing
+        const isUserMatch =
+          currentUserId &&
+          (match.player1Id === currentUserId ||
+            match.player2Id === currentUserId);
+
+        if (isUserMatch && match.status === 'ongoing') {
+          // Find opponent name
+          const opponentId =
+            match.player1Id === currentUserId
+              ? match.player2Id
+              : match.player1Id;
+          const opponentName = opponentId
+            ? playerMap.get(opponentId) || 'Your opponent'
+            : 'Your opponent';
+
+          // Show toast notification
+          toast.show(`${opponentName} has begun the match!`, {
+            variant: 'info',
+          });
+        }
+      }
+    };
+
+    // Register socket listener
+    tournamentSocket.on('match-updated', handleMatchUpdated);
+
+    // Join specific tournament room to receive updates
+    tournamentSocket.joinTournament(tournamentId);
   } catch (error) {
     innerContainer.innerHTML = '';
     const errorMessage =

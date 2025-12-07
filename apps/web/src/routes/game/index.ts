@@ -189,11 +189,20 @@ export default async function initRoute() {
   controlsContainer.style.minHeight = '60px';
   canvasContainer.appendChild(controlsContainer);
 
-  // Show nickname input dialog before starting game (local = 2 players)
-  showLocalGameNicknameDialog(() => {
-    // Callback after nicknames are set - initialize game
+  // Check game type - only show nickname dialog for local games
+  const gameType = sessionStorage.getItem('gameType');
+  if (gameType === 'local') {
+    // Show nickname input dialog before starting game (local = 2 players)
+    showLocalGameNicknameDialog(() => {
+      // Callback after nicknames are set - initialize game
+      initializeGame();
+    });
+  } else {
+    // For online and tournament games, skip dialog and initialize directly
+    // Online games don't require alias input
+    // Tournament aliases are already set when joining/creating tournaments
     initializeGame();
-  });
+  }
 }
 
 /**

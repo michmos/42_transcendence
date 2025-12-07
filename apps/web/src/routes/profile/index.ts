@@ -15,6 +15,7 @@ import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
 import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
+import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -1219,16 +1220,18 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🎮',
     label: 'Play Locally',
     onClick: () => {
+      joinLocalMatch();
       navigateTo('/game');
     },
   });
 
-  // Play Online button - routes to waiting room
+  // Play Online button - routes to game page
   new QuickActionButton(actionsWrapper, {
     icon: '🌐',
     label: 'Play Online',
     onClick: () => {
-      navigateTo('/waiting-room');
+      joinOnlineMatch();
+      navigateTo('/game');
     },
   });
 
@@ -1419,8 +1422,16 @@ function showNewTournamentDialog() {
           alias,
         };
 
-        // Call API
+        // Call API to create tournament
         const tournament = await TournamentAPI.createTournament(tournamentData);
+
+        // Automatically join the tournament as creator
+        try {
+          await TournamentAPI.joinTournament(tournament.uuid, alias);
+        } catch (joinError) {
+          // If join fails, log but don't block navigation
+          console.error('Failed to auto-join tournament:', joinError);
+        }
 
         // Success - close dialog and navigate to new tournament
         closeDialog();
