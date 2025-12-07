@@ -44,7 +44,6 @@ export default function (app: FastifyInstance): void {
         JSON.stringify({
           event: 'tournament-started',
           uuid: request.body.tournamentUuid,
-          tournamentName: request.body.tournamentName,
         })
       );
 

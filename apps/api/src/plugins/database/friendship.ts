@@ -52,40 +52,24 @@ export async function modifyFriendsState(
   });
 }
 
-// export async function getFriendsMe(
-//   uuid: string
-// ): Promise<fullFriendshipRecord[]> {
-//   const foundRelations = await Database.friendship.findMany({
-//     where: {
-//       OR: [
-//         {
-//           AND: [
-//             {
-//               OR: [{ friendAId: uuid }, { friendBId: uuid }],
-//             },
-//             {
-//               OR: [{ state: 'ACCEPTED' }, { state: 'REQUESTED' }],
-//             },
-//           ],
-//         },
-//         { AND: [{ friendBId: uuid }, { state: 'REJECTED' }] },
-//       ],
-//     },
-//     include: {
-//       friendA: { select: { nickname: true, avatar: true } },
-//       friendB: { select: { nickname: true, avatar: true } },
-//     },
-//   });
-
-//   return foundRelations;
-// }
-
 export async function getFriendsMe(
   uuid: string
 ): Promise<fullFriendshipRecord[]> {
   const foundRelations = await Database.friendship.findMany({
     where: {
-      OR: [{ friendAId: uuid }, { friendBId: uuid }],
+      OR: [
+        {
+          AND: [
+            {
+              OR: [{ friendAId: uuid }, { friendBId: uuid }],
+            },
+            {
+              OR: [{ state: 'ACCEPTED' }, { state: 'REQUESTED' }],
+            },
+          ],
+        },
+        { AND: [{ friendBId: uuid }, { state: 'REJECTED' }] },
+      ],
     },
     include: {
       friendA: { select: { nickname: true, avatar: true } },

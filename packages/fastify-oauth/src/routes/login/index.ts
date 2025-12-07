@@ -38,6 +38,7 @@ function generateAuthUrl(
     access_type: 'offline',
     prompt: 'consent select_account',
   };
+
   return provider.oauth2Client.authorizeURL(payload);
 }
 
