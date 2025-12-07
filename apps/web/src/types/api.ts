@@ -24,9 +24,12 @@ export interface TournamentRound extends PrismaTournamentRound {
 
 export interface Tournament extends PrismaTournament {
   participants?: Array<{
-    uuid: string;
-    nickname?: string;
-    alias: string;
+    uuid: string; // Participation record UUID (not user UUID)
+    alias: string; // Tournament-specific alias
+    user: {
+      uuid: string; // User UUID
+      nickname?: string;
+    };
   }>;
   rounds?: TournamentRound[];
 }

@@ -252,16 +252,22 @@ function renderTournamentGrid(
       backendTournament.playerCount >= backendTournament.maxPlayers;
 
     // Check if user is participant
-    // Participants array should be included in backend response with uuid, nickname, and alias
+    // Participants array includes nested user structure from backend
     const participants: Array<{
-      uuid?: string;
-      nickname?: string;
+      uuid?: string; // Participation record ID (not user ID)
       alias?: string;
+      user?: {
+        uuid?: string; // User UUID
+        nickname?: string;
+      };
     }> = Array.isArray(backendTournament.participants)
       ? (backendTournament.participants as Array<{
           uuid?: string;
-          nickname?: string;
           alias?: string;
+          user?: {
+            uuid?: string;
+            nickname?: string;
+          };
         }>)
       : [];
 
@@ -277,8 +283,9 @@ function renderTournamentGrid(
       currentUserId: currentUserId || 'NOT LOGGED IN',
       participantsCount: participants.length,
       participants: participants.map(
-        (p: { uuid?: string; nickname?: string }) => ({
+        (p: { uuid?: string; userId?: string; nickname?: string }) => ({
           uuid: p?.uuid || 'NO UUID',
+          userId: p?.userId || 'NO USER_ID',
           nickname: p?.nickname || 'NO NICKNAME',
         })
       ),
@@ -288,32 +295,67 @@ function renderTournamentGrid(
       isFull,
     });
 
-    // Check if current user is in participants array
-    // Participants should have uuid property
+    // Check if current user is a participant
+    // We check:
+    // 1. participants array from backend (most reliable - source of truth)
+    // 2. sessionStorage for tournaments we created/joined (fallback for recently joined)
     let isParticipant = false;
+
+    // Debug: Log participant check details
+    console.log('Participant check for tournament:', {
+      tournamentId: tournament.id,
+      tournamentName: tournament.name,
+      currentUserId: currentUserId || 'NOT LOGGED IN',
+      participantsCount: participants.length,
+      participants: participants.map((p) => ({
+        participationUuid: p?.uuid, // Participation record ID
+        userUuid: p?.user?.uuid, // User UUID
+        alias: p?.alias,
+      })),
+    });
+
+    // PRIMARY CHECK: Check participants array from backend (source of truth)
     if (currentUserId && participants.length > 0) {
-      isParticipant = participants.some((p: { uuid?: string }) => {
-        const participantUuid = p?.uuid;
-        const matches = participantUuid === currentUserId;
-        if (matches) {
-          console.log('Found matching participant:', {
-            participantUuid,
-            currentUserId,
-          });
+      isParticipant = participants.some(
+        (p: { uuid?: string; user?: { uuid?: string } }) => {
+          // Use user.uuid (actual user ID from relation), NOT participant.uuid (participation record ID)
+          const participantId = p?.user?.uuid;
+          const matches = participantId === currentUserId;
+          if (matches) {
+            console.log('✓ Found matching participant in backend array:', {
+              participantId,
+              currentUserId,
+              alias: (p as { alias?: string }).alias,
+            });
+          }
+          return matches;
         }
-        return matches;
-      });
+      );
     }
 
-    console.log('Participant check result:', {
-      isParticipant,
-      currentUserId,
-      participantsLength: participants.length,
+    // FALLBACK CHECK: Check sessionStorage (for recently created/joined tournaments)
+    // Only use this if backend participants array is empty or not loaded yet
+    if (!isParticipant && currentUserId && participants.length === 0) {
+      const myTournaments = JSON.parse(
+        sessionStorage.getItem('myTournaments') || '[]'
+      ) as string[];
+      if (myTournaments.includes(tournament.id)) {
+        isParticipant = true;
+        console.log(
+          '✓ Found tournament in sessionStorage (recently created/joined, backend data not loaded yet):',
+          tournament.id
+        );
+      }
+    }
+
+    console.log('Final participant check result:', {
       tournamentId: tournament.id,
-      participants: participants.map((p) => ({
-        uuid: p?.uuid,
-        nickname: p?.nickname,
-      })),
+      isParticipant,
+      currentUserId: currentUserId || 'NOT LOGGED IN',
+      isOutstanding,
+      isFull,
+      willShowJoinButton:
+        !isParticipant && currentUserId && isOutstanding && !isFull,
     });
 
     // Check if minimum players have joined (for showing Start button)
@@ -434,8 +476,11 @@ function renderTournamentGrid(
                 </button>`;
               }
 
-              // 4. If user is logged in -> Show Join button
-              if (currentUserId) {
+              // 4. If user is logged in AND tournament is joinable -> Show Join button
+              // This should show for any logged-in user who is NOT a participant
+              if (currentUserId && isOutstanding && !isFull) {
+                // Double-check: if we somehow missed detecting participation, show Join anyway
+                // The backend will reject the join if they're already a participant
                 return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors font-medium cursor-pointer join-tournament-btn" data-tournament-id="${tournament.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -668,6 +713,18 @@ function showJoinTournamentDialog(
       try {
         await TournamentAPI.joinTournament(tournamentUuid, alias);
 
+        // Track that we're a participant in this tournament
+        const myTournaments = JSON.parse(
+          sessionStorage.getItem('myTournaments') || '[]'
+        ) as string[];
+        if (!myTournaments.includes(tournamentUuid)) {
+          myTournaments.push(tournamentUuid);
+          sessionStorage.setItem(
+            'myTournaments',
+            JSON.stringify(myTournaments)
+          );
+        }
+
         // Success - close dialog and refresh tournaments list
         closeDialog();
 
@@ -802,37 +859,41 @@ function showNewTournamentDialog() {
 
       // Validation
       if (!tournamentName) {
-        alert('Please enter a tournament name');
+        toast.show('Please enter a tournament name', { variant: 'error' });
         nameInput.focus();
         return;
       }
 
       if (!alias) {
-        alert('Please enter your alias for this tournament');
+        toast.show('Please enter your alias for this tournament', {
+          variant: 'error',
+        });
         aliasInput.focus();
         return;
       }
 
       if (alias.length > 50) {
-        alert('Alias must be 50 characters or less');
+        toast.show('Alias must be 50 characters or less', { variant: 'error' });
         aliasInput.focus();
         return;
       }
 
       if (isNaN(minPlayers) || minPlayers < 2) {
-        alert('Min players must be 2 or higher');
+        toast.show('Min players must be 2 or higher', { variant: 'error' });
         minSizeInput.focus();
         return;
       }
 
       if (isNaN(maxPlayers) || maxPlayers > 16) {
-        alert('Max players must be 16 or lower');
+        toast.show('Max players must be 16 or lower', { variant: 'error' });
         maxPlayersInput.focus();
         return;
       }
 
       if (maxPlayers < minPlayers) {
-        alert('Max players must be greater than or equal to min players');
+        toast.show('Max players must be greater than or equal to min players', {
+          variant: 'error',
+        });
         maxPlayersInput.focus();
         return;
       }
@@ -855,8 +916,27 @@ function showNewTournamentDialog() {
           alias,
         };
 
-        // Call API - creator is automatically added as participant
+        // Call API to create tournament
         const tournament = await TournamentAPI.createTournament(tournamentData);
+
+        // Auto-join the tournament as the creator
+        try {
+          await TournamentAPI.joinTournament(tournament.uuid, alias);
+          // Track that we're a participant in this tournament (in case backend list doesn't include participants)
+          const myTournaments = JSON.parse(
+            sessionStorage.getItem('myTournaments') || '[]'
+          ) as string[];
+          if (!myTournaments.includes(tournament.uuid)) {
+            myTournaments.push(tournament.uuid);
+            sessionStorage.setItem(
+              'myTournaments',
+              JSON.stringify(myTournaments)
+            );
+          }
+        } catch (joinError) {
+          // If join fails (e.g., already joined), log but don't fail the whole flow
+          console.warn('Auto-join after create failed:', joinError);
+        }
 
         // Success - close dialog and navigate to new tournament
         closeDialog();

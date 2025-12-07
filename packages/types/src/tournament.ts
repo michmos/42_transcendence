@@ -13,9 +13,21 @@
 import { type status } from 'db/generated/client/index.js';
 
 export interface TournamentRoundResponse {
+  uuid: string;
   status: status;
   index: number;
   matches: Array<{
     uuid: string;
+    status: status;
+    score1: number;
+    score2: number;
+    player1: {
+      uuid: string;
+      nickname: string | null;
+    } | null;
+    player2: {
+      uuid: string;
+      nickname: string | null;
+    } | null;
   }>;
 }

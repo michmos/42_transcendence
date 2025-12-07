@@ -70,6 +70,19 @@ function buildLeaderboard(
   // Get all participants
   const participants = tournament.participants || [];
 
+  // Debug logging
+  console.log('Building leaderboard:', {
+    tournamentId: tournament.uuid,
+    participantsCount: participants.length,
+    participants: participants.map((p) => ({
+      uuid: p.uuid,
+      userId: (p as { userId?: string }).userId,
+      user: (p as { user?: { uuid?: string; nickname?: string } }).user,
+      alias: (p as { alias?: string }).alias,
+      nickname: p.nickname,
+    })),
+  });
+
   // Calculate stats per player
   const playerStats = new Map<
     string,
@@ -78,18 +91,37 @@ function buildLeaderboard(
 
   // Initialize player stats
   participants.forEach((participant) => {
+    // Handle nested user structure (TournamentParticipations.user)
+    const user = (
+      participant as {
+        user?: { uuid?: string; nickname?: string };
+      }
+    ).user;
+
+    // Get participant ID - use user.uuid (the actual user ID), not participant.uuid (participation record ID)
+    const participantId = user?.uuid || null;
+
     // Use alias if available (from TournamentParticipations), otherwise fall back to nickname
     const displayName =
       (participant as { alias?: string }).alias ||
       participant.nickname ||
-      (participant as { email?: string }).email ||
+      user?.nickname ||
       'Unknown';
-    playerStats.set(participant.uuid, {
-      wins: 0,
-      losses: 0,
-      scoreDiff: 0,
-      nickname: displayName,
-    });
+
+    if (participantId) {
+      playerStats.set(participantId, {
+        wins: 0,
+        losses: 0,
+        scoreDiff: 0,
+        nickname: displayName,
+      });
+      console.log('Added participant to leaderboard:', {
+        participantId,
+        displayName,
+      });
+    } else {
+      console.warn('Skipping participant - no ID found:', participant);
+    }
   });
 
   // Process all matches from all rounds
@@ -250,6 +282,19 @@ function showJoinTournamentDialog(
 
       try {
         await TournamentAPI.joinTournament(tournamentUuid, alias);
+
+        // Track that we're a participant in this tournament
+        const myTournaments = JSON.parse(
+          sessionStorage.getItem('myTournaments') || '[]'
+        ) as string[];
+        if (!myTournaments.includes(tournamentUuid)) {
+          myTournaments.push(tournamentUuid);
+          sessionStorage.setItem(
+            'myTournaments',
+            JSON.stringify(myTournaments)
+          );
+        }
+
         // Success - close dialog and reload page to refresh tournament data
         closeDialog();
         window.location.reload();
@@ -305,13 +350,68 @@ function renderTournamentHeader(
   const currentUserId = getCurrentUserId();
   const participants = tournament.participants || [];
   let isParticipant = false;
+
+  // Debug logging
+  console.log('Tournament detail page - Participant check:', {
+    tournamentId: tournament.uuid,
+    tournamentName: tournament.tournamentName,
+    currentUserId: currentUserId || 'NOT LOGGED IN',
+    participantsCount: participants.length,
+    participants: participants.map((p) => ({
+      participationUuid: p?.uuid, // Participation record ID
+      userUuid: (p as { user?: { uuid?: string } }).user?.uuid, // User UUID
+      alias: (p as { alias?: string }).alias,
+    })),
+  });
+
+  // PRIMARY CHECK: Check participants array from backend (source of truth)
   if (currentUserId && participants.length > 0) {
-    isParticipant = participants.some((p) => p.uuid === currentUserId);
+    // Check nested user.uuid (actual user ID), NOT participant.uuid (participation record ID)
+    isParticipant = participants.some((p) => {
+      const user = (p as { user?: { uuid?: string } }).user;
+      // Only use user.uuid - DO NOT use p.uuid (that's participation record ID)
+      const participantId = user?.uuid;
+      const matches = participantId === currentUserId;
+      if (matches) {
+        console.log('✓ Found matching participant in backend array:', {
+          participantId,
+          currentUserId,
+          alias: (p as { alias?: string }).alias,
+        });
+      }
+      return matches;
+    });
+  }
+
+  // FALLBACK CHECK: Check sessionStorage (for recently created/joined tournaments)
+  // Only use this if backend participants array is empty or not loaded yet
+  if (!isParticipant && currentUserId && participants.length === 0) {
+    const myTournaments = JSON.parse(
+      sessionStorage.getItem('myTournaments') || '[]'
+    ) as string[];
+    if (myTournaments.includes(tournament.uuid)) {
+      isParticipant = true;
+      console.log(
+        '✓ Found tournament in sessionStorage (recently created/joined, backend data not loaded yet):',
+        tournament.uuid
+      );
+    }
   }
 
   const isOutstanding = tournament.status === 'outstanding';
   const isFull = tournament.playerCount >= tournament.maxPlayers;
   const hasMinPlayers = tournament.playerCount >= tournament.minPlayers;
+
+  console.log('Tournament detail page - Button logic:', {
+    isParticipant,
+    isOutstanding,
+    isFull,
+    hasMinPlayers,
+    currentUserId: currentUserId ? 'present' : 'null',
+    willShowJoinButton:
+      !isParticipant && currentUserId && isOutstanding && !isFull,
+    willShowStartButton: isParticipant && hasMinPlayers && isOutstanding,
+  });
 
   const buttonContainer = document.createElement('div');
 
@@ -756,6 +856,17 @@ export default async function initRoute() {
       renderErrorState(innerContainer, 'Tournament not found');
       return;
     }
+
+    // Debug: Log tournament data including participants
+    console.log('Fetched tournament:', {
+      uuid: tournament.uuid,
+      tournamentName: tournament.tournamentName,
+      playerCount: tournament.playerCount,
+      participants: tournament.participants,
+      participantsLength: tournament.participants?.length || 0,
+      participantsType: typeof tournament.participants,
+      participantsIsArray: Array.isArray(tournament.participants),
+    });
 
     currentTournament = tournament;
 
