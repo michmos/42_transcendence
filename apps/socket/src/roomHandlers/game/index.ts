@@ -296,6 +296,11 @@ const waitingList: WSocket[] = [];
 let lastGameId = 0; // TODO: replace with uuid from fetch Match (API Call)
 
 async function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
+  if (socketToGameroom.has(socket)) {
+    socket.consoleLog('tried to join a game while already in one');
+    socket.sendError('You can only be in one game at a time');
+    return;
+  }
   switch (message.room) {
     case 'game:online':
       if (waitingList.length > 0) {
