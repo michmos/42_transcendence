@@ -344,24 +344,29 @@ async function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
         socket.send('waiting for opponent');
         return;
       }
-    // case 'game:online':
-    // 	if (nobodyelsewaiting) {
-    // 		putOnWaitingList
-    // 		return;
-    // 	} else {
-    // 		otherSocket = getFistSocketFromWaitingList
-    // 		socket.joinRoom(${game:uuid});
-    // 		otherSocket.joinRoom(${game:uuid});
-    // 		RoomManager.get(${game:uuid})?.broadcast('game created: ${uuid}');
-    // 		return;
-    // 	}
-    // 	break;
-    // case 'game:local':
-    // 	handleLocalGame(socket);
-    // default:
-    // 	// tournament
-    // 	handleOnlineGame(socket1, socket2);
-    // 	break;
+    case 'game:local':
+      const newRoomName = `game:${lastGameId}`;
+      lastGameId++;
+
+      // join room
+      socket.join(newRoomName);
+
+      // send roles
+      sendRole(socket, newRoomName, 'local');
+
+      // update room data
+      updateGameRoomData(newRoomName, {
+        player1Uuid: socket.uuid,
+        isLocalGame: true,
+      });
+
+      // add to match map
+      socketToGameroom.set(socket, newRoomName);
+
+      // start match
+      gameLoop(newRoomName);
+      return;
+    case 'game:tournament':
   }
 }
 
