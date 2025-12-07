@@ -299,8 +299,11 @@ export function gameLoop(gameRoom: string) {
   const currentGameState = initGameState;
   updateGameRoomData(gameRoom, { currentGameState });
 
-  setInterval(() => {
+  const intervalId = setInterval(() => {
     updateGame(currentGameState);
+    if (currentGameState.gameOver) {
+      clearInterval(intervalId);
+    }
 
     // Broadcast updated game state to all clients in the room
     RoomManager.get(gameRoom)?.broadcast(
