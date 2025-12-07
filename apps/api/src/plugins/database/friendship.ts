@@ -95,7 +95,7 @@ export async function getFriendsUuid(uuid: string): Promise<string[]> {
   });
   return foundRelations.map((friendRecord) => {
     if (friendRecord.friendAId === uuid) return friendRecord.friendBId;
-    return friendRecord.friendAId;
+    else return friendRecord.friendAId;
   });
 }
 
