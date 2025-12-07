@@ -2,7 +2,7 @@ import { type FastifyInstance } from 'fastify';
 import * as schemas from './validation.js';
 import { type Match, Prisma } from 'db/generated/client/index.js';
 import { getPlayerName } from './utils.js';
-import { type MatchResponse } from 'types';
+import { type MatchResponse, type MatchParticipantsResponse } from 'types';
 import { isAdmin } from '../../plugins/auth/utils.js';
 
 export default function (app: FastifyInstance): void {
@@ -35,6 +35,32 @@ export default function (app: FastifyInstance): void {
         score2: match.score2,
       };
       return reply.status(200).send(matchResponse);
+    }
+  );
+
+  app.get<{ Params: schemas.singleUuidParam }>(
+    '/:uuid/participants',
+    {
+      schema: schemas.getMatch,
+      preHandler: (request, reply, done) => {
+        if (!isAdmin(request, reply)) {
+        }
+        done();
+        return;
+      },
+    },
+    async (request, reply) => {
+      const { uuid } = request.params;
+      const match: Match | null = await app.db.getMatch(uuid);
+      if (!match) {
+        return reply
+          .status(404)
+          .send({ error: `match ${request.params.uuid} not found` });
+      }
+      return reply.status(200).send({
+        player1Id: match.player1Id,
+        player2Id: match.player2Id,
+      } as MatchParticipantsResponse);
     }
   );
 
