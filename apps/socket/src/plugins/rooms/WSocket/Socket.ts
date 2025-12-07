@@ -105,14 +105,14 @@ export default class WSocket {
     if (!this.connected) {
       throw new Error('Cannot send error: socket is not connected');
     }
-    this.send(JSON.stringify({ status: 'error', message }));
+    this.send(JSON.stringify({ event: 'error', message }));
   }
 
   public sendSuccess() {
     if (!this.connected) {
       throw new Error('Cannot send success: socket is not connected');
     }
-    this.send(JSON.stringify({ status: 'success' }));
+    this.send(JSON.stringify({ event: 'success' }));
   }
 
   // general
