@@ -1,15 +1,31 @@
-// import WebSocket from 'ws';
-// import { type SocketMessage } from '../../plugins/rooms/index.js';
 import { type SocketMessageType } from '../../plugins/rooms/index.js';
-import { WSocket } from '../../plugins/rooms/WSocket/index.js';
+import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 
-import {
-  convertPlayertoLocal,
-  attachClient,
-  removeExpiredRoles,
-} from './player.js';
+export interface GameRoomData {
+  currentGameState: GameState;
+  isLocalGame: boolean;
+  player1Uuid: string;
+  player2Uuid: string;
+}
 
-import { updateGame, resetGame } from './game.js';
+export function updateGameRoomData(
+  roomName: string,
+  overrides: Partial<GameRoomData>
+) {
+  const room = RoomManager.get(roomName);
+  if (!room) return; // TODO: maybe throw
+
+  const currentData = room.getData() as GameRoomData;
+  const updatedData = {
+    ...currentData,
+    ...overrides,
+  };
+
+  room.setData(updatedData);
+  return updatedData;
+}
+
+import { updateGame } from './game.js';
 
 export const ROLE_EXPIRATION = 8000;
 export const PING = 1000;
@@ -19,7 +35,7 @@ export const GAME_TIME = 5;
 export const CANVAS_WIDTH = 800;
 export const CANVAS_HEIGHT = 600;
 
-interface GameState {
+export interface GameState {
   paddleWidth: number;
   paddleHeight: number;
   ballX: number;
@@ -38,7 +54,7 @@ interface GameState {
   gameStartTime: number | null;
 }
 
-export const gameState: GameState = {
+export const initGameState: GameState = {
   paddleWidth: 10,
   paddleHeight: 100,
   ballX: CANVAS_WIDTH / 2,
@@ -69,67 +85,57 @@ export enum Action {
   Reset = 'reset', // Resets all values back to default
 }
 
-export interface ClientRecord {
-  clientId: string;
-  role: 'local' | 'player1' | 'player2' | 'spectator';
-  // Spectator is just a placeholder, didn't want all connections to be able to control the paddles
-  webSocket: WSocket | null;
-  connected: boolean;
-  lastSeen: number;
-}
+function handleInput(message: SocketMessageType, socket: WSocket) {
+  const gameRoomData = RoomManager.get(message.room)?.getData() as GameRoomData;
+  if (!gameRoomData) {
+    // TODO: handle this error
+    throw new Error('No GameState data available');
+  }
+  const gameState = gameRoomData.currentGameState;
+  const role = gameRoomData.player1Uuid === socket.uuid ? 'player1' : 'player2';
 
-export const clientRecords = new Map<string, ClientRecord>();
-export const socketToClientId = new Map<WSocket, string>();
-
-function handleInput(
-  input: SocketMessageType,
-  record: ClientRecord,
-  socket: WSocket
-) {
-  //   console.log("handle input: ", input);
+  //   console.log("handle message: ", message);
   if (!gameState.gamePaused && !gameState.gameOver) {
     if (
-      input.data?.action === Action.Up &&
-      (record.role === 'player1' || record.role === 'local') &&
+      message.data?.action === Action.Up &&
+      (role === 'player1' || gameRoomData.isLocalGame) &&
       gameState.leftY > 0
     )
       gameState.leftY -= 5;
     if (
-      input.data?.action === Action.Down &&
-      (record.role === 'player1' || record.role === 'local') &&
+      message.data?.action === Action.Down &&
+      (role === 'player1' || gameRoomData.isLocalGame) &&
       gameState.leftY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.leftY += 5;
     if (
-      input.data?.action === Action.Up &&
-      record.role === 'player2' &&
+      message.data?.action === Action.Up &&
+      role === 'player2' &&
       gameState.rightY > 0
     )
       gameState.rightY -= 5;
     if (
-      input.data?.action === Action.Down &&
-      record.role === 'player2' &&
+      message.data?.action === Action.Down &&
+      role === 'player2' &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
     if (
-      input.data?.action === Action.UpRight &&
-      record.role === 'local' &&
+      message.data?.action === Action.UpRight &&
+      gameRoomData.isLocalGame &&
       gameState.rightY > 0
     )
       gameState.rightY -= 5;
     if (
-      input.data?.action === Action.DownRight &&
-      record.role === 'local' &&
+      message.data?.action === Action.DownRight &&
+      gameRoomData.isLocalGame &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
   }
   if (
-    input.data?.action === Action.Pause &&
-    (record.role === 'local' ||
-      record.role === 'player1' ||
-      record.role === 'player2')
+    message.data?.action === Action.Pause &&
+    (gameRoomData.isLocalGame || role === 'player1' || role === 'player2')
   ) {
     gameState.gamePaused = !gameState.gamePaused;
     if (!gameState.gamePaused && gameState.gameStartTime) {
@@ -142,403 +148,285 @@ function handleInput(
     }
     console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`);
   }
-  if (input.data?.action === Action.AI && record.role === 'local') {
+  if (message.data?.action === Action.AI && gameRoomData.isLocalGame) {
     gameState.aiEnabled = !gameState.aiEnabled;
     console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`);
   }
-  if (input.data?.action === Action.Hidden) {
-    console.log(`Client-${record.clientId} has hidden the game`);
-    record.connected = false;
-  }
-  if (input.data?.action === Action.Visible) {
-    attachClient(record.clientId, socket);
-  }
-  if (
-    input.data?.action === Action.Reset &&
-    (record.role === 'local' ||
-      record.role === 'player1' ||
-      record.role === 'player2')
-  ) {
-    resetGame();
-  }
 }
 
-// Global game update loop - runs once for the entire server
-setInterval(() => {
-  updateGame();
-  const data = JSON.stringify({
-    type: 'message',
-    room: 'game:testRoom',
-    data: {
-      subtype: 'state',
-      timestamp: Date.now(),
-      serverState: gameState,
-    },
-  });
+// function handleRoomInput(input: SocketMessageType, socket: WSocket) {
+//   const roomName = socket.gameRoom;
+//   if (!roomName) return;
 
-  // Send to all connected clients
-  for (const record of clientRecords.values()) {
-    if (record.webSocket) {
-      try {
-        record.webSocket.send(data);
-      } catch (error) {
-        // Handle send errors - client might have disconnected
-        console.log(
-          'Error sending to client:',
-          error instanceof Error ? error.message : 'Unknown error'
-        );
-      }
-    }
-  }
-}, 1000 / 60);
+//   const room = RoomManager.get(roomName);
+//   if (!room) return;
 
-// Check roles on ping interval
-setInterval(removeExpiredRoles, PING);
+//   const data = populateRoomData(roomName);
+//   const record = data.socketToClientId.get(socket)
+//     ? data.clientRecords.get(data.socketToClientId.get(socket)!)
+//     : null;
 
-function sendRole(socket: WSocket): ClientRecord {
-  const clientId = socket.uuid;
-  const record = attachClient(clientId, socket);
-  socket.send(
-    JSON.stringify({
-      type: 'message',
-      room: 'game:testRoom',
-      data: {
-        subtype: 'role',
-        role: record.role,
-        clientId: record.clientId,
-      },
-    })
-  );
-  return record;
-}
+//   if (!record) return;
 
-export default {
-  onStartup: () => {
-    console.log('This code is being run on server start');
-    // e.g. fetching api for ongoing tournaments
-  },
-  onOpen: (socket: WSocket) => {
-    console.log('This code is run if a socket connects to the server');
-    const record = sendRole(socket);
-    console.log(
-      `${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`
-    );
-    // socket.join('tournament:main');
-  },
-  onMessage: (socket: WSocket, message: SocketMessageType) => {
-    // console.log('This code is run if a socket sends a message TO THIS HANDLER');
-    if (message.data?.subtype === 'connect') {
-      sendRole(socket);
-    }
-    try {
-      const clientId = socketToClientId.get(socket);
-      if (clientId) {
-        const record = clientRecords.get(clientId);
-        console.log(`Role: "${record?.role}"`);
-        console.log(message);
-        if (record) {
-          record.lastSeen = Date.now();
-          handleInput(message, record, socket);
-        }
-      }
-    } catch (err) {
-      console.error('Error handling client message: ', err);
-    }
-  },
-  onClose: (socket: WSocket) => {
-    // Clean up client from maps when socket closes
-    const clientId = socketToClientId.get(socket);
-    if (clientId) {
-      const record = clientRecords.get(clientId);
-      if (record) {
-        const wasPlayer1 = record.role === 'player1'; // Track if this was player1
-        const wasPlayer2 = record.role === 'player2'; // Track if this was player2
+//   const gameState = data.gameState;
 
-        record.webSocket = null;
-        record.connected = false;
-        record.lastSeen = Date.now();
-        clientRecords.set(clientId, record);
-        if (record.role === 'spectator') {
-          console.log(`Client-${clientId} disconnected`);
-          clientRecords.delete(clientId);
-        } else
-          console.log(
-            `${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
-          );
-        // If player2 disconnected, convert player1 back to local
-        if (wasPlayer2) {
-          convertPlayertoLocal(1);
-        }
-        if (wasPlayer1) {
-          convertPlayertoLocal(2);
-        }
-      }
-      socketToClientId.delete(socket);
-    }
-    console.log('This code is run if a socket disconnects from a server');
-    // e.g. remove him from tournament rooms (or leave him in)
-  },
-};
-
-// import WebSocket from 'ws';
-// import { type SocketMessageType } from '../../plugins/rooms/index.js';
-
-// import { attachClient, removeExpiredRoles } from './player.js';
-
-// import { updateGame, resetGame } from './game.js';
-
-// export const ROLE_EXPIRATION = 8000;
-// export const PING = 1000;
-// export const PING_TIMEOUT = 5000;
-// export const GAME_TIME = 5;
-
-// export const CANVAS_WIDTH = 800;
-// export const CANVAS_HEIGHT = 600;
-
-// interface GameState {
-//   paddleWidth: number;
-//   paddleHeight: number;
-//   ballX: number;
-//   ballY: number;
-//   ballSpeedX: number;
-//   ballSpeedY: number;
-//   ballPaused: boolean;
-//   leftY: number;
-//   rightY: number;
-//   gamePaused: boolean;
-//   leftScore: number;
-//   rightScore: number;
-//   gameOver: boolean;
-//   aiEnabled: boolean;
-//   timeRemaining: number;
-//   gameStartTime: number | null;
-// }
-
-// export const gameState: GameState = {
-//   paddleWidth: 10,
-//   paddleHeight: 100,
-//   ballX: CANVAS_WIDTH / 2,
-//   ballY: CANVAS_HEIGHT / 2,
-//   ballSpeedX: 6,
-//   ballSpeedY: 0,
-//   ballPaused: false,
-//   leftY: 250,
-//   rightY: 250,
-//   gamePaused: true,
-//   leftScore: 0,
-//   rightScore: 0,
-//   gameOver: false,
-//   aiEnabled: false,
-//   timeRemaining: GAME_TIME * 60 * 1000,
-//   gameStartTime: null,
-// };
-
-// enum Action {
-//   Up = 'up',
-//   Down = 'down',
-//   UpRight = 'up_r', // Only for local play, single keyboard input uses O&L for player2
-//   DownRight = 'down_r', // Only for local play, single keyboard input uses O&L for player2
-//   Pause = 'pause', // Pauses game on both sides
-//   AI = 'ai', // Turns on "AI", opponent paddle tracks the ball automatically
-//   Hidden = 'hidden', // Player switches tab or window, so no longer active in game
-//   Visible = 'visible', // Player is active in game again
-//   Reset = 'reset', // Resets all values back to default
-// }
-
-// export interface ClientRecord {
-//   clientId: string;
-//   role: 'local' | 'player1' | 'player2' | 'spectator';
-//   // Spectator is just a placeholder, didn't want all connections to be able to control the paddles
-//   webSocket: WebSocket | null;
-//   connected: boolean;
-//   lastSeen: number;
-// }
-
-// export const clientRecords = new Map<string, ClientRecord>();
-// export const socketToClientId = new Map<WebSocket, string>();
-
-// function handleInput(
-//   input: { type: string; action: Action },
-//   record: ClientRecord,
-//   socket: WebSocket
-// ) {
+//   console.log("handle room input: ", gameState);
+//   // Player movement
 //   if (!gameState.gamePaused && !gameState.gameOver) {
 //     if (
-//       input.action === Action.Up &&
+//       input.data?.action === Action.Up &&
 //       (record.role === 'player1' || record.role === 'local') &&
 //       gameState.leftY > 0
 //     )
 //       gameState.leftY -= 5;
 //     if (
-//       input.action === Action.Down &&
+//       input.data?.action === Action.Down &&
 //       (record.role === 'player1' || record.role === 'local') &&
 //       gameState.leftY < CANVAS_HEIGHT - gameState.paddleHeight
 //     )
 //       gameState.leftY += 5;
 //     if (
-//       input.action === Action.Up &&
+//       input.data?.action === Action.Up &&
 //       record.role === 'player2' &&
 //       gameState.rightY > 0
 //     )
 //       gameState.rightY -= 5;
 //     if (
-//       input.action === Action.Down &&
+//       input.data?.action === Action.Down &&
 //       record.role === 'player2' &&
 //       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
 //     )
 //       gameState.rightY += 5;
+
+//     // Local 2-player right paddle
 //     if (
-//       input.action === Action.UpRight &&
+//       input.data?.action === Action.UpRight &&
 //       record.role === 'local' &&
 //       gameState.rightY > 0
 //     )
 //       gameState.rightY -= 5;
 //     if (
-//       input.action === Action.DownRight &&
+//       input.data?.action === Action.DownRight &&
 //       record.role === 'local' &&
 //       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
 //     )
 //       gameState.rightY += 5;
 //   }
-//   if (
-//     input.action === Action.Pause &&
-//     (record.role === 'local' ||
-//       record.role === 'player1' ||
-//       record.role === 'player2')
-//   ) {
-//     gameState.gamePaused = !gameState.gamePaused;
-//     if (!gameState.gamePaused && gameState.gameStartTime) {
-//       // Resume timer - adjust start time to account for pause duration
-//       const pausedDuration =
-//         Date.now() -
-//         (gameState.gameStartTime +
-//           (GAME_TIME * 60 * 1000 - gameState.timeRemaining));
-//       gameState.gameStartTime += pausedDuration;
-//     }
-//     console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`);
-//   }
-//   if (input.action === Action.AI && record.role === 'local') {
-//     gameState.aiEnabled = !gameState.aiEnabled;
-//     console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`);
-//   }
-//   if (input.action === Action.Hidden) {
-//     console.log(`Client-${record.clientId} has hidden the game`);
-//     record.connected = false;
-//   }
-//   if (input.action === Action.Visible) {
-//     attachClient(record.clientId, socket);
-//   }
-//   if (
-//     input.action === Action.Reset &&
-//     (record.role === 'local' ||
-//       record.role === 'player1' ||
-//       record.role === 'player2')
-//   ) {
-//     resetGame();
-//   }
-// }
 
-// // Global game update loop - runs once for the entire server
-// setInterval(() => {
-//   updateGame();
-//   const data = JSON.stringify({
-//     type: 'state',
-//     timestamp: Date.now(),
-//     ...gameState,
-//   });
-
-//   // Send to all connected clients
-//   for (const record of clientRecords.values()) {
-//     if (record.webSocket) {
-//       try {
-//         record.webSocket.send(data);
-//       } catch (error) {
-//         // Handle send errors - client might have disconnected
-//         console.log(
-//           'Error sending to client:',
-//           error instanceof Error ? error.message : 'Unknown error'
-//         );
+//   // Pause
+//   if ([record.role].some((r) => ['local', 'player1', 'player2'].includes(r))) {
+//     if (input.data?.action === Action.Pause) {
+//       gameState.gamePaused = !gameState.gamePaused;
+//       if (!gameState.gamePaused && gameState.gameStartTime) {
+//         const pausedDuration =
+//           Date.now() -
+//           (gameState.gameStartTime +
+//             (GAME_TIME * 60 * 1000 - gameState.timeRemaining));
+//         gameState.gameStartTime += pausedDuration;
 //       }
 //     }
 //   }
-// }, 1000 / 60);
 
-// export default async function (
-//   socket: WebSocket,
-//   message: SocketMessageType
-// ): Promise<void> {
-//   // Check roles on ping interval
-//   setInterval(removeExpiredRoles, PING);
-
-//   // handle incoming message
-//   try {
-//     const input = JSON.parse(message.toString());
-//     // console.log(input);
-
-//     if (input.type === 'connect') {
-//       const clientId =
-//         input.clientId || `anon-${Math.random().toString(36).slice(2, 10)}`;
-//       const record = attachClient(clientId, socket);
-//       socket.send(
-//         JSON.stringify({
-//           type: 'role',
-//           role: record.role,
-//           clientId: record.clientId,
-//         })
-//       );
-//       console.log(
-//         `Client-${record.clientId} connected at ${new Date(record.lastSeen).toLocaleString()} as "${record.role}"`
-//       );
-//     }
-
-//     const clientId = socketToClientId.get(socket);
-//     if (clientId) {
-//       const record = clientRecords.get(clientId);
-//       if (record) {
-//         record.lastSeen = Date.now();
-//         if (!record.connected) {
-//           record.connected = true;
-//           record.webSocket = socket;
-//           console.log(`Client-${record.clientId} reconnected`);
-//         }
-//       } else return;
-
-//       handleInput(input, record, socket);
-//     }
-//   } catch (err) {
-//     console.error('Error handling client message: ', err);
+//   // AI toggle
+//   if (input.data?.action === Action.AI && record.role === 'local') {
+//     gameState.aiEnabled = !gameState.aiEnabled;
 //   }
 
-//   // TODO: this logic is general (not game specific) and needs to be externalized
-//   // socket.on('close', () => {
-//   //   // Clean up client from maps when socket closes
-//   //   const clientId = socketToClientId.get(socket);
-//   //   if (clientId) {
-//   //     const record = clientRecords.get(clientId);
-//   //     if (record) {
-//   //       const wasPlayer1 = record.role === 'player1'; // Track if this was player1
-//   //       const wasPlayer2 = record.role === 'player2'; // Track if this was player2
-//   //
-//   //       record.webSocket = null;
-//   //       record.connected = false;
-//   //       record.lastSeen = Date.now();
-//   //       clientRecords.set(clientId, record);
-//   //       if (record.role === 'spectator') {
-//   //         console.log(`Client-${clientId} disconnected`);
-//   //         clientRecords.delete(clientId);
-//   //       } else
-//   //         console.log(
-//   //           `Client-${clientId} disconnected; role "${record.role}" reserved for ${ROLE_EXPIRATION / 1000}s`
-//   //         );
-//   //       // If player2 disconnected, convert player1 back to local
-//   //       if (wasPlayer2) {
-//   //         convertPlayertoLocal(1);
-//   //       }
-//   //       if (wasPlayer1) {
-//   //         convertPlayertoLocal(2);
-//   //       }
-//   //     }
-//   //     socketToClientId.delete(socket);
-//   //   }
-//   // });
+// //   // Hidden / Visible
+// //   if (input.data?.action === Action.Hidden) record.connected = false;
+// //   if (input.data?.action === Action.Visible) {
+// //     attachClientToRoom(record.clientId, socket, roomName);
+// //   }
+
+//   // Reset game
+//   if (input.data?.action === Action.Reset) {
+//     data.gameState = initGameState();
+//   }
+
+//   // Persist mutations
+//   room.setData(data);
 // }
+
+// Global game update loop - runs once for the entire server
+
+function gameLoop(gameRoom: string) {
+  const currentGameState = initGameState;
+  updateGameRoomData(gameRoom, { currentGameState });
+
+  setInterval(() => {
+    updateGame(currentGameState);
+
+    // Broadcast updated game state to all clients in the room
+    RoomManager.get(gameRoom)?.broadcast(
+      JSON.stringify({
+        type: 'message',
+        room: gameRoom,
+        data: {
+          subtype: 'state',
+          timestamp: Date.now(),
+          serverState: currentGameState,
+        },
+      })
+    );
+  }, 1000 / 60);
+}
+
+// // Check roles on ping interval
+// setInterval(removeExpiredRoles, PING);
+
+function sendRole(
+  socket: WSocket,
+  roomName: string,
+  role: 'local' | 'player1' | 'player2'
+) {
+  socket.send(
+    JSON.stringify({
+      type: 'message',
+      room: roomName,
+      data: {
+        subtype: 'role',
+        role,
+        clientId: socket.uuid,
+      },
+    })
+  );
+}
+
+const waitingList: WSocket[] = [];
+let lastGameId = 0; // TODO: replace with uuid from fetch Match (API Call)
+
+async function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
+  switch (message.room) {
+    case 'game:online':
+      if (waitingList.length > 0) {
+        console.log('starting new game');
+        // get opponent
+        const otherSocket = waitingList.pop();
+        if (!otherSocket) {
+          throw new Error('No opponent found in waiting list');
+        }
+
+        const newRoomName = `game:${lastGameId}`;
+        lastGameId++;
+
+        // join room
+        socket.join(newRoomName);
+        otherSocket!.join(newRoomName); // TODO: rmv !
+
+        // send roles
+        sendRole(socket, newRoomName, 'player1');
+        updateGameRoomData(newRoomName, {
+          player1Uuid: socket.uuid,
+          isLocalGame: false,
+        });
+        sendRole(otherSocket, newRoomName, 'player2');
+        updateGameRoomData(newRoomName, { player2Uuid: otherSocket.uuid });
+
+        // add to match map
+        socketToGameroom.set(socket, newRoomName);
+        socketToGameroom.set(otherSocket, newRoomName);
+
+        // notify clients
+        RoomManager.get(newRoomName)?.broadcast(
+          JSON.stringify({
+            event: 'room-created',
+            uuid: newRoomName,
+          })
+        );
+
+        // start match
+        gameLoop(newRoomName);
+        return;
+      } else {
+        console.log('adding socket to waiting list');
+        // add to waiting list
+        waitingList.push(socket);
+        socket.send('waiting for opponent');
+        return;
+      }
+    // case 'game:online':
+    // 	if (nobodyelsewaiting) {
+    // 		putOnWaitingList
+    // 		return;
+    // 	} else {
+    // 		otherSocket = getFistSocketFromWaitingList
+    // 		socket.joinRoom(${game:uuid});
+    // 		otherSocket.joinRoom(${game:uuid});
+    // 		RoomManager.get(${game:uuid})?.broadcast('game created: ${uuid}');
+    // 		return;
+    // 	}
+    // 	break;
+    // case 'game:local':
+    // 	handleLocalGame(socket);
+    // default:
+    // 	// tournament
+    // 	handleOnlineGame(socket1, socket2);
+    // 	break;
+  }
+}
+
+const socketToGameroom = new Map<WSocket, string>();
+
+function leaveGamePage(socket: WSocket) {
+  // remove from waitlist if on there
+  const waitingListIndex = waitingList.findIndex((v) => v === socket);
+  if (waitingListIndex > -1) {
+    waitingList.splice(waitingListIndex, 1);
+  }
+  console.log('socket removed from waitinglist');
+
+  // remove from game if in there
+  const gameRoomName = socketToGameroom.get(socket);
+  if (gameRoomName) {
+    const gameData = RoomManager.get(gameRoomName)?.getData() as GameRoomData;
+    if (!gameData) {
+      // TODO: maybe handle error
+      throw new Error('Runtime error: getData()');
+    }
+    const gameState = gameData.currentGameState;
+    const isLeftPlayer: boolean =
+      gameData.player1Uuid === socket.uuid ? true : false;
+
+    updateGameRoomData(gameRoomName, {
+      currentGameState: {
+        ...gameState,
+        gameOver: true,
+        leftScore: isLeftPlayer ? 0 : 10,
+        rightScore: isLeftPlayer ? 10 : 0,
+      },
+    });
+    console.log('socket removed from game');
+  }
+}
+
+export default {
+  // onStartup: () => {
+  //   console.log('This code is being run on server start');
+  //   // e.g. fetching api for ongoing tournaments
+  // },
+  // onOpen: (socket: WSocket) => {
+  //   console.log('This code is run if a socket connects to the server');
+  //   // socket.join('tournament:main');
+  // },
+  onMessage: (socket: WSocket, message: SocketMessageType) => {
+    // console.log('This code is run if a socket sends a message TO THIS HANDLER');
+    switch (message.type) {
+      case 'join-room':
+        return handleJoinRoom(socket, message);
+      case 'leave-room':
+        if (socket.isInRoom(message.room)) {
+          leaveGamePage(socket);
+        }
+        break;
+      case 'message':
+        if (socket.isInRoom(message.room)) {
+          handleInput(message, socket);
+        }
+        break;
+    }
+  },
+
+  onClose: (socket: WSocket) => {
+    leaveGamePage(socket);
+  },
+};

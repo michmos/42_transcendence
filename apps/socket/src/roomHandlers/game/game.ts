@@ -1,6 +1,7 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, gameState } from './index.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './index.js';
+import { type GameState } from './index.js';
 
-import { resetTimer, updateTimer, startGameTimer } from './timer.js';
+import { updateTimer, startGameTimer } from './timer.js';
 
 const BALL_SIZE = 10;
 const PADDLE_SEGMENTS = 21;
@@ -61,28 +62,36 @@ const collisionVectors = [
 ];
 
 function getVector(
-  ballY: number,
-  paddleY: number,
+  currentGameState: GameState,
   isLeftPaddle: boolean
 ): { x: number; y: number } {
   // Playtested numbers to throw curveballs if a round takes too long
   if (bounceCount === 17 || bounceCount === 20 || bounceCount === 23) {
     if (isLeftPaddle) {
-      if (gameState.leftY < CANVAS_HEIGHT / 2 - gameState.paddleHeight / 2)
+      if (
+        currentGameState.leftY <
+        CANVAS_HEIGHT / 2 - currentGameState.paddleHeight / 2
+      )
         return collisionVectors[0] ?? { x: 0, y: 0 };
       else {
         return collisionVectors[PADDLE_SEGMENTS - 1] ?? { x: 0, y: 0 };
       }
     } else {
-      if (gameState.rightY < CANVAS_HEIGHT / 2 - gameState.paddleHeight / 2)
+      if (
+        currentGameState.rightY <
+        CANVAS_HEIGHT / 2 - currentGameState.paddleHeight / 2
+      )
         return collisionVectors[PADDLE_SEGMENTS] ?? { x: 0, y: 0 };
       else {
         return collisionVectors[2 * PADDLE_SEGMENTS - 1] ?? { x: 0, y: 0 };
       }
     }
   }
-  const relativeY = ballY - paddleY;
-  const segmentHeight = gameState.paddleHeight / PADDLE_SEGMENTS;
+  const relativeY =
+    currentGameState.ballY +
+    BALL_SIZE / 2 -
+    (isLeftPaddle ? currentGameState.leftY : currentGameState.rightY);
+  const segmentHeight = currentGameState.paddleHeight / PADDLE_SEGMENTS;
 
   let segment = Math.floor(relativeY / segmentHeight);
   segment = Math.max(0, Math.min(PADDLE_SEGMENTS - 1, segment));
@@ -93,26 +102,29 @@ function getVector(
   return collisionVectors[vectorIndex] ?? { x: 0, y: 0 };
 }
 
-export function updateGame() {
-  if (gameState.gameOver) return;
+export function updateGame(currentGameState: GameState) {
+  if (currentGameState.gameOver) return;
 
-  updateTimer();
+  updateTimer(currentGameState);
 
-  if (gameState.gamePaused) return;
+  if (currentGameState.gamePaused) return;
 
-  if (!gameState.ballPaused) {
-    startGameTimer();
-    gameState.ballX -= gameState.ballSpeedX * gameSpeed;
-    gameState.ballY -= gameState.ballSpeedY * gameSpeed;
+  if (!currentGameState.ballPaused) {
+    startGameTimer(currentGameState);
+    currentGameState.ballX -= currentGameState.ballSpeedX * gameSpeed;
+    currentGameState.ballY -= currentGameState.ballSpeedY * gameSpeed;
   }
 
-  if (gameState.ballX <= 0 || gameState.ballX >= CANVAS_WIDTH - BALL_SIZE) {
+  if (
+    currentGameState.ballX <= 0 ||
+    currentGameState.ballX >= CANVAS_WIDTH - BALL_SIZE
+  ) {
     // // Left and right collision
     // gameState.ballSpeedX *= -1;
-    if (gameState.ballX <= 0) gameState.rightScore++;
-    else gameState.leftScore++;
+    if (currentGameState.ballX <= 0) currentGameState.rightScore++;
+    else currentGameState.leftScore++;
 
-    const totalScore = gameState.rightScore + gameState.leftScore;
+    const totalScore = currentGameState.rightScore + currentGameState.leftScore;
     // console.log(totalScore);
     if ((totalScore + 2) % 3 === 0) baseGameSpeed += 0.1;
     baseGameSpeed = Math.min(baseGameSpeed, 1.6);
@@ -126,41 +138,42 @@ export function updateGame() {
       gameSpeed
     );
 
-    gameState.ballX = CANVAS_WIDTH / 2 - BALL_SIZE / 2;
-    gameState.ballY = CANVAS_HEIGHT / 2 - BALL_SIZE / 2;
-    gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -6 : 6;
-    gameState.ballSpeedY = Math.random() > 0.5 ? -Math.random() : Math.random();
+    currentGameState.ballX = CANVAS_WIDTH / 2 - BALL_SIZE / 2;
+    currentGameState.ballY = CANVAS_HEIGHT / 2 - BALL_SIZE / 2;
+    currentGameState.ballSpeedX = currentGameState.ballSpeedX > 0 ? -6 : 6;
+    currentGameState.ballSpeedY =
+      Math.random() > 0.5 ? -Math.random() : Math.random();
 
     // gameState.ballSpeedX = gameState.ballSpeedX > 0 ? -gameState.ballSpeedX : gameState.ballSpeedX; //reverse direction after scoring a point
-    gameState.ballPaused = true;
+    currentGameState.ballPaused = true;
 
     setTimeout(() => {
-      gameState.ballPaused = false;
+      currentGameState.ballPaused = false;
     }, 1000);
   }
 
   // Top and bottom collision
-  if (gameState.ballY <= 0 || gameState.ballY >= CANVAS_HEIGHT - BALL_SIZE) {
-    gameState.ballSpeedY *= -1;
+  if (
+    currentGameState.ballY <= 0 ||
+    currentGameState.ballY >= CANVAS_HEIGHT - BALL_SIZE
+  ) {
+    currentGameState.ballSpeedY *= -1;
   }
 
   // Left paddle collision
   if (
-    gameState.ballX <= gameState.paddleWidth &&
-    gameState.ballY + BALL_SIZE >= gameState.leftY &&
-    gameState.ballY <= gameState.leftY + gameState.paddleHeight &&
-    gameState.ballY > 0 &&
-    gameState.ballY < CANVAS_HEIGHT - BALL_SIZE
+    currentGameState.ballX <= currentGameState.paddleWidth &&
+    currentGameState.ballY + BALL_SIZE >= currentGameState.leftY &&
+    currentGameState.ballY <=
+      currentGameState.leftY + currentGameState.paddleHeight &&
+    currentGameState.ballY > 0 &&
+    currentGameState.ballY < CANVAS_HEIGHT - BALL_SIZE
   ) {
     // gameState.ballSpeedX *= -1;
     const offset = Math.random() > 0.5 ? -0.1 : 0.1;
-    const vector = getVector(
-      gameState.ballY + BALL_SIZE / 2,
-      gameState.leftY,
-      true
-    );
-    gameState.ballSpeedX = vector.x;
-    gameState.ballSpeedY = vector.y + offset;
+    const vector = getVector(currentGameState, true);
+    currentGameState.ballSpeedX = vector.x;
+    currentGameState.ballSpeedY = vector.y + offset;
     bounceCount++;
     if (bounceCount >= 10) {
       const bounceSpeedIncrease = (bounceCount - 9) * 0.1;
@@ -179,21 +192,19 @@ export function updateGame() {
 
   // Right paddle collision
   if (
-    gameState.ballX + BALL_SIZE >= CANVAS_WIDTH - gameState.paddleWidth &&
-    gameState.ballY + BALL_SIZE >= gameState.rightY &&
-    gameState.ballY <= gameState.rightY + gameState.paddleHeight &&
-    gameState.ballY > 0 &&
-    gameState.ballY < CANVAS_HEIGHT - BALL_SIZE
+    currentGameState.ballX + BALL_SIZE >=
+      CANVAS_WIDTH - currentGameState.paddleWidth &&
+    currentGameState.ballY + BALL_SIZE >= currentGameState.rightY &&
+    currentGameState.ballY <=
+      currentGameState.rightY + currentGameState.paddleHeight &&
+    currentGameState.ballY > 0 &&
+    currentGameState.ballY < CANVAS_HEIGHT - BALL_SIZE
   ) {
     // gameState.ballSpeedX *= -1;
     const offset = Math.random() > 0.5 ? -0.1 : 0.1;
-    const vector = getVector(
-      gameState.ballY + BALL_SIZE / 2,
-      gameState.rightY,
-      false
-    );
-    gameState.ballSpeedX = vector.x;
-    gameState.ballSpeedY = vector.y + offset;
+    const vector = getVector(currentGameState, false);
+    currentGameState.ballSpeedX = vector.x;
+    currentGameState.ballSpeedY = vector.y + offset;
     bounceCount++;
     if (bounceCount >= 10) {
       const bounceSpeedIncrease = (bounceCount - 9) * 0.1; // +0.1 for each bounce after 10
@@ -210,18 +221,20 @@ export function updateGame() {
     );
   }
 
-  if (gameState.aiEnabled) {
+  if (currentGameState.aiEnabled) {
     if (
-      gameState.rightY + gameState.paddleHeight / 2 < gameState.ballY &&
-      gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
+      currentGameState.rightY + currentGameState.paddleHeight / 2 <
+        currentGameState.ballY &&
+      currentGameState.rightY < CANVAS_HEIGHT - currentGameState.paddleHeight
     ) {
-      gameState.rightY += 4;
+      currentGameState.rightY += 4;
     }
     if (
-      gameState.rightY + gameState.paddleHeight / 2 > gameState.ballY &&
-      gameState.rightY > 0
+      currentGameState.rightY + currentGameState.paddleHeight / 2 >
+        currentGameState.ballY &&
+      currentGameState.rightY > 0
     ) {
-      gameState.rightY -= 4;
+      currentGameState.rightY -= 4;
     }
     // if (gameState.leftY + (gameState.paddleHeight / 2) < gameState.ballY && gameState.leftY < CANVAS_HEIGHT - gameState.paddleHeight) {
     // 	gameState.leftY += 4;
@@ -231,24 +244,8 @@ export function updateGame() {
     // }
   }
 
-  if (gameState.leftScore >= 10 || gameState.rightScore >= 10) {
+  if (currentGameState.leftScore >= 10 || currentGameState.rightScore >= 10) {
     console.log('GAME OVER');
-    gameState.gameOver = true;
+    currentGameState.gameOver = true;
   }
-}
-
-export function resetGame() {
-  gameState.paddleHeight = 100;
-  gameState.gamePaused = true;
-  gameState.leftScore = 0;
-  gameState.rightScore = 0;
-  gameState.gameOver = false;
-  gameState.ballX = CANVAS_WIDTH / 2;
-  gameState.ballY = CANVAS_HEIGHT / 2;
-  gameState.leftY = 250;
-  gameState.rightY = 250;
-  gameSpeed = 1;
-  baseGameSpeed = 1;
-  bounceCount = 0;
-  resetTimer();
 }

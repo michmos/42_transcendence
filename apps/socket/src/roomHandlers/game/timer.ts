@@ -1,12 +1,12 @@
-import { gameState, GAME_TIME } from './index.js';
+import { type GameState, GAME_TIME } from './index.js';
 
-export function startGameTimer() {
+export function startGameTimer(gameState: GameState) {
   if (!gameState.gameStartTime) {
     gameState.gameStartTime = Date.now();
   }
 }
 
-export function updateTimer() {
+export function updateTimer(gameState: GameState) {
   if (!gameState.gameStartTime || gameState.gamePaused || gameState.gameOver) {
     return;
   }
@@ -24,7 +24,7 @@ export function updateTimer() {
   }
 }
 
-export function resetTimer() {
+export function resetTimer(gameState: GameState) {
   gameState.timeRemaining = GAME_TIME * 60 * 1000;
   gameState.gameStartTime = null;
 }
