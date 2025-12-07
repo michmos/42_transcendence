@@ -207,8 +207,8 @@ export function leaveGamePage(socket: WSocket) {
   const waitingListIndex = waitingList.findIndex((v) => v === socket);
   if (waitingListIndex > -1) {
     waitingList.splice(waitingListIndex, 1);
+    console.log('socket removed from waitinglist');
   }
-  console.log('socket removed from waitinglist');
 
   // remove from game if in there
   const gameRoomName = socketToGameroom.get(socket);
