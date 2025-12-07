@@ -1,3 +1,15 @@
 <div class="user-container">
-  <!-- Content will be injected by initRoute() -->
+  <h1>User Profile - {{id}}</h1>
+  <div class="user-content">
+    <h2>Dynamic User Route Demo</h2>
+    <p>This is a dynamic user profile page for: <strong>{{id}}</strong></p>
+
+    <div id="userDetails">
+      <!-- User details will be dynamically loaded here -->
+      <p>Loading user information...</p>
+    </div>
+  </div>
+  <nav class="user-nav">
+    <a href="/" data-link>← Back to Home</a>
+  </nav>
 </div>

@@ -30,11 +30,6 @@ export const routes = {
     css: () => import('./routes/settings/index.css?inline'),
     script: () => import('./routes/settings/index.js'),
   },
-  '/waiting-room': {
-    html: () => import('./routes/waiting-room/index.html?raw'),
-    css: () => import('./routes/waiting-room/index.css?inline'),
-    script: () => import('./routes/waiting-room/index.js'),
-  },
   '/error': {
     html: () => import('./routes/error/index.html?raw'),
     css: () => import('./routes/error/index.css?inline'),

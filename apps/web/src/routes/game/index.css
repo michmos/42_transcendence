@@ -1,5 +1,11 @@
+body {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0ea37f 100%) !important;
+  min-height: 100vh;
+}
+
 .game-page {
   min-height: 100vh;
+  padding: 24px;
   color: white;
 }
 

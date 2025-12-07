@@ -1,45 +1,27 @@
 import { type FastifyInstance } from 'fastify';
-
 import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
-
 import { cleanSelfUserData, cleanOtherUserData } from './utils.js';
-
-import fs from 'fs';
-
-import path from 'path';
-
-import crypto from 'crypto';
-
-import sharp from 'sharp';
-
+// import fs from 'fs';
+// import path from 'path';
+// import { pipeline } from 'stream/promises';
 import * as schemas from './userValidationSchemas.js';
-
-import fastifyMultipart from '@fastify/multipart';
-
-import { env } from '../../env.js';
-
+// import fastifyMultipart from '@fastify/multipart';
 import {
   getTournaments,
   type getTournamentsQuerystring,
 } from '../tournaments/validationSchemas.js';
-
 import { cleanFriendshipList } from '../friends/utils.js';
-
 import type { fullFriendshipRecord } from '../friends/types.js';
-
 import type { UserMatchRecord, UserDashboardResponse } from 'types';
 
 export default function (app: FastifyInstance): void {
   app.get('/', async function (request, reply) {
     try {
       if (!isAdmin(request, reply)) return;
-
       const users = await app.db.getUsers();
-
       return reply.status(200).send(users);
     } catch (error) {
       app.log.error(error);
-
       return reply.code(500).send({ Error: 'Failed getting all user data' });
     }
   });
@@ -49,21 +31,15 @@ export default function (app: FastifyInstance): void {
   });
 
   // TODO: Hacked this in as the web is requesting /me for own user data
-
   //      Might need to refactor later
-
   app.get('/me', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;
-
       const userData = await app.db.getUserMe(uuidSelf);
-
       const cleanedUserData = cleanSelfUserData(userData);
-
       return reply.code(200).send(cleanedUserData);
     } catch (error) {
       app.log.error(error);
-
       return reply.code(500).send({ Error: 'Failed getting own user data' });
     }
   });
@@ -71,14 +47,12 @@ export default function (app: FastifyInstance): void {
   app.get('/me/dashboard', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;
-
       const userData = await app.db.getUserMe(uuidSelf);
 
       const cleanedUserData = cleanSelfUserData(userData);
 
       const userFriends: fullFriendshipRecord[] =
         await app.db.getFriendsMe(uuidSelf);
-
       const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
 
       const userMatches: UserMatchRecord[] =
@@ -86,29 +60,22 @@ export default function (app: FastifyInstance): void {
 
       const userDashboardData: UserDashboardResponse = {
         cleanedUserData,
-
         cleanedUserFriends,
-
         userMatches,
       };
-
       return reply.code(200).send(userDashboardData);
     } catch (error) {
       app.log.error(error);
-
       return reply.code(500).send({ Error: 'Failed getting own user data' });
     }
   });
 
   // USER SETTINGS
-
   app.patch<{ Body: schemas.PatchUserMeSetNicknameType }>(
     '/me/nickname',
-
     {
       schema: schemas.PatchUserMeSetNickname,
     },
-
     async function (request, reply) {
       try {
         const uuidSelf: string = request.user.uuid;
@@ -116,7 +83,6 @@ export default function (app: FastifyInstance): void {
         const { newNickname } = request.body as { newNickname: string };
 
         const existingUser = await app.db.getUserByNickname(newNickname);
-
         if (existingUser) {
           return reply.code(409).send({
             Error: `Nickname ${newNickname} already exists and must be unique`,
@@ -124,138 +90,100 @@ export default function (app: FastifyInstance): void {
         }
 
         const userData = await app.db.setUserMeNickname(uuidSelf, newNickname);
-
         return reply.code(200).send(cleanSelfUserData(userData));
       } catch (error) {
         app.log.error(error);
-
         return reply.code(500).send({ Error: 'Failed changing nickname' });
       }
     }
   );
 
-  app.post('/me/avatar', async function (request, reply) {
-    try {
-      const file: fastifyMultipart.MultipartFile | undefined =
-        await request.file();
+  // ---- TODO:
+  // - Needs image (type checking)
+  // - changing image to 1:1 and appropriate size if possible, to save storage
+  // - image name changing
+  // - fixing path to where image is saved, e.g. /public/profile-images/user12345
+  // app.post('/me/avatar', async function (request, reply) {
+  //   try {
+  //     // if (request.headers['content-length'])
+  //     //   continue // Needs to send back an error if something with content-length... Not sure what
 
-      if (!file) return reply.code(400).send({ Error: 'No image received' });
+  //     // Getting the file and file data from request.file() and checking if file
+  //     const file: fastifyMultipart.MultipartFile | undefined =
+  //       await request.file();
+  //     if (!file) return reply.code(400).send({ Error: 'No image received' });
 
-      if (
-        file.mimetype !== 'image/png' &&
-        file.mimetype !== 'image/jpeg' &&
-        file.mimetype !== 'image/jpg'
-      )
-        return reply.code(415).send({
-          Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
-        });
+  //     // Checking if file has correct media type
+  //     if (
+  //       file.mimetype !== 'image/png' &&
+  //       file.mimetype !== 'image/jpeg' &&
+  //       file.mimetype !== 'image/jpg'
+  //     )
+  //       return reply.code(415).send({
+  //         Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
+  //       });
 
-      // Reading file into buffer. Max 2MB
+  //     const uuidSelf: string = request.user.uuid;
 
-      const buffer = await file.toBuffer();
+  //     // Extracting the filename and stream from file
+  //     const { filename, file: stream } = file;
 
-      if (buffer.length > 2 * 1024 * 1024)
-        return reply.code(413).send({
-          Error: 'File too large. Must be smaller than 2MB',
-        });
+  //     // Creating file path
+  //     const savePath = path.join(
+  //       process.cwd(),
+  //       'public/userAvatars',
+  //       request.user.uuid + path.extname(filename)
+  //     );
 
-      // Getting own uuid and extracting filename from file
+  //     // ensure that directory exists
+  //     await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
 
-      const uuidSelf: string = request.user.uuid;
+  //     // Doing next thing I am not sure about
+  //     stream.pipe(fs.createWriteStream(savePath));
+  //     await pipeline(stream, fs.createWriteStream(savePath));
 
-      // generating new filename for avatar
-
-      const avatarUuid = crypto.randomUUID();
-
-      const newFilename = `${avatarUuid}.png`;
-
-      const savePath = path.join(
-        `${env.CDN_PATH}`,
-
-        'public/userAvatars',
-
-        newFilename
-      );
-
-      // Store relative path from the CDN root: /userAvatars/filename.png
-
-      const relPath = `/userAvatars/${newFilename}`;
-
-      // ensure that directory exists
-
-      await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
-
-      try {
-        await sharp(buffer)
-          .resize(256, 256, { fit: 'cover' })
-
-          .png({ quality: 80 })
-
-          .toFile(savePath);
-      } catch {
-        return reply.code(415).send({
-          Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
-        });
-      }
-
-      // Setting/replacing image file path in user's record database
-
-      const userData = await app.db.setUserMeAvatar(uuidSelf, relPath);
-
-      return reply.code(200).send(cleanSelfUserData(userData));
-    } catch (error) {
-      app.log.error(error);
-
-      return reply.code(500).send({ Error: 'Failed changing user avatar' });
-    }
-  });
+  //     // Setting/replacing image file path in user's record database
+  //     const userData = await app.db.setUserMeAvatar(uuidSelf, savePath);
+  //     return reply.code(200).send(cleanSelfUserData(userData));
+  //   } catch (error) {
+  //     return reply.code(500).send({ Error: `${error}` });
+  //   }
+  // });
 
   app.get<{ Querystring: getTournamentsQuerystring }>(
     '/me/tournaments',
-
     { schema: getTournaments },
-
     async function (request, reply) {
       const tournaments = await app.db.getTournamentsByParticipant(
         getUuid(request),
-
         request.query.status
       );
-
       return reply.status(200).send(tournaments);
     }
   );
 
   // OTHER USER
-
   app.get<{ Params: schemas.GetOtherUserProfileType }>(
     '/:nickname',
-
     { schema: schemas.GetOtherUserProfile },
-
     async function (request, reply) {
       try {
         const { nickname } = request.params;
-
         const user = await app.db.getUserByNickname(nickname);
 
         if (!user) return reply.code(404).send({ Error: 'user not found' });
 
         const cleanedUser = cleanOtherUserData(user);
-
         // console.log('Cleaned Other user data:', cleanedUser); // FOR TESTING ONLY
-
         return reply.code(200).send(cleanedUser);
       } catch (error) {
         app.log.error(error);
-
         return reply.code(500).send({ Error: 'Failed getting user' });
       }
     }
   );
 
   // ----------- ADD / DELETE USERS
-
   app.post('/', async function (request, reply) {
     const { email } = request.body as { email: string };
 
@@ -264,14 +192,11 @@ export default function (app: FastifyInstance): void {
     if (!email) {
       return new Error('Email is required');
     }
-
     const nickname = await app.db.generateUniqueNickName();
-
     return await app.db.addUser(email, nickname);
   });
 
   // First deletes user's Friends records, and then deletes own User record
-
   app.delete('/', async function (request, reply) {
     const { uuid } = request.body as { uuid: string };
 
@@ -280,9 +205,7 @@ export default function (app: FastifyInstance): void {
     if (!uuid) {
       return new Error('UUID is required');
     }
-
     await app.db.deleteMultipleFriends(uuid);
-
     return await app.db.removeUser(uuid);
   });
 }
