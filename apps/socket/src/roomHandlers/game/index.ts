@@ -1,7 +1,8 @@
 import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { handleJoinRoom, leaveGamePage } from './joinLeaveGame.js';
-import { handleInput, type GameState } from './game.js';
+import { type GameState } from './game.js';
+import { handleInput } from './handleInput.js';
 
 export interface GameRoomData {
   currentGameState: GameState;

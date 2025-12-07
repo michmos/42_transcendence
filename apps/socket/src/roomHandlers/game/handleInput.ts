@@ -2,6 +2,7 @@ import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { type GameRoomData } from './index.js';
 import { CANVAS_HEIGHT, GAME_TIME } from './game.js';
+import { z } from 'zod';
 
 enum Action {
   Up = 'up',
@@ -15,7 +16,21 @@ enum Action {
   Reset = 'reset', // Resets all values back to default
 }
 
+const GameDataSchema = z.object({
+  action: z.enum(Action).optional(),
+  subtype: z.string().optional(),
+});
+
 export function handleInput(message: SocketMessageType, socket: WSocket) {
+  // validate message.data
+  const messageData = GameDataSchema.safeParse(message.data);
+  if (!messageData.success) {
+    console.log('Invalid game data: ', z.prettifyError(messageData.error));
+    socket.sendError('Invalid game data');
+    return;
+  }
+
+  // get room data
   const gameRoomData = RoomManager.get(message.room)?.getData() as GameRoomData;
   if (!gameRoomData) {
     // TODO: handle this error
@@ -24,47 +39,45 @@ export function handleInput(message: SocketMessageType, socket: WSocket) {
   const gameState = gameRoomData.currentGameState;
   const role = gameRoomData.player1Uuid === socket.uuid ? 'player1' : 'player2';
 
+  const action = messageData.data.action;
+
   //   console.log("handle message: ", message);
   if (!gameState.gamePaused && !gameState.gameOver) {
     if (
-      message.data?.action === Action.Up &&
+      action === Action.Up &&
       (role === 'player1' || gameRoomData.isLocalGame) &&
       gameState.leftY > 0
     )
       gameState.leftY -= 5;
     if (
-      message.data?.action === Action.Down &&
+      action === Action.Down &&
       (role === 'player1' || gameRoomData.isLocalGame) &&
       gameState.leftY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.leftY += 5;
-    if (
-      message.data?.action === Action.Up &&
-      role === 'player2' &&
-      gameState.rightY > 0
-    )
+    if (action === Action.Up && role === 'player2' && gameState.rightY > 0)
       gameState.rightY -= 5;
     if (
-      message.data?.action === Action.Down &&
+      action === Action.Down &&
       role === 'player2' &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
     if (
-      message.data?.action === Action.UpRight &&
+      action === Action.UpRight &&
       gameRoomData.isLocalGame &&
       gameState.rightY > 0
     )
       gameState.rightY -= 5;
     if (
-      message.data?.action === Action.DownRight &&
+      action === Action.DownRight &&
       gameRoomData.isLocalGame &&
       gameState.rightY < CANVAS_HEIGHT - gameState.paddleHeight
     )
       gameState.rightY += 5;
   }
   if (
-    message.data?.action === Action.Pause &&
+    action === Action.Pause &&
     (gameRoomData.isLocalGame || role === 'player1' || role === 'player2')
   ) {
     gameState.gamePaused = !gameState.gamePaused;
@@ -78,7 +91,7 @@ export function handleInput(message: SocketMessageType, socket: WSocket) {
     }
     console.log(`Game ${gameState.gamePaused ? 'paused' : 'resumed'}`);
   }
-  if (message.data?.action === Action.AI && gameRoomData.isLocalGame) {
+  if (action === Action.AI && gameRoomData.isLocalGame) {
     gameState.aiEnabled = !gameState.aiEnabled;
     console.log(`AI ${gameState.aiEnabled ? 'enabled' : 'disabled'}`);
   }
