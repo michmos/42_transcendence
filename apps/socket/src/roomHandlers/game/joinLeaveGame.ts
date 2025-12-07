@@ -130,7 +130,7 @@ async function getMatchParticipants(matchUuid: string) {
   return participants;
 }
 
-async function handleJoinTournamentGame(socket: WSocket, roomName: string) {
+async function handleSpecificGame(socket: WSocket, roomName: string) {
   const matchUuid = roomName.split(':')[1];
   if (!matchUuid) {
     socket.consoleLog('invalid tournament match uuid');
@@ -196,8 +196,9 @@ export async function handleJoinRoom(
       return handleJoinOnlineGame(socket);
     case 'game:local':
       return handleJoinLocalGame(socket);
-    case 'game:tournament':
-      return handleJoinTournamentGame(socket, message.room);
+    default:
+      // for tournament games
+      return handleSpecificGame(socket, message.room);
   }
 }
 
