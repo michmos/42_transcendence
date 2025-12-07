@@ -207,7 +207,7 @@ export function leaveGamePage(socket: WSocket) {
   const waitingListIndex = waitingList.findIndex((v) => v === socket);
   if (waitingListIndex > -1) {
     waitingList.splice(waitingListIndex, 1);
-    console.log('socket removed from waitinglist');
+    socket.consoleLog('socket removed from waitinglist');
   }
 
   // remove from game if in there
@@ -230,6 +230,6 @@ export function leaveGamePage(socket: WSocket) {
         rightScore: isLeftPlayer ? 10 : 0,
       },
     });
-    console.log('socket removed from game');
+    socket.consoleLog('socket removed from game');
   }
 }
