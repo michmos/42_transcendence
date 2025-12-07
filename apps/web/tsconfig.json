@@ -37,7 +37,6 @@
     "src/**/*",
     "src/plugins/**/*",
     "src/routes/**/*",
-    "scripts/**/*",
     "vite.config.ts",
     "tailwind.config.ts",
     "postcss.config.ts"
