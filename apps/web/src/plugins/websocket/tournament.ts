@@ -1,5 +1,3 @@
-import { Socket } from './index.js';
-
 /**
  * Tournament Socket Message Types
  * Note: Messages use 'event' field, not 'type' field
@@ -22,75 +20,54 @@ interface TournamentSocketMessage {
 /**
  * Tournament Socket Client
  *
- * Handles WebSocket connections for tournament real-time updates.
- * Works gracefully without backend support (falls back to polling).
- *
- * Note: Your teammate will provide joinTournament/leaveTournament functions
- * that use window.socket - this client is for listening to updates.
+ * Handles WebSocket listeners for tournament real-time updates.
+ * Uses the existing window.socket connection (created in app.ts).
  */
 class TournamentSocket {
-  private socket: Socket | null = null;
-  private isConnected = false;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
   private listeners: Map<string, Set<(data: unknown) => void>> = new Map();
   private isInitialized = false;
+  private messageHandler: ((event: MessageEvent) => void) | null = null;
 
   constructor() {
-    // Don't auto-connect - wait for explicit initialization
+    // Don't auto-initialize - wait for explicit initialization
   }
 
   /**
-   * Initialize the tournament socket connection
+   * Initialize tournament socket listeners
    * Call this when entering a tournament-related page
+   * Uses the existing window.socket connection
    */
   public initialize() {
     if (this.isInitialized) {
       return; // Already initialized
     }
 
-    try {
-      const wsUrl = `${
-        window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      }//${window.location.host}/websocket`;
-      this.socket = new Socket(wsUrl);
-
-      this.socket.registerWebSocketHook((event: MessageEvent) => {
-        try {
-          const parsed = JSON.parse(event.data as string) as unknown;
-          if (
-            typeof parsed === 'object' &&
-            parsed !== null &&
-            'event' in parsed
-          ) {
-            const message = parsed as TournamentSocketMessage;
-            this.handleMessage(message);
-          }
-        } catch {
-          // Not a tournament message, ignore
-        }
-      });
-
-      // Wait for connection to be established before joining rooms
-      // The socket will auto-connect, but we need to wait a bit
-      setTimeout(() => {
-        if (this.socket?.isConnected()) {
-          this.joinTournamentList();
-        }
-      }, 500);
-
-      this.isConnected = true;
-      this.isInitialized = true;
-      this.reconnectAttempts = 0;
-    } catch (error) {
+    if (!window.socket) {
       console.warn(
-        'Tournament socket connection failed, falling back to polling:',
-        error
+        'window.socket not available, tournament socket features disabled'
       );
-      this.isConnected = false;
-      this.attemptReconnect();
+      return;
     }
+
+    // Register message handler on the existing socket
+    this.messageHandler = (event: MessageEvent) => {
+      try {
+        const parsed = JSON.parse(event.data as string) as unknown;
+        if (
+          typeof parsed === 'object' &&
+          parsed !== null &&
+          'event' in parsed
+        ) {
+          const message = parsed as TournamentSocketMessage;
+          this.handleMessage(message);
+        }
+      } catch {
+        // Not a tournament message, ignore
+      }
+    };
+
+    window.socket.registerWebSocketHook(this.messageHandler);
+    this.isInitialized = true;
   }
 
   /**
@@ -121,12 +98,30 @@ class TournamentSocket {
    * This allows receiving updates about all tournaments
    */
   public joinTournamentList() {
-    if (!this.socket || !this.socket.isConnected()) {
-      console.warn('Socket not connected, cannot join tournament list');
+    if (!window.socket) {
+      console.warn('window.socket not available, cannot join tournament list');
       return;
     }
+
+    // Wait for connection if not ready yet
+    if (!window.socket.isConnected()) {
+      // Try again after a short delay
+      setTimeout(() => {
+        if (window.socket?.isConnected()) {
+          try {
+            window.socket.joinRoom('tournament:main');
+          } catch (error) {
+            console.warn('Failed to join tournament list room:', error);
+          }
+        } else {
+          console.warn('Socket not connected, cannot join tournament list');
+        }
+      }, 500);
+      return;
+    }
+
     try {
-      this.socket.joinRoom('tournament:main');
+      window.socket.joinRoom('tournament:main');
     } catch (error) {
       console.warn('Failed to join tournament list room:', error);
     }
@@ -134,16 +129,15 @@ class TournamentSocket {
 
   /**
    * Join a specific tournament room
-   * Note: Your teammate will provide joinTournament() function that uses window.socket
-   * This is a helper that uses our internal socket instance
+   * Uses window.socket (same as tournamentOps.ts and tournament.ts API)
    */
   public joinTournament(uuid: string) {
-    if (!this.socket || !this.socket.isConnected()) {
+    if (!window.socket || !window.socket.isConnected()) {
       console.warn('Socket not connected, cannot join tournament');
       return;
     }
     try {
-      this.socket.joinRoom(`tournament:${uuid}`);
+      window.socket.joinRoom(`tournament:${uuid}`);
     } catch (error) {
       console.warn(`Failed to join tournament ${uuid} room:`, error);
     }
@@ -151,12 +145,12 @@ class TournamentSocket {
 
   /**
    * Leave a specific tournament room
-   * Note: Your teammate will provide leaveTournament() function that uses window.socket
+   * Uses window.socket (same as tournamentOps.ts and tournament.ts API)
    */
   public leaveTournament(uuid: string) {
-    if (!this.socket || !this.socket.isConnected()) return;
+    if (!window.socket || !window.socket.isConnected()) return;
     try {
-      this.socket.leaveRoom(`tournament:${uuid}`);
+      window.socket.leaveRoom(`tournament:${uuid}`);
     } catch (error) {
       console.warn(`Failed to leave tournament ${uuid} room:`, error);
     }
@@ -206,40 +200,25 @@ class TournamentSocket {
   }
 
   /**
-   * Attempt to reconnect if connection failed
-   */
-  private attemptReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.warn(
-        'Max reconnection attempts reached, socket features disabled'
-      );
-      return;
-    }
-    this.reconnectAttempts++;
-    setTimeout(() => {
-      this.isInitialized = false; // Reset to allow re-initialization
-      this.initialize();
-    }, this.reconnectDelay * this.reconnectAttempts);
-  }
-
-  /**
    * Cleanup and disconnect
    * Call this when leaving tournament pages
    */
   public disconnect() {
+    // Remove message handler from socket
+    if (this.messageHandler && window.socket) {
+      // Note: Socket class doesn't have unregisterWebSocketHook, but we can clear listeners
+      // The hook will remain but won't do anything since listeners are cleared
+    }
     // Clear all listeners
     this.listeners.clear();
-    // Note: Socket class doesn't have explicit disconnect, but we mark as disconnected
-    this.isConnected = false;
     this.isInitialized = false;
-    // The socket will be garbage collected if not referenced elsewhere
   }
 
   /**
    * Check if socket is connected
    */
   public getIsConnected(): boolean {
-    return this.isConnected && this.socket?.isConnected() === true;
+    return window.socket?.isConnected() === true;
   }
 }
 
