@@ -1,7 +1,52 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './index.js';
-import { type GameState } from './index.js';
-
 import { updateTimer, startGameTimer } from './timer.js';
+import { RoomManager } from '../../plugins/rooms/WSocket/index.js';
+import { updateGameRoomData } from './index.js';
+
+export const ROLE_EXPIRATION = 8000;
+export const PING = 1000;
+export const PING_TIMEOUT = 5000;
+export const GAME_TIME = 5;
+
+export const CANVAS_WIDTH = 800;
+export const CANVAS_HEIGHT = 600;
+
+export interface GameState {
+  paddleWidth: number;
+  paddleHeight: number;
+  ballX: number;
+  ballY: number;
+  ballSpeedX: number;
+  ballSpeedY: number;
+  ballPaused: boolean;
+  leftY: number;
+  rightY: number;
+  gamePaused: boolean;
+  leftScore: number;
+  rightScore: number;
+  gameOver: boolean;
+  aiEnabled: boolean;
+  timeRemaining: number;
+  gameStartTime: number | null;
+}
+
+const initGameState: GameState = {
+  paddleWidth: 10,
+  paddleHeight: 100,
+  ballX: CANVAS_WIDTH / 2,
+  ballY: CANVAS_HEIGHT / 2,
+  ballSpeedX: 6,
+  ballSpeedY: 0,
+  ballPaused: false,
+  leftY: 250,
+  rightY: 250,
+  gamePaused: true,
+  leftScore: 0,
+  rightScore: 0,
+  gameOver: false,
+  aiEnabled: false,
+  timeRemaining: GAME_TIME * 60 * 1000,
+  gameStartTime: null,
+};
 
 const BALL_SIZE = 10;
 const PADDLE_SEGMENTS = 21;
@@ -248,4 +293,26 @@ export function updateGame(currentGameState: GameState) {
     console.log('GAME OVER');
     currentGameState.gameOver = true;
   }
+}
+
+export function gameLoop(gameRoom: string) {
+  const currentGameState = initGameState;
+  updateGameRoomData(gameRoom, { currentGameState });
+
+  setInterval(() => {
+    updateGame(currentGameState);
+
+    // Broadcast updated game state to all clients in the room
+    RoomManager.get(gameRoom)?.broadcast(
+      JSON.stringify({
+        type: 'message',
+        room: gameRoom,
+        data: {
+          subtype: 'state',
+          timestamp: Date.now(),
+          serverState: currentGameState,
+        },
+      })
+    );
+  }, 1000 / 60);
 }
