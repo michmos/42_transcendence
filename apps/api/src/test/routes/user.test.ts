@@ -233,7 +233,7 @@ describe('GET /user/me/dashboard', () => {
         gameType: expect.any(String),
       });
     }
-    expect(data.cleanedUserFriends.length).toBe(30);
+    expect(data.cleanedUserFriends.length).toBe(25);
   }, 10000);
 });
 

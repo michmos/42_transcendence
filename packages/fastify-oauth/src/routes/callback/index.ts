@@ -80,7 +80,6 @@ function setupCallbackRoute(ctx: OAuthContext) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
-      sameSite: 'lax', // Allow cookie to be sent on same-site redirects
     });
 
     reply.redirect(ctx.successRedirectUrl || '/');

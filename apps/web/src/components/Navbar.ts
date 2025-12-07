@@ -1,5 +1,4 @@
 import { navigateTo } from '../utils/navigation.js';
-import { getAvatarSrc } from '../utils/avatar-helpers.js';
 
 export interface NavbarLink {
   label: string;
@@ -11,8 +10,8 @@ export interface NavbarProps {
   title?: string;
   logoIcon?: string;
   links?: NavbarLink[];
-  userNickname?: string;
-  userAvatar?: string | null;
+  userNickname?: string | undefined;
+  userAvatar?: string | undefined;
   onSettingsClick?: () => void;
   onLogoutClick?: () => void;
   className?: string;
@@ -89,47 +88,13 @@ export class Navbar {
 
     // Profile Dropdown Container
     const profileContainer = document.createElement('div');
-    profileContainer.className = 'relative flex items-center gap-3';
+    profileContainer.className = 'relative';
 
-    // Profile Button (Avatar + Name)
-    const profileButton = document.createElement('button');
-    profileButton.className =
-      'flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer';
-
-    // Avatar
-    const avatarContainer = document.createElement('div');
-    avatarContainer.className = 'relative';
-    const avatar = this.props.userAvatar;
-    const nickname = this.props.userNickname || 'User';
-    const initials = nickname
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-
-    if (avatar) {
-      const avatarImg = document.createElement('img');
-      avatarImg.src = getAvatarSrc(avatar) || avatar;
-      avatarImg.alt = nickname;
-      avatarImg.className =
-        'w-10 h-10 rounded-full object-cover border-2 border-border';
-      avatarContainer.appendChild(avatarImg);
-    } else {
-      const avatarPlaceholder = document.createElement('div');
-      avatarPlaceholder.className =
-        'w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-sm font-semibold text-white';
-      avatarPlaceholder.textContent = initials;
-      avatarContainer.appendChild(avatarPlaceholder);
-    }
-
-    // Name
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'text-sm font-medium text-foreground hidden sm:block';
-    nameSpan.textContent = nickname;
-
-    profileButton.appendChild(avatarContainer);
-    profileButton.appendChild(nameSpan);
+    // Profile Avatar Button
+    const avatarButton = document.createElement('button');
+    avatarButton.className =
+      'w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer';
+    avatarButton.innerHTML = this.getDefaultAvatarIcon();
 
     // Dropdown Menu
     const dropdown = document.createElement('div');
@@ -160,7 +125,7 @@ export class Navbar {
     `;
 
     // Toggle dropdown visibility
-    profileButton.addEventListener('click', (e) => {
+    avatarButton.addEventListener('click', (e) => {
       e.stopPropagation();
       this.toggleDropdown();
     });
@@ -201,7 +166,7 @@ export class Navbar {
       this.closeDropdown();
     });
 
-    profileContainer.appendChild(profileButton);
+    profileContainer.appendChild(avatarButton);
     profileContainer.appendChild(dropdown);
 
     rightDiv.appendChild(nav);

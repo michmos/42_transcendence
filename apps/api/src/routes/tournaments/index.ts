@@ -2,14 +2,8 @@ import { type FastifyInstance } from 'fastify';
 import * as schemas from './validationSchemas.js';
 import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import generateTournamentPlan from './matchmaking.js';
-import {
-  messageSocketServer,
-  transformTournamentParticipants,
-} from './utils.js';
-import {
-  status as statusEnum,
-  userRole as roleEnum,
-} from 'db/generated/client/index.js';
+import { messageSocketServer } from './utils.js';
+import { status as statusEnum } from 'db/generated/client/index.js';
 import { type TournamentRoundResponse } from 'types';
 import { Prisma } from 'db/generated/client';
 
@@ -30,11 +24,8 @@ export default function (app: FastifyInstance): void {
     },
     async function (request, reply) {
       const tournament = await app.db.createTournament({
-        tournamentName: request.body.tournamentName,
-        minPlayers: request.body.minPlayers,
-        maxPlayers: request.body.maxPlayers,
+        ...request.body,
       });
-
       reply.status(201).send(tournament);
       await messageSocketServer('/tournaments/broadcast/created', {
         tournamentUuid: tournament.uuid,
@@ -159,31 +150,21 @@ export default function (app: FastifyInstance): void {
         });
       }
 
-      // Resolve alias: use provided alias, or fallback to user's nickname
-      let alias = request.body.alias;
-      if (!alias) {
-        const user = await app.db.getUser(userUuid);
-        alias = user?.nickname || `Player-${userUuid.slice(0, 8)}`;
-      }
-
       // add user
       try {
         const updatedTournament = await app.db.addUserToTournament(
           userUuid,
           tournamentUuid,
-          alias
+          request.body.alias
         );
 
-        // Transform tournament participants to include alias
-        const transformedTournament =
-          transformTournamentParticipants(updatedTournament);
         // notify socket server
         await messageSocketServer(`/tournaments/broadcast/joined`, {
           tournamentUuid: tournament.uuid,
           userUuid,
           playerCount: updatedTournament.playerCount,
         });
-        return reply.status(200).send(transformedTournament);
+        return reply.status(200).send(updatedTournament);
       } catch (error) {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -301,23 +282,6 @@ export default function (app: FastifyInstance): void {
         ...request.body,
       });
 
-      // Fetch tournament with participants to transform
-      const tournamentWithParticipants = await app.db.getTournament(
-        updatedTournament.uuid
-      );
-      if (tournamentWithParticipants) {
-        const transformedTournament = transformTournamentParticipants(
-          tournamentWithParticipants
-        );
-        // notify socket server
-        await messageSocketServer(`/tournaments/broadcast/updated`, {
-          tournamentUuid: updatedTournament.uuid,
-          status: updatedTournament.status,
-          tournamentName: updatedTournament.tournamentName,
-        });
-        return reply.status(200).send(transformedTournament);
-      }
-      // Fallback if getTournament fails (shouldn't happen)
       // notify socket server
       await messageSocketServer(`/tournaments/broadcast/updated`, {
         tournamentUuid: updatedTournament.uuid,
@@ -339,11 +303,7 @@ export default function (app: FastifyInstance): void {
       } else {
         tournaments = await app.db.getAllTournaments();
       }
-      // Transform participants to include alias
-      const transformedTournaments = tournaments.map(
-        transformTournamentParticipants
-      );
-      return reply.status(200).send(transformedTournaments);
+      return reply.status(200).send(tournaments);
     }
   );
 
@@ -358,9 +318,7 @@ export default function (app: FastifyInstance): void {
           error: `Tournament with uuid: ${request.params.uuid} not found`,
         });
       }
-      // Transform participants to include alias
-      const transformedTournament = transformTournamentParticipants(tournament);
-      return reply.status(200).send(transformedTournament);
+      return reply.status(200).send(tournament);
     }
   );
 
@@ -381,32 +339,17 @@ export default function (app: FastifyInstance): void {
         });
       }
 
-      // Check if user is a participant or admin
-      const userUuid = getUuid(request);
-      const user = request.user as { uuid: string; role: string } | undefined;
-
-      if (!user) {
-        return reply.status(401).send({
-          error: 'Unauthorized. Please log in.',
-        });
-      }
-
-      // Check if user is admin (without sending reply via isAdmin)
-      const isUserAdmin = user.role === roleEnum.ADMIN;
-
-      if (isUserAdmin) {
-        // Admin access granted, continue to fetch round
-      } else {
-        // Check if user is a participant
-        const isParticipant = await app.db.participatesInTournament(
-          userUuid,
-          tournamentUuid
-        );
-        if (!isParticipant) {
-          return reply.status(403).send({
-            error: 'Unauthorized: User does not participate in Tournament',
-          });
-        }
+      // check participation or admin status
+      if (
+        !(await app.db.participatesInTournament(
+          getUuid(request),
+          request.params.uuid
+        )) &&
+        !isAdmin(request, reply)
+      ) {
+        return reply
+          .status(403)
+          .send({ error: `User is not participating in this tournament` });
       }
 
       // get round

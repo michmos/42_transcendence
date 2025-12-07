@@ -1,4 +1,4 @@
-import { type User } from 'db/generated/client/index.js';
+import { type User, status } from 'db/generated/client/index.js';
 import Database from 'db';
 import { generateNickName } from './utils.js';
 import type { UserMatchRecord } from 'types';
@@ -59,7 +59,7 @@ export async function getUserMatchHistory(
           ],
         },
         {
-          status: 'finished',
+          status: status.finished,
         },
       ],
     },
@@ -119,13 +119,17 @@ export async function participatesInTournament(
   userId: string,
   tournamentId: string
 ): Promise<boolean> {
-  const participation = await Database.tournamentParticipations.findFirst({
+  const user = await Database.user.findUnique({
     where: {
-      userId,
-      tournamentId,
+      uuid: userId,
+      tournaments: {
+        some: {
+          tournamentId,
+        },
+      },
     },
   });
-  return participation != null;
+  return user != null;
 }
 
 export async function getTournamentParticipants(

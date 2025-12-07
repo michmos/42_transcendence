@@ -1,23 +1,19 @@
-import { getCurrentSession } from '../utils/auth-state.js';
-import { navigateTo } from '../utils/navigation.js';
+import { generateUserLogic, userTableLogic } from './userTable.js';
+import API from '../plugins/api/index.js';
 
-export default function initRoute() {
-  // Check if we already have a session in memory (from app.ts)
-  // app.ts already checked auth, so just use that session
-  const currentSession = getCurrentSession();
-  if (currentSession && currentSession.uuid) {
-    navigateTo('/profile');
-    return;
+export default async function initRoute() {
+  console.log('🏠 Home route initializing...');
+
+  // INFO this is how to get the current user!
+  let user = await API.getMe();
+
+  if (user) {
+    console.log('User is logged in:', user);
+    userTableLogic();
+    generateUserLogic();
+  } else {
+    console.log('No user is logged in');
   }
-
-  // No session - redirect to login
-  // (app.ts should have handled this, but just in case)
-  navigateTo('/login');
-  return;
-
-  // Note: The code below is unreachable due to redirects above
-  // Keeping it commented for reference in case we need home route functionality later
-  /*
   // Logout button logic
   const logoutBtn = document.getElementById('logout');
   if (!logoutBtn) {
@@ -54,5 +50,4 @@ export default function initRoute() {
     logoutBtn.textContent = 'Login';
     logoutBtn.addEventListener('click', handleLoginClick);
   }
-  */
 }

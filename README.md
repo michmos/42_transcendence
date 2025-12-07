@@ -1,9 +1,7 @@
 # Install PNPM localy
-
 `npm install -g pnpm --prefix ~/.local`
 
 ## Then add this to your shell config (e.g., .bashrc, .zshrc):
-
 `export PATH="$HOME/.local/bin:$PATH"
 
 echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.zshrc
@@ -14,42 +12,36 @@ echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.zshrc
 # Install NVM (Virtual Node Enviroment) to use Node 24
 
 ## Get the Node Virtual Manager
-
 `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash`
 
 `source ~/.nvm/nvm.sh`
 
 ## Install Node24
-
 `nvm install 24`
 
 `nvm use 24`
 
 ## make it default
-
 `nvm alias default 24`
 
 # Enviroment
-
 Use a .env loader
 I use the plugin 'autoenv' in OhMyZSH for loading the .env
 
 ## OhMyZSH
-
 `sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"`
 
 Add autoenv to the plugin line i the ~/.zshrc
 
 ## AutoEnv
-
 `git clone https://github.com/inishchith/autoenv ~/.autoenv`
 
 `echo 'source ~/.autoenv/activate.sh' >> ~/.zshrc`
 
 `echo 'source ~/.autoenv/activate.sh' >> ~/.zshrc`
 
-## How to run the app
 
+## How to run the app
 `pnpm install` to install the packages
 `pnpm run db:generate` to create the db package
 `pnpm run db:push` to create the db file and table
@@ -116,7 +108,7 @@ const userListComponent = new UserList(container, {
   onUserRemoved: () => {
     // Callback when user is removed
     loadUsers();
-  },
+  }
 });
 
 // Update with new data
@@ -151,36 +143,30 @@ interface User {
 ## Component Guidelines
 
 ### 1. File Naming
-
 - Use PascalCase for component files: `UserList.ts`
 - Export component class and types
 
 ### 2. Props Pattern
-
 - Define props interface with clear types
 - Use optional properties with `?` when appropriate
 - Include callback functions for parent communication
 
 ### 3. DOM Management
-
 - Accept container element in constructor
 - Clear container before rendering: `this.container.innerHTML = '';`
 - Create elements programmatically, avoid innerHTML for dynamic content
 
 ### 4. Event Handling
-
 - Bind events in private methods
 - Use arrow functions to maintain `this` context
 - Clean up event listeners if needed
 
 ### 5. State Updates
-
 - Provide `update()` method for external state changes
 - Re-render after state updates
 - Merge new props with existing ones
 
 ### 6. CSS Classes
-
 - Use semantic CSS classes for styling
 - Follow existing naming conventions
 - Component-specific styles in route CSS files
@@ -220,12 +206,12 @@ export class Button {
 
   render() {
     this.container.innerHTML = '';
-
+    
     const button = document.createElement('button');
     button.textContent = this.props.text;
     button.className = `btn btn-${this.props.variant || 'primary'}`;
     button.onclick = this.props.onClick;
-
+    
     this.container.appendChild(button);
   }
 }
