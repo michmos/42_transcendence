@@ -74,13 +74,18 @@ function buildLeaderboard(
   console.log('Building leaderboard:', {
     tournamentId: tournament.uuid,
     participantsCount: participants.length,
-    participants: participants.map((p) => ({
-      uuid: p.uuid,
-      userId: (p as { userId?: string }).userId,
-      user: (p as { user?: { uuid?: string; nickname?: string } }).user,
-      alias: (p as { alias?: string }).alias,
-      nickname: p.nickname,
-    })),
+    participants: participants.map((p) => {
+      const participant = p as {
+        uuid: string;
+        alias?: string;
+        user?: { uuid?: string; nickname?: string };
+      };
+      return {
+        uuid: participant.uuid,
+        user: participant.user,
+        alias: participant.alias,
+      };
+    }),
   });
 
   // Calculate stats per player
@@ -92,21 +97,18 @@ function buildLeaderboard(
   // Initialize player stats
   participants.forEach((participant) => {
     // Handle nested user structure (TournamentParticipations.user)
-    const user = (
-      participant as {
-        user?: { uuid?: string; nickname?: string };
-      }
-    ).user;
+    const participantTyped = participant as {
+      uuid: string;
+      alias?: string;
+      user?: { uuid?: string; nickname?: string };
+    };
+    const user = participantTyped.user;
 
     // Get participant ID - use user.uuid (the actual user ID), not participant.uuid (participation record ID)
     const participantId = user?.uuid || null;
 
     // Use alias if available (from TournamentParticipations), otherwise fall back to nickname
-    const displayName =
-      (participant as { alias?: string }).alias ||
-      participant.nickname ||
-      user?.nickname ||
-      'Unknown';
+    const displayName = participantTyped.alias || user?.nickname || 'Unknown';
 
     if (participantId) {
       playerStats.set(participantId, {
@@ -129,8 +131,12 @@ function buildLeaderboard(
     round.matches.forEach((match) => {
       if (match.status !== 'finished') return;
 
-      const player1Id = match.player1Id;
-      const player2Id = match.player2Id;
+      const matchWithPlayers = match as {
+        player1?: { uuid?: string } | null;
+        player2?: { uuid?: string } | null;
+      };
+      const player1Id = matchWithPlayers.player1?.uuid || null;
+      const player2Id = matchWithPlayers.player2?.uuid || null;
 
       if (!player1Id || !player2Id) return;
 

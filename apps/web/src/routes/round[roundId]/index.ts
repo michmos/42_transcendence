@@ -107,7 +107,7 @@ function renderRoundHeader(
 function renderMatches(
   container: HTMLElement,
   matches: Match[],
-  currentUserId: string | null
+  _currentUserId: string | null
 ) {
   const matchesCardContainer = document.createElement('div');
   const matchesCard = new Card(matchesCardContainer, {
@@ -220,8 +220,8 @@ function renderInfoCard(container: HTMLElement) {
         <span class="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
       </span>
       Live updates enabled
-    </div>
-  `;
+      </div>
+    `;
 
   container.appendChild(infoCardContainer);
 }
@@ -375,25 +375,23 @@ export default async function initRoute() {
 
       // Re-map matches
       const uiMatches: Match[] = round.matches.map((match) => {
-        const player1Id = match.player1?.uuid || null;
-        const player2Id = match.player2?.uuid || null;
+        const matchWithPlayers = match as {
+          player1?: { uuid?: string; nickname?: string | null } | null;
+          player2?: { uuid?: string; nickname?: string | null } | null;
+        };
+        const player1Id = matchWithPlayers.player1?.uuid || null;
+        const player2Id = matchWithPlayers.player2?.uuid || null;
 
         const opponent1 = player1Id
           ? playerMap.has(player1Id)
             ? (playerMap.get(player1Id) ?? 'Unknown')
-            : getPlayerNickname(
-                (match as { player1?: { nickname?: string | null } }).player1,
-                player1Id
-              )
+            : getPlayerNickname(matchWithPlayers.player1, player1Id)
           : 'Nobody';
 
         const opponent2 = player2Id
           ? playerMap.has(player2Id)
             ? (playerMap.get(player2Id) ?? 'Unknown')
-            : getPlayerNickname(
-                (match as { player2?: { nickname?: string | null } }).player2,
-                player2Id
-              )
+            : getPlayerNickname(matchWithPlayers.player2, player2Id)
           : 'Nobody';
 
         const hasNullPlayer = opponent1 === 'Nobody' || opponent2 === 'Nobody';
@@ -463,25 +461,23 @@ export default async function initRoute() {
 
     // Map matches
     const uiMatches: Match[] = round.matches.map((match) => {
-      const player1Id = match.player1?.uuid || null;
-      const player2Id = match.player2?.uuid || null;
+      const matchWithPlayers = match as {
+        player1?: { uuid?: string; nickname?: string | null } | null;
+        player2?: { uuid?: string; nickname?: string | null } | null;
+      };
+      const player1Id = matchWithPlayers.player1?.uuid || null;
+      const player2Id = matchWithPlayers.player2?.uuid || null;
 
       const opponent1 = player1Id
         ? playerMap.has(player1Id)
           ? (playerMap.get(player1Id) ?? 'Unknown')
-          : getPlayerNickname(
-              (match as { player1?: { nickname?: string | null } }).player1,
-              player1Id
-            )
+          : getPlayerNickname(matchWithPlayers.player1, player1Id)
         : 'Nobody';
 
       const opponent2 = player2Id
         ? playerMap.has(player2Id)
           ? (playerMap.get(player2Id) ?? 'Unknown')
-          : getPlayerNickname(
-              (match as { player2?: { nickname?: string | null } }).player2,
-              player2Id
-            )
+          : getPlayerNickname(matchWithPlayers.player2, player2Id)
         : 'Nobody';
 
       const hasNullPlayer = opponent1 === 'Nobody' || opponent2 === 'Nobody';
