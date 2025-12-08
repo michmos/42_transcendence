@@ -301,17 +301,19 @@ export function updateGame(currentGameState: GameState) {
 }
 
 export function asyncGameLoop(gameRoom: string) {
-  return new Promise<void>((resolve) => {
+  return new Promise<GameRoomData>((resolve) => {
     updateGameRoomData(gameRoom, { currentGameState: initGameState });
 
     const intervalId = setInterval(() => {
-      const currentGameState = (
-        RoomManager.getDataOrThrow(gameRoom) as GameRoomData
-      ).currentGameState;
+      // TODO: instead of throw error, clear interval and resolve
+      const currentRoomData = RoomManager.getDataOrThrow(
+        gameRoom
+      ) as GameRoomData;
+      const currentGameState = currentRoomData.currentGameState;
       updateGame(currentGameState);
       if (currentGameState.gameOver) {
         clearInterval(intervalId);
-        resolve();
+        resolve(currentRoomData);
       }
 
       // Broadcast updated game state to all clients in the room

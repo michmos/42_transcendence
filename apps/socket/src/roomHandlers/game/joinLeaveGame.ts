@@ -1,7 +1,7 @@
 import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { updateGameRoomData, type GameRoomData } from './index.js';
-import { asyncGameLoop } from './game.js';
+import { asyncGameLoop, type GameState } from './game.js';
 import { env } from '../../env.js';
 import { type MatchParticipantsResponse } from 'types';
 
@@ -25,6 +25,64 @@ function sendRole(
       },
     })
   );
+}
+
+async function postFinishedOnlineGame(game: GameRoomData) {
+  // fetch from API
+  const response = await fetch(`http://localhost:5173/api/match/`, {
+    // TODO: hardcoded localhost
+    method: 'POST',
+    headers: {
+      'x-api-key': env.ADMIN_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      player1Id: game.player1Uuid,
+      player2Id: game.player2Uuid,
+      score1: game.currentGameState.leftScore,
+      score2: game.currentGameState.rightScore,
+      winnerId: (game.currentGameState.leftScore >
+      game.currentGameState.rightScore
+        ? game.player1Uuid
+        : game.player2Uuid) as string,
+      status: 'finished',
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Posting finished online match failed: ${response.status} ${response.statusText}`
+    );
+  }
+}
+
+async function patchFinishedTournamentGame(
+  game: GameRoomData,
+  matchUuid: string
+) {
+  const response = await fetch(`http://localhost:5173/api/match/${matchUuid}`, {
+    // TODO: hardcoded localhost
+    method: 'PATCH',
+    headers: {
+      'x-api-key': env.ADMIN_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      score1: game.currentGameState.leftScore,
+      score2: game.currentGameState.rightScore,
+      winnerId: (game.currentGameState.leftScore >
+      game.currentGameState.rightScore
+        ? game.player1Uuid
+        : game.player2Uuid) as string,
+      status: 'finished',
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Posting finished tournament match failed: ${response.status} ${response.statusText}`
+    );
+  }
 }
 
 async function handleJoinOnlineGame(socket: WSocket) {
@@ -75,10 +133,12 @@ async function handleJoinOnlineGame(socket: WSocket) {
   console.log(
     `starting online game: ${newRoomName} between ${socket.uuid} and ${otherSocket.uuid}`
   );
-  await asyncGameLoop(newRoomName);
+  const finalGameData = await asyncGameLoop(newRoomName);
   console.log(
     `online game ended: ${newRoomName} between ${socket.uuid} and ${otherSocket.uuid}`
   );
+  // post to API
+  await postFinishedOnlineGame(finalGameData);
 }
 
 async function handleJoinLocalGame(socket: WSocket) {
@@ -102,7 +162,7 @@ async function handleJoinLocalGame(socket: WSocket) {
 
   // start match
   console.log(`starting localGame: ${newRoomName} with ${socket.uuid}`);
-  await asyncGameLoop(newRoomName);
+  const finalGameData = await asyncGameLoop(newRoomName);
   console.log(`localGame ended: ${newRoomName} with ${socket.uuid}`);
 }
 
@@ -185,8 +245,10 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
 
   // start match
   console.log(`starting online Game: ${roomName}`);
-  await asyncGameLoop(roomName);
+  const finalGameData = await asyncGameLoop(roomName);
   console.log(`online Game ended: ${roomName}`);
+  // patch to API
+  await patchFinishedTournamentGame(finalGameData, matchUuid);
 }
 
 export function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
