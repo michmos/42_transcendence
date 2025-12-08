@@ -158,24 +158,21 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   }
 
   const room = RoomManager.get(roomName);
+  socket.join(roomName);
+  socket.consoleLog(`joined tournament match game room: ${roomName}`);
+  socketToGameroom.set(socket, roomName);
   if (!room) {
     // opponent not joined yet
-    socket.consoleLog('tournament match: waiting for opponent');
-    socket.join(roomName);
     sendRole(socket, roomName, 'player1');
     updateGameRoomData(roomName, {
       player1Uuid: socket.uuid,
       isLocalGame: false,
     });
-    socketToGameroom.set(socket, roomName);
     return;
   } else {
     // opponent joined
-    socket.consoleLog('tournament match: opponent found, starting match');
-    socket.join(roomName);
-    updateGameRoomData(roomName, { player2Uuid: socket.uuid });
     sendRole(socket, roomName, 'player2');
-    socketToGameroom.set(socket, roomName);
+    updateGameRoomData(roomName, { player2Uuid: socket.uuid });
   }
 
   // notify clients
