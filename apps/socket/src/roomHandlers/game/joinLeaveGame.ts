@@ -1,7 +1,7 @@
 import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { updateGameRoomData, type GameRoomData } from './index.js';
-import { gameLoop } from './game.js';
+import { asyncGameLoop } from './game.js';
 import { env } from '../../env.js';
 import { type MatchParticipantsResponse } from 'types';
 
@@ -72,7 +72,7 @@ async function handleJoinOnlineGame(socket: WSocket) {
   );
 
   // start match
-  gameLoop(newRoomName);
+  await asyncGameLoop(newRoomName);
 }
 
 async function handleJoinLocalGame(socket: WSocket) {
@@ -95,7 +95,7 @@ async function handleJoinLocalGame(socket: WSocket) {
   socketToGameroom.set(socket, newRoomName);
 
   // start match
-  gameLoop(newRoomName);
+  await asyncGameLoop(newRoomName);
 }
 
 // TODO: add cache expiration
@@ -179,7 +179,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   );
 
   // start match
-  gameLoop(roomName);
+  await asyncGameLoop(roomName);
 }
 
 export async function handleJoinRoom(

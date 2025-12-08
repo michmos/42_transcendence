@@ -300,29 +300,32 @@ export function updateGame(currentGameState: GameState) {
   }
 }
 
-export function gameLoop(gameRoom: string) {
-  updateGameRoomData(gameRoom, { currentGameState: initGameState });
+export function asyncGameLoop(gameRoom: string) {
+  return new Promise<void>((resolve) => {
+    updateGameRoomData(gameRoom, { currentGameState: initGameState });
 
-  const intervalId = setInterval(() => {
-    const currentGameState = (
-      RoomManager.getDataOrThrow(gameRoom) as GameRoomData
-    ).currentGameState;
-    updateGame(currentGameState);
-    if (currentGameState.gameOver) {
-      clearInterval(intervalId);
-    }
+    const intervalId = setInterval(() => {
+      const currentGameState = (
+        RoomManager.getDataOrThrow(gameRoom) as GameRoomData
+      ).currentGameState;
+      updateGame(currentGameState);
+      if (currentGameState.gameOver) {
+        clearInterval(intervalId);
+        resolve();
+      }
 
-    // Broadcast updated game state to all clients in the room
-    RoomManager.get(gameRoom)?.broadcast(
-      JSON.stringify({
-        type: 'message',
-        room: gameRoom,
-        data: {
-          subtype: 'state',
-          timestamp: Date.now(),
-          serverState: currentGameState,
-        },
-      })
-    );
-  }, 1000 / 60);
+      // Broadcast updated game state to all clients in the room
+      RoomManager.get(gameRoom)?.broadcast(
+        JSON.stringify({
+          type: 'message',
+          room: gameRoom,
+          data: {
+            subtype: 'state',
+            timestamp: Date.now(),
+            serverState: currentGameState,
+          },
+        })
+      );
+    }, 1000 / 60);
+  });
 }
