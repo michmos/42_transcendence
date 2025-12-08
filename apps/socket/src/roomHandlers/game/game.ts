@@ -301,19 +301,20 @@ export function updateGame(currentGameState: GameState) {
 }
 
 export function asyncGameLoop(gameRoom: string) {
-  return new Promise<GameRoomData>((resolve) => {
+  return new Promise<GameRoomData>((resolve, reject) => {
     updateGameRoomData(gameRoom, { currentGameState: initGameState });
 
     const intervalId = setInterval(() => {
-      // TODO: instead of throw error, clear interval and resolve
-      const currentRoomData = RoomManager.getDataOrThrow(
-        gameRoom
-      ) as GameRoomData;
-      const currentGameState = currentRoomData.currentGameState;
+      const roomData = RoomManager.get(gameRoom)?.getData() as GameRoomData;
+      if (!roomData) {
+        clearInterval(intervalId);
+        reject(new Error('Room closed unexpectedly'));
+      }
+      const currentGameState = roomData.currentGameState;
       updateGame(currentGameState);
       if (currentGameState.gameOver) {
         clearInterval(intervalId);
-        resolve(currentRoomData);
+        resolve(roomData);
       }
 
       // Broadcast updated game state to all clients in the room
