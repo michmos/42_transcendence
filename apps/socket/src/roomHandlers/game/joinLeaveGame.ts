@@ -72,7 +72,13 @@ async function handleJoinOnlineGame(socket: WSocket) {
   );
 
   // start match
+  console.log(
+    `starting online game: ${newRoomName} between ${socket.uuid} and ${otherSocket.uuid}`
+  );
   await asyncGameLoop(newRoomName);
+  console.log(
+    `online game ended: ${newRoomName} between ${socket.uuid} and ${otherSocket.uuid}`
+  );
 }
 
 async function handleJoinLocalGame(socket: WSocket) {
@@ -95,7 +101,9 @@ async function handleJoinLocalGame(socket: WSocket) {
   socketToGameroom.set(socket, newRoomName);
 
   // start match
+  console.log(`starting localGame: ${newRoomName} with ${socket.uuid}`);
   await asyncGameLoop(newRoomName);
+  console.log(`localGame ended: ${newRoomName} with ${socket.uuid}`);
 }
 
 // TODO: add cache expiration
@@ -179,7 +187,9 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   );
 
   // start match
+  console.log(`starting online Game: ${roomName}`);
   await asyncGameLoop(roomName);
+  console.log(`online Game ended: ${roomName}`);
 }
 
 export async function handleJoinRoom(
@@ -219,6 +229,7 @@ function autoForfeit(
       rightScore: isLeftPlayer ? 10 : 0,
     },
   });
+  socket.consoleLog(`auto-forfeited the game ${roomName}`);
 }
 
 export function leaveGamePage(socket: WSocket) {
