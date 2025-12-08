@@ -143,14 +143,26 @@ describe('POST /match', () => {
     });
     expect(response.statusCode).toBe(201);
   });
-  test('invalid: missing body properties -> 400', async () => {
+  test('invalid: missing both player ids -> 400', async () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
       url: '/match',
       body: {
         status: 'ongoing',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+  test('invalid: same player ids -> 400', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
         player1Id: normalUser.uuid,
+        player2Id: normalUser.uuid,
+        status: 'ongoing',
       },
     });
     expect(response.statusCode).toBe(400);
