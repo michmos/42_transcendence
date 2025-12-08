@@ -36,7 +36,7 @@ export default class User {
   }
 
   public socketCount(): number {
-	return this.sockets.length;
+    return this.sockets.size;
   }
 
   public join(name: string) {

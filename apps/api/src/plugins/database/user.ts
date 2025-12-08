@@ -1,7 +1,7 @@
 import { type User, status } from 'db/generated/client/index.js';
 import Database from 'db';
 import { generateNickName } from './utils.js';
-import type { UserMatchRecord } from 'types';
+import type { UserMatchRecord, MatchResult } from 'types';
 
 export async function getUsers(): Promise<User[]> {
   return Database.user.findMany({
@@ -47,16 +47,11 @@ export async function setUserMeAvatar(
 export async function getUserMatchHistory(
   uuid: string
 ): Promise<UserMatchRecord[]> {
-  const matches = await Database.match.findMany({
+  const matches: MatchResult[] = await Database.match.findMany({
     where: {
       AND: [
         {
-          OR: [
-            {
-              player1Id: uuid,
-            },
-            { player2Id: uuid },
-          ],
+          OR: [{ player1Id: uuid }, { player2Id: uuid }],
         },
         {
           status: status.finished,
@@ -74,18 +69,19 @@ export async function getUserMatchHistory(
     },
     orderBy: { updatedAt: 'asc' },
   });
-  return matches.map((match) => ({
-    date: match.updatedAt.toISOString().slice(0, 10),
-    score1: match.score1,
-    score2: match.score2,
-    player1: match.player1?.nickname ?? 'Guest',
-    player2: match.player2?.nickname ?? 'Guest',
-    result: match.winnerId === uuid ? 'WON' : 'LOST',
-    gameType: match.tournamentRoundId ? 'Tournament match' : '1 v 1',
-  }));
+  return matches.map(
+    (match): UserMatchRecord => ({
+      date: match.updatedAt.toISOString().slice(0, 10),
+      score1: match.score1,
+      score2: match.score2,
+      player1: match.player1?.nickname ?? 'Guest',
+      player2: match.player2?.nickname ?? 'Guest',
+      result: match.winnerId === uuid ? 'WON' : 'LOST',
+      gameType: match.tournamentRoundId ? 'Tournament match' : '1 v 1',
+    })
+  );
 }
 
-// ---------------- OTHER STUFF
 export async function addUser(email: string, nickname: string): Promise<User> {
   return Database.user.create({
     data: { email, nickname },

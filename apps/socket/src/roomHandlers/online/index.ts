@@ -6,80 +6,61 @@ import {
 import { env } from '../../env.js';
 
 export default {
-  onStartup: async () => {
-    console.log('Loading up Online room');
-  },
+  // onStartup: async () => {
+  //   console.log('Loading up Online room');
+  // },
 
   onOpen: async (socket: WSocket) => {
     socket.join('online');
-    const user: User = socket.getUser();
+    const user: User | null = socket.getUser();
+
+    if (user === null) return;
 
     // If user now only has 1 socket with online room, broadcast
     if (user.socketCount() === 1) {
-      const selfNicknameResponse: Response = await fetch(`${env.API_SERVER}/user/me/nickname/`, {
-        method: 'GET',
-        headers: {
-          Cookie: `session=${socket.jwt}`,
-        },
-        credentials: 'include',
-      });
+      const selfNicknameResponse: Response = await fetch(
+        `${env.API_SERVER}/user/me/nickname/`,
+        {
+          method: 'GET',
+          headers: {
+            Cookie: `session=${socket.jwt}`,
+          },
+          credentials: 'include',
+        }
+      );
       // if (!selfNicknameResponse)
-        // Error handling
+      // Error handling
 
       const selfNickname = (await selfNicknameResponse.json()) as string;
       const userIsOnline: string = selfNickname + ':true';
       RoomManager.get('online')?.broadcast(userIsOnline);
-      // const friendsUuidResponse: Response = await fetch(`${env.API_SERVER}/friends/`, {
-      //   method: 'GET',
-      //   headers: {
-      //     Cookie: `session=${socket.jwt}`,
-      //   },
-      //   credentials: 'include',
-      // });
-      // if (!friendsUuidResponse)
-        // Error handling
-      // const friendsData = (await friendsUuidResponse.json()) as string[];
-      // friendsData.array.forEach(element => {
-      //   // if element in Online room, then:
-      //   RoomManager.get('online')?.broadcast(userIsOnline);
-      // });
     }
   },
 
   onClose: async (socket: WSocket) => {
     socket.leave('online');
+    const user: User | null = socket.getUser();
 
-    const user: User = socket.getUser();
+    if (user === null) return;
 
     // If user now only has 1 socket with online room, broadcast
     if (user.socketCount() === 0) {
-      const selfNicknameResponse: Response = await fetch(`${env.API_SERVER}/user/me/nickname/`, {
-        method: 'GET',
-        headers: {
-          Cookie: `session=${socket.jwt}`,
-        },
-        credentials: 'include',
-      });
+      const selfNicknameResponse: Response = await fetch(
+        `${env.API_SERVER}/user/me/nickname/`,
+        {
+          method: 'GET',
+          headers: {
+            Cookie: `session=${socket.jwt}`,
+          },
+          credentials: 'include',
+        }
+      );
       // if (!selfNicknameResponse)
-        // Error handling
+      // Error handling
 
       const selfNickname = (await selfNicknameResponse.json()) as string;
       const userIsOnline: string = selfNickname + ':false';
       RoomManager.get('online')?.broadcast(userIsOnline);
-      // const friendsUuidResponse: Response = await fetch(`${env.API_SERVER}/friends/`, {
-      //   method: 'GET',
-      //   headers: {
-      //     Cookie: `session=${socket.jwt}`,
-      //   },
-      //   credentials: 'include',
-      // });
-      // if (!friendsUuidResponse)
-        // Error handling
-      // const friendsData = (await friendsUuidResponse.json()) as string[];
-      // friendsData.array.forEach(element => {
-      //   // if element in Online room, then:
-      //   RoomManager.get('online')?.broadcast(userIsOnline);
-      // });
     }
   },
 };
