@@ -12,8 +12,9 @@ export default class WSocket {
   private socket: WebSocket;
   private user: User | null;
   private messageQueue: Buffer[] = [];
-  private onMessageCallbacks: ((input: Buffer) => void | Promise<void>)[] = [];
-  private onCloseCallbacks: (() => void | Promise<void>)[] = [];
+  private onMessageCallbacks: Array<(input: Buffer) => void | Promise<void>> =
+    [];
+  private onCloseCallbacks: Array<() => void | Promise<void>> = [];
   private isProcessingQueue: boolean = false;
 
   public uuid: string;
@@ -41,10 +42,10 @@ export default class WSocket {
       this.consoleLog(`connection closed`);
     });
 
-    this.socket.on('message', async (input: Buffer) => {
+    this.socket.on('message', (input: Buffer) => {
       this.consoleLog(`new message`);
       this.messageQueue.push(input);
-      this.processMessageQueue();
+      void this.processMessageQueue();
     });
   }
 
@@ -63,7 +64,7 @@ export default class WSocket {
         try {
           await Promise.resolve(callback(oldestMessage));
         } catch (error) {
-          this.consoleError(`error on message: ${error}`);
+          this.consoleError(`error on message: ${(error as Error).message}`);
           this.sendError('Internal error');
         }
       }
