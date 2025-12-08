@@ -13,6 +13,7 @@ export default class WSocket {
   private user: User | null;
   private messageQueue: Buffer[] = [];
   private onMessageCallbacks: ((input: Buffer) => void | Promise<void>)[] = [];
+  private onCloseCallbacks: (() => void | Promise<void>)[] = [];
   private isProcessingQueue: boolean = false;
 
   public uuid: string;
@@ -30,8 +31,13 @@ export default class WSocket {
     this.socket.on('close', () => {
       this.user?.removeSocket(this);
       this.user = null;
-      this.leaveAll();
       this.connected = false;
+      for (const callback of this.onCloseCallbacks) {
+        Promise.resolve(callback()).catch((error) =>
+          this.consoleError(`error on close: ${error}`)
+        );
+      }
+      this.leaveAll();
       this.consoleLog(`connection closed`);
     });
 
@@ -67,11 +73,7 @@ export default class WSocket {
 
   // add Hooks
   public onClose(callback: () => void | Promise<void>) {
-    this.socket.on('close', () => {
-      Promise.resolve(callback()).catch((error) =>
-        this.consoleError(`error on close: ${error}`)
-      );
-    });
+    this.onCloseCallbacks.push(callback);
   }
 
   public onMessage(callback: (input: Buffer) => void | Promise<void>) {
