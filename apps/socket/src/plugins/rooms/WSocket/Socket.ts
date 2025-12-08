@@ -53,6 +53,7 @@ export default class WSocket {
     if (this.isProcessingQueue) {
       return;
     }
+    this.isProcessingQueue = true;
 
     // process all messages in order of arrival
     while (this.messageQueue.length > 0) {
