@@ -103,6 +103,7 @@ export default class WSocket {
     this.socket.send(message);
   }
 
+  // TODO: maybe delete throw
   public sendError(message: string) {
     if (!this.connected) {
       throw new Error('Cannot send error: socket is not connected');

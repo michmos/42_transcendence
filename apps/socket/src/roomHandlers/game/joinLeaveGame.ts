@@ -4,6 +4,7 @@ import { updateGameRoomData, type GameRoomData } from './index.js';
 import { asyncGameLoop, type GameState } from './game.js';
 import { env } from '../../env.js';
 import { type MatchParticipantsResponse } from 'types';
+import { API } from '../../plugins/api/index.js';
 
 const waitingList: WSocket[] = [];
 let lastGameId = 0; // TODO: replace with uuid from fetch Match (API Call)
@@ -25,64 +26,6 @@ function sendRole(
       },
     })
   );
-}
-
-async function postFinishedOnlineGame(game: GameRoomData) {
-  // fetch from API
-  const response = await fetch(`http://localhost:5173/api/match/`, {
-    // TODO: hardcoded localhost
-    method: 'POST',
-    headers: {
-      'x-api-key': env.ADMIN_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({
-      player1Id: game.player1Uuid,
-      player2Id: game.player2Uuid,
-      score1: game.currentGameState.leftScore,
-      score2: game.currentGameState.rightScore,
-      winnerId: (game.currentGameState.leftScore >
-      game.currentGameState.rightScore
-        ? game.player1Uuid
-        : game.player2Uuid) as string,
-      status: 'finished',
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Posting finished online match failed: ${response.status} ${response.statusText}`
-    );
-  }
-}
-
-async function patchFinishedTournamentGame(
-  game: GameRoomData,
-  matchUuid: string
-) {
-  const response = await fetch(`http://localhost:5173/api/match/${matchUuid}`, {
-    // TODO: hardcoded localhost
-    method: 'PATCH',
-    headers: {
-      'x-api-key': env.ADMIN_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({
-      score1: game.currentGameState.leftScore,
-      score2: game.currentGameState.rightScore,
-      winnerId: (game.currentGameState.leftScore >
-      game.currentGameState.rightScore
-        ? game.player1Uuid
-        : game.player2Uuid) as string,
-      status: 'finished',
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Posting finished tournament match failed: ${response.status} ${response.statusText}`
-    );
-  }
 }
 
 async function handleJoinOnlineGame(socket: WSocket) {
@@ -138,7 +81,7 @@ async function handleJoinOnlineGame(socket: WSocket) {
     `online game ended: ${newRoomName} between ${socket.uuid} and ${otherSocket.uuid}`
   );
   // post to API
-  await postFinishedOnlineGame(finalGameData);
+  await API.postFinishedOnlineMatch(finalGameData);
 }
 
 async function handleJoinLocalGame(socket: WSocket) {
@@ -176,24 +119,7 @@ async function getMatchParticipants(matchUuid: string) {
     return participants;
   }
 
-  // fetch from API
-  const response = await fetch(
-    `http://localhost:5173/api/match/${matchUuid}/participants`,
-    {
-      // TODO: hardcoded localhost
-      method: 'GET',
-      headers: {
-        'x-api-key': env.ADMIN_API_KEY,
-      },
-      credentials: 'include',
-    }
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Fetching tournament match participants failed: ${response.status} ${response.statusText}`
-    );
-  }
-  const participants = (await response.json()) as MatchParticipantsResponse;
+  const participants = await API.fetchMatchParticipants(matchUuid);
   matchParticipantsCache.set(matchUuid, participants);
   return participants;
 }
@@ -248,7 +174,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   const finalGameData = await asyncGameLoop(roomName);
   console.log(`online Game ended: ${roomName}`);
   // patch to API
-  await patchFinishedTournamentGame(finalGameData, matchUuid);
+  await API.patchFinishedTournamentMatch(finalGameData, matchUuid);
 }
 
 export function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
