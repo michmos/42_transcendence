@@ -54,18 +54,37 @@ export async function loadRoomHandlers() {
 }
 
 export async function runOnStartupHooks() {
-  for (const [, handler] of Object.entries(roomHandlers)) {
-    if (handler.onStartup) await handler.onStartup();
+  const onSartupCallbacks = Object.values(roomHandlers).filter(
+    (handler) => handler.onStartup
+  );
+  try {
+    await Promise.all(onSartupCallbacks.map((handler) => handler.onStartup!()));
+  } catch (error) {
+    console.error('Error running onStartup hooks: ', (error as Error).message);
   }
 }
 export async function runOnOpenHooks(socket: WSocket) {
-  for (const [, handler] of Object.entries(roomHandlers)) {
-    if (handler.onOpen) await handler.onOpen(socket);
+  const onOpenCallbacks = Object.values(roomHandlers).filter(
+    (handler) => handler.onOpen
+  );
+  try {
+    await Promise.all(
+      onOpenCallbacks.map((handler) => handler.onOpen!(socket))
+    );
+  } catch (error) {
+    console.error('Error running onOpen hooks: ', (error as Error).message);
   }
 }
 export async function runOnCloseHooks(socket: WSocket) {
-  for (const [, handler] of Object.entries(roomHandlers)) {
-    if (handler.onClose) await handler.onClose(socket);
+  const onCloseCallbacks = Object.values(roomHandlers).filter(
+    (handler) => handler.onClose
+  );
+  try {
+    await Promise.all(
+      onCloseCallbacks.map((handler) => handler.onClose!(socket))
+    );
+  } catch (error) {
+    console.error('Error running onClose hooks: ', (error as Error).message);
   }
 }
 
