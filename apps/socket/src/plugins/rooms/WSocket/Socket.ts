@@ -16,6 +16,7 @@ export default class WSocket {
   public jwt: string;
   public lastSeen?: Date;
   public connected: boolean;
+  private onCloseCallbacks: (() => void | Promise<void>)[] = [];
 
   constructor(socket: WebSocket, uuid: string, jwt: string) {
     this.socket = socket;
@@ -28,19 +29,20 @@ export default class WSocket {
     this.socket.on('close', () => {
       this.user?.removeSocket(this);
       this.user = null;
-      this.leaveAll();
       this.connected = false;
+      for (const callback of this.onCloseCallbacks) {
+        Promise.resolve(callback()).catch((error) =>
+          this.consoleError(`error on close: ${error}`)
+        );
+      }
+      this.leaveAll();
       this.consoleLog(`connection closed`);
     });
   }
 
   // add Hooks
   public onClose(callback: () => void | Promise<void>) {
-    this.socket.on('close', () => {
-      Promise.resolve(callback()).catch((error) =>
-        this.consoleError(`error on close: ${error}`)
-      );
-    });
+    this.onCloseCallbacks.push(callback);
   }
 
   public onMessage(callback: (input: Buffer) => void | Promise<void>) {
