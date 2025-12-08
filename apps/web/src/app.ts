@@ -32,20 +32,15 @@ async function checkSessionAndRedirect() {
     sessionStorage.removeItem('oauth_redirect');
   }
 
-  // After OAuth callback redirect, cookies might not be immediately available
-  // Wait longer for cookies to be set, then check with retries
-  if (isOAuthCallback) {
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second after OAuth callback
-  } else {
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Small delay for normal loads
-  }
-
+  // Cookie should be available immediately after OAuth callback redirect
+  // Check immediately, with short retries if needed for browser processing
   let session = null;
-  const maxRetries = isOAuthCallback ? 4 : 2; // More retries after OAuth callback
+  const maxRetries = isOAuthCallback ? 3 : 2; // Fewer retries since cookie should be ready
+  const retryDelay = 200; // Shorter delay between retries
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     if (attempt > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms between retries
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
 
     try {

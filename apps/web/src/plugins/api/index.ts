@@ -4,7 +4,7 @@ import TournamentAPI from './tournaments.js';
 import FriendsAPI from './friends.js';
 
 const API = {
-  ...UserAPI,
+  user: UserAPI,
   auth: AuthAPI,
   tournaments: TournamentAPI,
   friends: FriendsAPI,

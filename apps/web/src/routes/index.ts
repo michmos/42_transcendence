@@ -1,10 +1,10 @@
 import { getCurrentSession } from '../utils/auth-state.js';
 import { navigateTo } from '../utils/navigation.js';
 
-export default function initRoute() {
+export default async function initRoute() {
   // Check if we already have a session in memory (from app.ts)
   // app.ts already checked auth, so just use that session
-  const currentSession = getCurrentSession();
+  const currentSession = await getCurrentSession();
   if (currentSession && currentSession.uuid) {
     navigateTo('/profile');
     return;

@@ -51,7 +51,7 @@ export default async function initRoute() {
 
   // Check if we have a session in memory (from app.ts)
   // app.ts already checked auth, so we should have a session
-  const currentSession = getCurrentSession();
+  const currentSession = await getCurrentSession();
   if (!currentSession || !currentSession.uuid) {
     navigateTo('/login');
     return;
@@ -62,7 +62,7 @@ export default async function initRoute() {
 
   if (!profileData) {
     // Re-check session in memory (might have been cleared by logout)
-    const currentSession = getCurrentSession();
+    const currentSession = await getCurrentSession();
     if (!currentSession || !currentSession.uuid) {
       // Session was cleared (e.g., during logout) - redirect immediately
       navigateTo('/login');

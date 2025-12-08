@@ -10,7 +10,8 @@ let currentSession: Session | null = null;
 /**
  * Get current session from memory
  */
-export function getCurrentSession(): Session | null {
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function getCurrentSession(): Promise<Session | null> {
   return currentSession;
 }
 
