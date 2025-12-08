@@ -1,6 +1,6 @@
 import { updateTimer, startGameTimer } from './timer.js';
 import { RoomManager } from '../../plugins/rooms/WSocket/index.js';
-import { updateGameRoomData } from './index.js';
+import { updateGameRoomData, type GameRoomData } from './index.js';
 
 export const ROLE_EXPIRATION = 8000;
 export const PING = 1000;
@@ -296,10 +296,18 @@ export function updateGame(currentGameState: GameState) {
 }
 
 export function gameLoop(gameRoom: string) {
-  const currentGameState = initGameState;
-  updateGameRoomData(gameRoom, { currentGameState });
+  updateGameRoomData(gameRoom, { currentGameState: initGameState });
 
   const intervalId = setInterval(() => {
+    const currentGameState = (
+      RoomManager.get(gameRoom)?.getData() as GameRoomData
+    ).currentGameState;
+    if (!currentGameState) {
+      // TODO: handle exception
+      clearInterval(intervalId);
+      throw new Error('runtime error');
+    }
+
     updateGame(currentGameState);
     if (currentGameState.gameOver) {
       clearInterval(intervalId);
