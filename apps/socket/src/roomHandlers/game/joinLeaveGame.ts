@@ -202,6 +202,25 @@ export async function handleJoinRoom(
   }
 }
 
+function autoForfeit(
+  socket: WSocket,
+  gameData: GameRoomData,
+  roomName: string
+) {
+  // updat game state -> auto-forfeit
+  const isLeftPlayer: boolean =
+    gameData.player1Uuid === socket.uuid ? true : false;
+
+  updateGameRoomData(roomName, {
+    currentGameState: {
+      ...gameData.currentGameState,
+      gameOver: true,
+      leftScore: isLeftPlayer ? 0 : 10,
+      rightScore: isLeftPlayer ? 10 : 0,
+    },
+  });
+}
+
 export function leaveGamePage(socket: WSocket) {
   // remove from waitlist if on there
   const waitingListIndex = waitingList.findIndex((v) => v === socket);
@@ -213,20 +232,12 @@ export function leaveGamePage(socket: WSocket) {
   // remove from game if in there
   const gameRoomName = socketToGameroom.get(socket);
   if (gameRoomName) {
-    // TODO: does game room definitely exist at this point?
     const gameData = RoomManager.getDataOrThrow(gameRoomName) as GameRoomData;
-    const gameState = gameData.currentGameState;
-    const isLeftPlayer: boolean =
-      gameData.player1Uuid === socket.uuid ? true : false;
-
-    updateGameRoomData(gameRoomName, {
-      currentGameState: {
-        ...gameState,
-        gameOver: true,
-        leftScore: isLeftPlayer ? 0 : 10,
-        rightScore: isLeftPlayer ? 10 : 0,
-      },
-    });
+    if (!gameData.currentGameState.gameOver) {
+      autoForfeit(socket, gameData, gameRoomName);
+    }
+    socketToGameroom.delete(socket);
+    socket.leave(gameRoomName);
     socket.consoleLog('socket removed from game');
   }
 }
