@@ -176,12 +176,18 @@ export function updateGame(currentGameState: GameState) {
 
     gameSpeed = baseGameSpeed;
     bounceCount = 0;
-    console.log(
-      'Score! Base speed:',
-      baseGameSpeed,
-      'Current speed:',
-      gameSpeed
-    );
+    // console.log(
+    //   'Score! Base speed:',
+    //   baseGameSpeed,
+    //   'Current speed:',
+    //   gameSpeed
+    // );
+    // console.log(
+    //   'Score! Left:',
+    //   currentGameState.leftScore,
+    //   'Right:',
+    //   currentGameState.rightScore
+    // );
 
     currentGameState.ballX = CANVAS_WIDTH / 2 - BALL_SIZE / 2;
     currentGameState.ballY = CANVAS_HEIGHT / 2 - BALL_SIZE / 2;
@@ -224,15 +230,14 @@ export function updateGame(currentGameState: GameState) {
       const bounceSpeedIncrease = (bounceCount - 9) * 0.1;
       gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.6);
     }
-    // console.log(gameState.ballSpeedX * gameSpeed);
-    console.log(
-      'Bounce count:',
-      bounceCount,
-      'Base speed:',
-      baseGameSpeed,
-      'Current speed:',
-      gameSpeed
-    );
+    // console.log(
+    //   'Bounce count:',
+    //   bounceCount,
+    //   'Base speed:',
+    //   baseGameSpeed,
+    //   'Current speed:',
+    //   gameSpeed
+    // );
   }
 
   // Right paddle collision
@@ -256,14 +261,14 @@ export function updateGame(currentGameState: GameState) {
       gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.6);
     }
     // console.log(gameState.ballSpeedX * gameSpeed);
-    console.log(
-      'Bounce count:',
-      bounceCount,
-      'Base speed:',
-      baseGameSpeed,
-      'Current speed:',
-      gameSpeed
-    );
+    //   console.log(
+    //     'bounce count:',
+    //     bouncecount,
+    //     'base speed:',
+    //     basegamespeed,
+    //     'current speed:',
+    //     gamespeed
+    //   );
   }
 
   if (currentGameState.aiEnabled) {
