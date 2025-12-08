@@ -1,20 +1,26 @@
 import type { Match, status } from 'db/generated/client/index.js';
 import Database from 'db';
 
-export async function addMatch(data: {
-  player1Id: string;
-  player2Id: string;
-  status?: status;
-}): Promise<Match> {
+export async function addMatch(data: Partial<Match>): Promise<Match> {
+  const { player1Id, player2Id, tournamentRoundId, ...rest } = data;
   return Database.match.create({
     data: {
-      player1: {
-        connect: { uuid: data.player1Id },
-      },
-      player2: {
-        connect: { uuid: data.player2Id },
-      },
-      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(player1Id
+        ? {
+            player1: { connect: { uuid: player1Id } },
+          }
+        : {}),
+      ...(player2Id
+        ? {
+            player2: { connect: { uuid: player2Id } },
+          }
+        : {}),
+      ...(tournamentRoundId
+        ? {
+            tournament: { connect: { uuid: tournamentRoundId } },
+          }
+        : {}),
+      ...rest,
     },
   });
 }

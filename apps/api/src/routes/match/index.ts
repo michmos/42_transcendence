@@ -71,6 +71,15 @@ export default function (app: FastifyInstance): void {
       preHandler: (request, reply, done) => {
         if (!isAdmin(request, reply)) {
         }
+        if (
+          request.body.player1Id === request.body.player2Id ||
+          (!request.body.player1Id && !request.body.player2Id)
+        ) {
+          reply
+            .status(400)
+            .send({ error: 'A match must have two different players' });
+          return;
+        }
         done();
         return;
       },
