@@ -58,7 +58,12 @@ export async function runOnStartupHooks() {
     (handler) => handler.onStartup
   );
   try {
-    await Promise.all(onSartupCallbacks.map((handler) => handler.onStartup!()));
+    await Promise.all(
+      onSartupCallbacks.map((handler) => {
+        if (!handler.onStartup) return;
+        return handler.onStartup();
+      })
+    );
   } catch (error) {
     console.error('Error running onStartup hooks: ', (error as Error).message);
   }
@@ -69,7 +74,10 @@ export async function runOnOpenHooks(socket: WSocket) {
   );
   try {
     await Promise.all(
-      onOpenCallbacks.map((handler) => handler.onOpen!(socket))
+      onOpenCallbacks.map((handler) => {
+        if (!handler.onOpen) return;
+        return handler.onOpen(socket);
+      })
     );
   } catch (error) {
     console.error('Error running onOpen hooks: ', (error as Error).message);
@@ -81,7 +89,10 @@ export async function runOnCloseHooks(socket: WSocket) {
   );
   try {
     await Promise.all(
-      onCloseCallbacks.map((handler) => handler.onClose!(socket))
+      onCloseCallbacks.map((handler) => {
+        if (!handler.onClose) return;
+        return handler.onClose(socket);
+      })
     );
   } catch (error) {
     console.error('Error running onClose hooks: ', (error as Error).message);
