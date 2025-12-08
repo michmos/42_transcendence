@@ -189,10 +189,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   console.log(`online Game ended: ${roomName}`);
 }
 
-export async function handleJoinRoom(
-  socket: WSocket,
-  message: SocketMessageType
-) {
+export function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
   if (socketToGameroom.has(socket)) {
     socket.consoleLog('tried to join a game while already in one');
     socket.sendError('You can only be in one game at a time');
