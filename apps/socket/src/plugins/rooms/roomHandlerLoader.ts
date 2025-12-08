@@ -57,45 +57,50 @@ export async function runOnStartupHooks() {
   const onSartupCallbacks = Object.values(roomHandlers).filter(
     (handler) => handler.onStartup
   );
-  try {
-    await Promise.all(
-      onSartupCallbacks.map((handler) => {
-        if (!handler.onStartup) return;
-        return handler.onStartup();
-      })
-    );
-  } catch (error) {
-    console.error('Error running onStartup hooks: ', (error as Error).message);
+  const results = await Promise.allSettled(
+    onSartupCallbacks.map((handler) => {
+      if (!handler.onStartup) return;
+      return handler.onStartup();
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Error in onStartup hook:', result.reason);
+    }
   }
 }
+
 export async function runOnOpenHooks(socket: WSocket) {
   const onOpenCallbacks = Object.values(roomHandlers).filter(
     (handler) => handler.onOpen
   );
-  try {
-    await Promise.all(
-      onOpenCallbacks.map((handler) => {
-        if (!handler.onOpen) return;
-        return handler.onOpen(socket);
-      })
-    );
-  } catch (error) {
-    console.error('Error running onOpen hooks: ', (error as Error).message);
+  const results = await Promise.allSettled(
+    onOpenCallbacks.map((handler) => {
+      if (!handler.onOpen) return;
+      return handler.onOpen(socket);
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Error in onOpen hook:', result.reason);
+    }
   }
 }
+
 export async function runOnCloseHooks(socket: WSocket) {
   const onCloseCallbacks = Object.values(roomHandlers).filter(
     (handler) => handler.onClose
   );
-  try {
-    await Promise.all(
-      onCloseCallbacks.map((handler) => {
-        if (!handler.onClose) return;
-        return handler.onClose(socket);
-      })
-    );
-  } catch (error) {
-    console.error('Error running onClose hooks: ', (error as Error).message);
+  const results = await Promise.allSettled(
+    onCloseCallbacks.map((handler) => {
+      if (!handler.onClose) return;
+      return handler.onClose(socket);
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Error in onClose hook:', result.reason);
+    }
   }
 }
 
