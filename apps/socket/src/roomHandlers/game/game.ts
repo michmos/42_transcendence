@@ -300,14 +300,8 @@ export function gameLoop(gameRoom: string) {
 
   const intervalId = setInterval(() => {
     const currentGameState = (
-      RoomManager.get(gameRoom)?.getData() as GameRoomData
+      RoomManager.getDataOrThrow(gameRoom) as GameRoomData
     ).currentGameState;
-    if (!currentGameState) {
-      // TODO: handle exception
-      clearInterval(intervalId);
-      throw new Error('runtime error');
-    }
-
     updateGame(currentGameState);
     if (currentGameState.gameOver) {
       clearInterval(intervalId);

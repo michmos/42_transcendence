@@ -180,6 +180,7 @@ The RoomManager is a singleton that performs actions to sockets on a room level.
   RoomManager.get(`someExistingRoom`);                     // get the room instance
   RoomManager.get(`someExistingRoom`)?.setData(data:any);  // set room metadata
   RoomManager.get(`someExistingRoom`)?.getData();          // get room metadata
+  RoomManager.getDataOrThrow('someRoomName');              // get room data or throw if room doesn't exist
   RoomManager.get(`someExistingRoom`)?.broadcast();        // broadcast a message to all room members
   RoomManager.get(`someExistingRoom`)?.size();             // get number of members in the room
   RoomManager.get(`someExistingRoom`)?.has(socket: WebSocket); // check if a socket is in the room

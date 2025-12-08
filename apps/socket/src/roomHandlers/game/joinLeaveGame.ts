@@ -213,11 +213,8 @@ export function leaveGamePage(socket: WSocket) {
   // remove from game if in there
   const gameRoomName = socketToGameroom.get(socket);
   if (gameRoomName) {
-    const gameData = RoomManager.get(gameRoomName)?.getData() as GameRoomData;
-    if (!gameData) {
-      // TODO: maybe handle error
-      throw new Error('Runtime error: getData()');
-    }
+    // TODO: does game room definitely exist at this point?
+    const gameData = RoomManager.getDataOrThrow(gameRoomName) as GameRoomData;
     const gameState = gameData.currentGameState;
     const isLeftPlayer: boolean =
       gameData.player1Uuid === socket.uuid ? true : false;

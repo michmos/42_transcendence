@@ -31,11 +31,7 @@ export function handleInput(message: SocketMessageType, socket: WSocket) {
   }
 
   // get room data
-  const gameRoomData = RoomManager.get(message.room)?.getData() as GameRoomData;
-  if (!gameRoomData) {
-    // TODO: handle this error
-    throw new Error('No GameState data available');
-  }
+  const gameRoomData = RoomManager.getDataOrThrow(message.room) as GameRoomData;
   const gameState = gameRoomData.currentGameState;
   const role = gameRoomData.player1Uuid === socket.uuid ? 'player1' : 'player2';
 
