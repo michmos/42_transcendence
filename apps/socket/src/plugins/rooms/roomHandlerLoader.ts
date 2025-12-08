@@ -54,11 +54,11 @@ export async function loadRoomHandlers() {
 }
 
 export async function runOnStartupHooks() {
-  const onSartupCallbacks = Object.values(roomHandlers).filter(
+  const onStartupCallbacks = Object.values(roomHandlers).filter(
     (handler) => handler.onStartup
   );
   const results = await Promise.allSettled(
-    onSartupCallbacks.map((handler) => {
+    onStartupCallbacks.map((handler) => {
       if (!handler.onStartup) return;
       return handler.onStartup();
     })
