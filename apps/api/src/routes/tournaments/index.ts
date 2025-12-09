@@ -345,9 +345,10 @@ export default function (app: FastifyInstance): void {
       const participantNames = await Promise.all(
         participants.map((user) => app.db.getUserAlias(user.uuid, tournamentId))
       );
-      return reply.status(200).send({
+      const response: TournamentParticipantsResponse = {
         participants: participantNames,
-      } as TournamentParticipantsResponse);
+      };
+      return reply.status(200).send(response);
     }
   );
 

@@ -422,7 +422,6 @@ export default async function initRoute() {
     // If no participants from tournament.participants, fetch from participants endpoint
     if (playerMap.size === 0) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const participantsResponse =
           await TournamentAPI.getTournamentParticipants(tournamentId).catch(
             () => null

@@ -797,7 +797,6 @@ export default async function initRoute() {
     // Otherwise, fetch from the participants endpoint
     let allAliases: string[] = [];
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const participantsResponse =
         await TournamentAPI.getTournamentParticipants(tournamentUuid).catch(
           () => null

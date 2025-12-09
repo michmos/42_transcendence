@@ -1057,7 +1057,7 @@ export default async function initRoute() {
       })();
     } else {
       // Refresh the list
-    void loadTournaments();
+      void loadTournaments();
     }
   };
 
@@ -1125,7 +1125,7 @@ export default async function initRoute() {
     toast.show(
       `Someone left ${tournamentName} (${eventData.playerCount} players)`,
       {
-      variant: 'warning',
+        variant: 'warning',
       }
     );
     // Refresh full tournament list to get updated participants
@@ -1134,9 +1134,9 @@ export default async function initRoute() {
 
   const handleTournamentUpdated = (data: unknown) => {
     const eventData = data as {
-    uuid: string;
-    status?: status;
-    playerCount?: number;
+      uuid: string;
+      status?: status;
+      playerCount?: number;
     };
     // Update tournament in Map
     const tournament = tournamentsMap.get(eventData.uuid);
@@ -1148,10 +1148,10 @@ export default async function initRoute() {
         if (eventData.status !== 'outstanding') {
           openTournaments.delete(eventData.uuid);
         }
-        }
+      }
       if (eventData.playerCount !== undefined) {
         tournament.playerCount = eventData.playerCount;
-        }
+      }
       // Update display arrays
       const index = allBackendTournaments.findIndex(
         (t) => t.uuid === eventData.uuid
@@ -1159,24 +1159,24 @@ export default async function initRoute() {
       if (index !== -1) {
         allBackendTournaments[index] = tournament;
         allTournaments[index] = mapTournamentToUI(tournament);
-      // Re-filter if search is active
-      if (searchQuery) {
-        const filtered = allTournaments.filter((t) =>
-          t.name.toLowerCase().includes(searchQuery)
-        );
-        filteredTournaments = filtered;
-        filteredBackendTournaments = filtered
-          .map((uiTournament) => {
-            return allBackendTournaments.find(
-              (bt) => bt.uuid === uiTournament.id
-            );
-          })
-          .filter((bt): bt is BackendTournament => bt !== undefined);
-      } else {
-        filteredTournaments = [...allTournaments];
-        filteredBackendTournaments = [...allBackendTournaments];
-      }
-      updateTournamentGrid();
+        // Re-filter if search is active
+        if (searchQuery) {
+          const filtered = allTournaments.filter((t) =>
+            t.name.toLowerCase().includes(searchQuery)
+          );
+          filteredTournaments = filtered;
+          filteredBackendTournaments = filtered
+            .map((uiTournament) => {
+              return allBackendTournaments.find(
+                (bt) => bt.uuid === uiTournament.id
+              );
+            })
+            .filter((bt): bt is BackendTournament => bt !== undefined);
+        } else {
+          filteredTournaments = [...allTournaments];
+          filteredBackendTournaments = [...allBackendTournaments];
+        }
+        updateTournamentGrid();
       }
     }
   };
