@@ -38,3 +38,16 @@ export interface UserDashboardResponse {
   cleanedUserFriends: Array<Partial<Friendship>>;
   userMatches: UserMatchRecord[];
 }
+
+export interface OnlineStatus {
+  event: 'status-update';
+  nickname: string;
+  isOnline: boolean;
+}
+
+export interface OnlineUser {
+  nickname: string;
+  socketCount: number;
+}
+
+export type OnlineUsers = Map<string, OnlineUser>;

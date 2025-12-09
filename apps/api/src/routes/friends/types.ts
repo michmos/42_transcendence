@@ -7,8 +7,8 @@ export interface fullFriendshipRecord {
   friendAId: string;
   friendBId: string;
   state: friendshipState;
-  friendA: { nickname: string; avatar: string | null };
-  friendB: { nickname: string; avatar: string | null };
+  friendA: { nickname: string; avatar: string | null; isOnline: boolean };
+  friendB: { nickname: string; avatar: string | null; isOnline: boolean };
 }
 
 export interface cleanedFriendshipRecord {
@@ -16,4 +16,5 @@ export interface cleanedFriendshipRecord {
   avatar: string | null;
   state: friendshipState;
   isRequester: boolean;
+  isOnline: boolean;
 }

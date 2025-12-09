@@ -152,3 +152,17 @@ export async function removeUser(uuid: string): Promise<User> {
 export async function removeAllUsers(): Promise<void> {
   await Database.user.deleteMany();
 }
+
+export async function setUserOnlineStatus(
+  uuidSelf: string,
+  isOnline: boolean
+): Promise<void> {
+  await Database.user.update({
+    where: {
+      uuid: uuidSelf,
+    },
+    data: {
+      isOnline: isOnline,
+    },
+  });
+}

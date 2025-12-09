@@ -30,18 +30,6 @@ export default function (app: FastifyInstance): void {
     return reply.status(200).send({ uuid: getUuid(request) });
   });
 
-  app.get('/me/nickname', async function (request, reply) {
-    try {
-      const uuidSelf: string = request.user.uuid;
-      const userData = await app.db.getUserMe(uuidSelf);
-      const { nickname } = userData;
-      return reply.code(200).send(nickname);
-    } catch (error) {
-      app.log.error(error);
-      return reply.code(500).send({ Error: 'Failed getting own user data' });
-    }
-  });
-
   // TODO: Hacked this in as the web is requesting /me for own user data
   //      Might need to refactor later
   app.get('/me', async function (request, reply) {
@@ -76,6 +64,19 @@ export default function (app: FastifyInstance): void {
         userMatches,
       };
       return reply.code(200).send(userDashboardData);
+    } catch (error) {
+      app.log.error(error);
+      return reply.code(500).send({ Error: 'Failed getting own user data' });
+    }
+  });
+
+  app.get('/me/nickname', async function (request, reply) {
+    try {
+      const uuidSelf: string = request.user.uuid;
+      const userData = await app.db.getUserMe(uuidSelf);
+      const { nickname } = userData;
+      console.log(nickname);
+      return reply.code(200).send({ nickname: nickname });
     } catch (error) {
       app.log.error(error);
       return reply.code(500).send({ Error: 'Failed getting own user data' });
@@ -220,4 +221,25 @@ export default function (app: FastifyInstance): void {
     await app.db.deleteMultipleFriends(uuid);
     return await app.db.removeUser(uuid);
   });
+
+  app.patch<{ Params: schemas.changeStatusParamsType }>(
+    '/me/isOnline/:boolean',
+    {
+      schema: schemas.changeStatus,
+    },
+    async function (request, reply) {
+      try {
+        const uuidSelf: string = request.user.uuid;
+
+        const isOnline: boolean = request.params.boolean;
+        await app.db.setUserOnlineStatus(uuidSelf, isOnline);
+        return reply.status(204).send();
+      } catch (error) {
+        app.log.error(error);
+        return reply
+          .code(500)
+          .send({ Error: 'Failed setting Online field to true' });
+      }
+    }
+  );
 }
