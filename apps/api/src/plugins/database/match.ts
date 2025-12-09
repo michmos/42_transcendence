@@ -1,5 +1,6 @@
 import type { Match, status } from 'db/generated/client/index.js';
 import Database from 'db';
+import { updateTournamentRound } from './tournaments.js';
 
 export async function addMatch(data: Partial<Match>): Promise<Match> {
   const { player1Id, player2Id, tournamentRoundId, ...rest } = data;
@@ -32,6 +33,31 @@ export async function updateMatch(
     where: { uuid: match.uuid },
     data: match,
   });
+}
+
+export async function updateTournamentMatch(
+  match: Partial<Match> & { uuid: string; tournamentRoundId: string }
+): Promise<Match> {
+  const response = await Database.match.update({
+    where: { uuid: match.uuid },
+    data: match,
+  });
+  // check whether round status needs to be updated
+  const unfinishedMatches = await Database.match.findFirst({
+    where: {
+      tournamentRoundId: match.tournamentRoundId,
+      status: {
+        not: 'finished',
+      },
+    },
+  });
+  if (!unfinishedMatches) {
+    await updateTournamentRound({
+      uuid: match.tournamentRoundId,
+      status: 'finished',
+    });
+  }
+  return response;
 }
 
 export async function getMatch(matchId: string): Promise<Match | null> {
