@@ -36,7 +36,7 @@ class RoundRobin<T> {
 function generateRound(roundRobin: RoundRobin<User>): Array<Partial<Match>> {
   const matches: Array<Partial<Match>> = [];
   const playerCount = roundRobin.length();
-  for (let start = 0, end = playerCount; start < end; ++start, --end) {
+  for (let start = 0, end = playerCount - 1; start < end; ++start, --end) {
     const player1Id = roundRobin.at(start)?.uuid ?? null;
     const player2Id = roundRobin.at(end)?.uuid ?? null;
     matches.push({
@@ -58,7 +58,7 @@ export default async function generateTournamentPlan(
   const players: Array<User | null> =
     await app.db.getTournamentParticipants(tournamentId);
   const playerCount = players.length;
-  const numberOfRounds = playerCount - 1;
+  const numberOfRounds = playerCount % 2 === 0 ? playerCount - 1 : playerCount;
 
   // add nullplayer for uneven numbers (will be an auto win)
   if (playerCount % 2) {
