@@ -56,3 +56,10 @@ export const validateUserUuid = {
   }),
 } as const;
 export type validateUserUuidType = Static<typeof validateUserUuid.user>;
+
+export const changeStatus = {
+  params: Type.Object({
+    boolean: Type.Boolean(),
+  }),
+};
+export type changeStatusParamsType = Static<typeof changeStatus.params>;

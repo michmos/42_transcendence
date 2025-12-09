@@ -18,6 +18,10 @@ export function cleanFriendshipRecord(
         : friendRecord.friendA.avatar,
     state: friendRecord.state,
     isRequester: friendRecord.friendAId === uuidSelf,
+    isOnline:
+      friendRecord.friendAId === uuidSelf
+        ? friendRecord.friendB.isOnline
+        : friendRecord.friendA.isOnline,
   };
 }
 
@@ -31,7 +35,9 @@ export function cleanFriendshipList(
     const avatar =
       f.friendAId === uuidSelf ? f.friendB.avatar : f.friendA.avatar;
     const isRequester = f.friendAId === uuidSelf;
-    return { otherUser, avatar, state: f.state, isRequester };
+    const isOnline =
+      f.friendAId === uuidSelf ? f.friendB.isOnline : f.friendA.isOnline;
+    return { otherUser, avatar, state: f.state, isRequester, isOnline };
   });
 
   return cleanedFriendsList;
