@@ -6,6 +6,8 @@ import type {
   JoinTournamentInput,
 } from '../../types/api.js';
 
+import type { TournamentParticipantsResponse } from 'types';
+
 /**
  * Tournament API Client
  *
@@ -240,6 +242,35 @@ const TournamentAPI = {
       return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error starting tournament:', error);
+      throw error;
+    }
+  },
+
+  async getTournamentParticipants(
+    tournamentUuid: string
+  ): Promise<TournamentParticipantsResponse> {
+    try {
+      const response = await fetch(
+        `/api/tournaments/${tournamentUuid}/participants`,
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      );
+
+      // TODO: @pminialg -> maybe you want to handle differently
+      if (response.status === 404) {
+        throw new Error(`Tournament not found: ${response.status}`);
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tournament: ${response.status}`);
+      }
+
+      return (await response.json()) as TournamentParticipantsResponse;
+    } catch (error) {
+      // TODO: @pminialg -> maybe you want to handle differently
+      console.error('Error fetching tournament:', error);
       throw error;
     }
   },
