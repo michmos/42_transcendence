@@ -6,6 +6,7 @@ import type {
   TournamentRound,
   status,
 } from 'db/generated/client/index.js';
+import type { TournamentRoundResponse } from 'types';
 
 export async function createTournament(data: {
   tournamentName: string;
@@ -232,7 +233,10 @@ export async function getTournamentRounds(
   });
 }
 
-export async function getTournamentRound(tournamentId: string, index: number) {
+export async function getTournamentRound(
+  tournamentId: string,
+  index: number
+): Promise<TournamentRoundResponse | null> {
   const round = await Database.tournamentRound.findFirst({
     where: {
       tournamentId,
