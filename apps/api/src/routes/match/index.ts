@@ -115,10 +115,24 @@ export default function (app: FastifyInstance): void {
     },
     async (request, reply) => {
       try {
-        const updatedMatch = await app.db.updateMatch({
-          ...request.body,
-          uuid: request.params.uuid,
-        });
+        const match = await app.db.getMatch(request.params.uuid);
+        if (!match) {
+          return reply.status(404).send('Match not found');
+        }
+
+        let updatedMatch;
+        if (match.tournamentRoundId) {
+          updatedMatch = await app.db.updateTournamentMatch({
+            ...request.body,
+            uuid: request.params.uuid,
+            tournamentRoundId: match.tournamentRoundId,
+          });
+        } else {
+          updatedMatch = await app.db.updateMatch({
+            ...request.body,
+            uuid: request.params.uuid,
+          });
+        }
 
         return reply.status(200).send(updatedMatch);
       } catch (error) {
