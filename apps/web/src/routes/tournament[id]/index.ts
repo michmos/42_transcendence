@@ -68,10 +68,11 @@ function mapRoundStatusToUI(
 function buildLeaderboard(
   tournament: BackendTournament,
   rounds: TournamentRound[],
-  participantAliases?: Map<string, string>
+  _participantAliases?: Map<string, string>, // No longer needed - matches come with aliases
+  allParticipantAliases?: string[]
 ): LeaderboardEntry[] {
   // Calculate stats per player
-  // Store alias (preferred) or nickname (fallback)
+  // Using aliases as keys (UUIDs no longer exposed)
   const playerStats = new Map<
     string,
     { wins: number; losses: number; scoreDiff: number; displayName: string }
@@ -102,45 +103,41 @@ function buildLeaderboard(
   });
 
   // Process all matches from all rounds to:
-  // 1. Extract all participants (from player1 and player2) - this is the main source
+  // 1. Extract all participants (from player1 and player2) - using alias or nickname
   // 2. Calculate stats for finished matches
+  // Note: Using alias/nickname as keys since UUIDs are not exposed
   rounds.forEach((round) => {
     round.matches.forEach((match) => {
-      // Extract player info from matches (TournamentRoundResponse structure)
+      // Extract player info from matches (TournamentRoundResponse structure - now with aliases and nicknames)
       const matchWithPlayers = match as {
-        player1?: { uuid?: string; nickname?: string | null } | null;
-        player2?: { uuid?: string; nickname?: string | null } | null;
+        player1?: { alias?: string | null; nickname?: string | null } | null;
+        player2?: { alias?: string | null; nickname?: string | null } | null;
         score1?: number;
         score2?: number;
         status?: string;
       };
 
-      const player1Id = matchWithPlayers.player1?.uuid;
-      const player1Nickname = matchWithPlayers.player1?.nickname;
-      const player2Id = matchWithPlayers.player2?.uuid;
-      const player2Nickname = matchWithPlayers.player2?.nickname;
-
-      // Get display name: prefer alias from map, fallback to nickname from match
+      // Get display name: prefer alias, fallback to nickname
       const player1DisplayName =
-        (player1Id && participantAliases?.get(player1Id)) ||
-        player1Nickname ||
-        'Unknown';
+        matchWithPlayers.player1?.alias ||
+        matchWithPlayers.player1?.nickname ||
+        null;
       const player2DisplayName =
-        (player2Id && participantAliases?.get(player2Id)) ||
-        player2Nickname ||
-        'Unknown';
+        matchWithPlayers.player2?.alias ||
+        matchWithPlayers.player2?.nickname ||
+        null;
 
-      // Add players to stats if not already present (for participants who haven't played yet)
-      if (player1Id && !playerStats.has(player1Id)) {
-        playerStats.set(player1Id, {
+      // Add players to stats if not already present (using display name as key)
+      if (player1DisplayName && !playerStats.has(player1DisplayName)) {
+        playerStats.set(player1DisplayName, {
           wins: 0,
           losses: 0,
           scoreDiff: 0,
           displayName: player1DisplayName,
         });
       }
-      if (player2Id && !playerStats.has(player2Id)) {
-        playerStats.set(player2Id, {
+      if (player2DisplayName && !playerStats.has(player2DisplayName)) {
+        playerStats.set(player2DisplayName, {
           wins: 0,
           losses: 0,
           scoreDiff: 0,
@@ -149,12 +146,16 @@ function buildLeaderboard(
       }
 
       // Calculate stats for finished matches
-      if (matchWithPlayers.status === 'finished' && player1Id && player2Id) {
+      if (
+        matchWithPlayers.status === 'finished' &&
+        player1DisplayName &&
+        player2DisplayName
+      ) {
         const score1 = matchWithPlayers.score1 || 0;
         const score2 = matchWithPlayers.score2 || 0;
 
         // Update player 1 stats
-        const player1Stats = playerStats.get(player1Id);
+        const player1Stats = playerStats.get(player1DisplayName);
         if (player1Stats) {
           player1Stats.scoreDiff += score1 - score2;
           if (score1 > score2) {
@@ -165,7 +166,7 @@ function buildLeaderboard(
         }
 
         // Update player 2 stats
-        const player2Stats = playerStats.get(player2Id);
+        const player2Stats = playerStats.get(player2DisplayName);
         if (player2Stats) {
           player2Stats.scoreDiff += score2 - score1;
           if (score2 > score1) {
@@ -199,17 +200,46 @@ function buildLeaderboard(
     }));
 
   // If no participants found in matches but tournament has players,
-  // show placeholder entries for participants who haven't played yet
+  // show entries for participants who haven't played yet using aliases
   if (leaderboard.length === 0 && tournament.playerCount > 0) {
-    // Create placeholder entries for all participants
-    for (let i = 0; i < tournament.playerCount; i++) {
-      leaderboard.push({
-        rank: i + 1,
-        player: `Player ${i + 1}`,
-        points: 0,
-        scoreDiff: 0,
+    // Use aliases from participants endpoint if available
+    if (allParticipantAliases && allParticipantAliases.length > 0) {
+      allParticipantAliases.forEach((alias, index) => {
+        leaderboard.push({
+          rank: index + 1,
+          player: alias,
+          points: 0,
+          scoreDiff: 0,
+        });
       });
+    } else {
+      // Fallback to generic player names
+      for (let i = 0; i < tournament.playerCount; i++) {
+        leaderboard.push({
+          rank: i + 1,
+          player: `Player ${i + 1}`,
+          points: 0,
+          scoreDiff: 0,
+        });
+      }
     }
+  }
+
+  // Also add any participants from allParticipantAliases who aren't in the leaderboard yet
+  // (for players who joined but haven't played any matches)
+  if (allParticipantAliases && allParticipantAliases.length > 0) {
+    const existingPlayers = new Set(leaderboard.map((entry) => entry.player));
+    allParticipantAliases.forEach((alias) => {
+      if (!existingPlayers.has(alias)) {
+        // Add participant who hasn't played any matches yet
+        leaderboard.push({
+          rank: leaderboard.length + 1,
+          player: alias,
+          points: 0,
+          scoreDiff: 0,
+        });
+      }
+    });
   }
 
   return leaderboard;
@@ -730,18 +760,21 @@ export default async function initRoute() {
   let currentLeaderboard: LeaderboardEntry[] = [];
   let currentUIRounds: Round[] = [];
   let participantAliases = new Map<string, string>(); // Map of user UUID -> alias
+  let allParticipantAliases: string[] = []; // All aliases from participants endpoint
 
   /**
    * Fetch participant aliases for the tournament
-   * TODO: This requires a backend endpoint that returns tournament participants with aliases
-   * For now, we extract aliases from tournament.participants if available, otherwise use nicknames from matches
+   * Fetches from the participants endpoint and creates a map of aliases
+   * Note: The endpoint returns only aliases (strings), not UUIDs, so we store them
+   * in a way that allows us to use them for players found in matches
    */
-  const fetchParticipantAliases = (
-    tournament: BackendTournament
-  ): Map<string, string> => {
+  const fetchParticipantAliases = async (
+    tournament: BackendTournament,
+    rounds: TournamentRound[]
+  ): Promise<{ aliasMap: Map<string, string>; allAliases: string[] }> => {
     const aliasMap = new Map<string, string>();
 
-    // Try to get aliases from tournament.participants if available
+    // First, try to get aliases from tournament.participants if available (admin view)
     const participants = tournament.participants || [];
     participants.forEach((participant) => {
       const participantTyped = participant as {
@@ -756,11 +789,68 @@ export default async function initRoute() {
       }
     });
 
-    // TODO: If no participants in response, we could fetch from a backend endpoint like:
-    // GET /api/tournaments/:uuid/participants
-    // This would return: Array<{ userId: string; alias: string }>
+    // If we already have aliases from tournament.participants, return early
+    if (aliasMap.size > 0) {
+      return { aliasMap, allAliases: Array.from(aliasMap.values()) };
+    }
 
-    return aliasMap;
+    // Otherwise, fetch from the participants endpoint
+    let allAliases: string[] = [];
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const participantsResponse =
+        await TournamentAPI.getTournamentParticipants(tournamentUuid).catch(
+          () => null
+        );
+      // Type guard to ensure we have the correct response structure
+      if (
+        participantsResponse &&
+        typeof participantsResponse === 'object' &&
+        'participants' in participantsResponse
+      ) {
+        const response = participantsResponse as { participants: string[] };
+        if (Array.isArray(response.participants)) {
+          allAliases = response.participants;
+        }
+      }
+
+      // Extract all unique player UUIDs from matches
+      const playerUuids = Array.from(
+        new Set(
+          rounds.flatMap((round) =>
+            round.matches.flatMap((match) => {
+              const matchWithPlayers = match as {
+                player1?: { uuid?: string } | null;
+                player2?: { uuid?: string } | null;
+              };
+              const uuids: string[] = [];
+              if (matchWithPlayers.player1?.uuid) {
+                uuids.push(matchWithPlayers.player1.uuid);
+              }
+              if (matchWithPlayers.player2?.uuid) {
+                uuids.push(matchWithPlayers.player2.uuid);
+              }
+              return uuids;
+            })
+          )
+        )
+      );
+
+      // Since the endpoint doesn't return UUIDs, we can't perfectly map aliases to UUIDs
+      // However, we can use the aliases for display purposes
+      // We'll match them by index as a best-effort approach
+      // (This assumes participants are returned in a consistent order)
+      playerUuids.forEach((playerUuid, index) => {
+        if (index < allAliases.length && playerUuid) {
+          aliasMap.set(playerUuid, allAliases[index] || 'Unknown');
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching tournament participants:', error);
+      // Fallback: return empty map, will use nicknames from matches
+    }
+
+    return { aliasMap, allAliases };
   };
 
   // Function to refresh tournament data
@@ -794,12 +884,18 @@ export default async function initRoute() {
         }));
 
         // Fetch participant aliases
-        participantAliases = fetchParticipantAliases(updatedTournament);
+        const aliasData = await fetchParticipantAliases(
+          updatedTournament,
+          updatedRounds
+        );
+        participantAliases = aliasData.aliasMap;
+        allParticipantAliases = aliasData.allAliases;
 
         currentLeaderboard = buildLeaderboard(
           updatedTournament,
           updatedRounds,
-          participantAliases
+          participantAliases,
+          allParticipantAliases
         );
 
         // Check if user is participant for button display
@@ -934,13 +1030,16 @@ export default async function initRoute() {
     }));
 
     // Fetch participant aliases
-    participantAliases = fetchParticipantAliases(tournament);
+    const aliasData = await fetchParticipantAliases(tournament, rounds);
+    participantAliases = aliasData.aliasMap;
+    allParticipantAliases = aliasData.allAliases;
 
     // Build leaderboard with alias map
     currentLeaderboard = buildLeaderboard(
       tournament,
       rounds,
-      participantAliases
+      participantAliases,
+      allParticipantAliases
     );
 
     // Check if user is participant for button display

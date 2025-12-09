@@ -185,10 +185,65 @@ const TournamentAPI = {
         throw new Error(`Failed to join tournament: ${response.status}`);
       }
 
+      // Join socket room if available
+      if (window.socket) {
+        window.socket.joinRoom(`tournament:${tournamentUuid}`);
+      }
+
       // Response is 204, but backend returns tournament in body
       return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error joining tournament:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Leave a tournament (remove user from tournament)
+   * @param tournamentUuid - Tournament UUID
+   * @returns Promise<void>
+   * @throws Error if leave fails (401, 404, 422)
+   */
+  async leaveTournament(tournamentUuid: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/tournaments/${tournamentUuid}/users`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in to leave a tournament');
+      }
+
+      if (response.status === 404) {
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(errorData.error || 'Tournament not found');
+      }
+
+      if (response.status === 422) {
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(
+          errorData.error ||
+            'Tournament cannot be left (already started or canceled)'
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to leave tournament: ${response.status}`);
+      }
+
+      // Leave socket room if available
+      if (window.socket) {
+        window.socket.leaveRoom(`tournament:${tournamentUuid}`);
+      }
+    } catch (error) {
+      console.error('Error leaving tournament:', error);
       throw error;
     }
   },

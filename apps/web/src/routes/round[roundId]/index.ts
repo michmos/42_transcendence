@@ -46,26 +46,6 @@ function mapMatchStatusToUI(
   }
 }
 
-/**
- * Get player nickname from match player data
- * Handles both cases: when player relation is loaded and when only ID is available
- */
-function getPlayerNickname(
-  player: { nickname?: string | null } | null | undefined,
-  playerId?: string | null
-): string {
-  // If player object exists with nickname, use it
-  if (player?.nickname) {
-    return player.nickname;
-  }
-  // If only playerId is available, show placeholder
-  // TODO: Could fetch user data separately if needed
-  if (playerId) {
-    return 'Player'; // Placeholder - could fetch user data if needed
-  }
-  return 'TBD';
-}
-
 function renderRoundHeader(
   container: HTMLElement,
   roundIndex: number,
@@ -299,8 +279,8 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userInfo?.nickname,
-    userAvatar: userInfo?.avatar || undefined,
+    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
+    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
       navigateTo('/settings');
     },
@@ -345,7 +325,7 @@ export default async function initRoute() {
   // Function to refresh round data
   const refreshRoundData = async () => {
     try {
-      // Re-fetch tournament (to get latest participants map)
+      // Re-fetch tournament
       const tournament = await TournamentAPI.getTournament(tournamentId);
       if (!tournament) return;
 
@@ -356,43 +336,22 @@ export default async function initRoute() {
       );
       if (!round) return;
 
-      // Re-create player map
-      const playerMap = new Map<string, string>();
-      if (tournament.participants) {
-        tournament.participants.forEach((participant) => {
-          const userUuid = (participant as { user?: { uuid?: string } }).user
-            ?.uuid;
-          if (userUuid) {
-            const displayName =
-              (participant as { alias?: string }).alias ||
-              (participant as { user?: { nickname?: string } }).user
-                ?.nickname ||
-              'Unknown';
-            playerMap.set(userUuid, displayName);
-          }
-        });
-      }
-
-      // Re-map matches
+      // Re-map matches - now using aliases directly (no UUIDs exposed)
       const uiMatches: Match[] = round.matches.map((match) => {
         const matchWithPlayers = match as {
-          player1?: { uuid?: string; nickname?: string | null } | null;
-          player2?: { uuid?: string; nickname?: string | null } | null;
+          player1?: { alias?: string | null; nickname?: string | null } | null;
+          player2?: { alias?: string | null; nickname?: string | null } | null;
         };
-        const player1Id = matchWithPlayers.player1?.uuid || null;
-        const player2Id = matchWithPlayers.player2?.uuid || null;
 
-        const opponent1 = player1Id
-          ? playerMap.has(player1Id)
-            ? (playerMap.get(player1Id) ?? 'Unknown')
-            : getPlayerNickname(matchWithPlayers.player1, player1Id)
-          : 'Nobody';
-
-        const opponent2 = player2Id
-          ? playerMap.has(player2Id)
-            ? (playerMap.get(player2Id) ?? 'Unknown')
-            : getPlayerNickname(matchWithPlayers.player2, player2Id)
-          : 'Nobody';
+        // Use alias first, fallback to nickname (no UUIDs)
+        const opponent1 =
+          matchWithPlayers.player1?.alias ||
+          matchWithPlayers.player1?.nickname ||
+          'Nobody';
+        const opponent2 =
+          matchWithPlayers.player2?.alias ||
+          matchWithPlayers.player2?.nickname ||
+          'Nobody';
 
         const hasNullPlayer = opponent1 === 'Nobody' || opponent2 === 'Nobody';
 
@@ -435,9 +394,11 @@ export default async function initRoute() {
       return;
     }
 
-    // Create player map
+    // Create player map - fetch participants with aliases
     const playerMap = new Map<string, string>();
-    if (tournament.participants) {
+
+    // First, try to get aliases from tournament.participants if available (admin view)
+    if (tournament.participants && tournament.participants.length > 0) {
       tournament.participants.forEach((participant) => {
         const userUuid = (participant as { user?: { uuid?: string } }).user
           ?.uuid;
@@ -449,7 +410,6 @@ export default async function initRoute() {
           'Unknown';
 
         // Map both IDs to support lookups by either user ID or participation ID
-        // This aligns with commit dc049be while maintaining compatibility
         if (participant.uuid) {
           playerMap.set(participant.uuid, displayName);
         }
@@ -459,26 +419,123 @@ export default async function initRoute() {
       });
     }
 
-    // Map matches
+    // If no participants from tournament.participants, fetch from participants endpoint
+    if (playerMap.size === 0) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const participantsResponse =
+          await TournamentAPI.getTournamentParticipants(tournamentId).catch(
+            () => null
+          );
+
+        if (
+          participantsResponse &&
+          typeof participantsResponse === 'object' &&
+          'participants' in participantsResponse
+        ) {
+          const response = participantsResponse as { participants: string[] };
+          if (Array.isArray(response.participants)) {
+            // Extract player UUIDs from matches
+            const playerUuids = new Set<string>();
+            round.matches.forEach((match) => {
+              const matchWithPlayers = match as {
+                player1?: { uuid?: string } | null;
+                player2?: { uuid?: string } | null;
+              };
+              if (matchWithPlayers.player1?.uuid) {
+                playerUuids.add(matchWithPlayers.player1.uuid);
+              }
+              if (matchWithPlayers.player2?.uuid) {
+                playerUuids.add(matchWithPlayers.player2.uuid);
+              }
+            });
+
+            // Map aliases to UUIDs by index (best-effort approach)
+            // This assumes participants are returned in a consistent order
+            const uuidArray = Array.from(playerUuids);
+            response.participants.forEach((alias, index) => {
+              if (index < uuidArray.length && uuidArray[index]) {
+                playerMap.set(uuidArray[index], alias);
+              }
+            });
+
+            // Also use nicknames from matches as fallback for any unmapped players
+            round.matches.forEach((match) => {
+              const matchWithPlayers = match as {
+                player1?: { uuid?: string; nickname?: string | null } | null;
+                player2?: { uuid?: string; nickname?: string | null } | null;
+              };
+
+              if (
+                matchWithPlayers.player1?.uuid &&
+                !playerMap.has(matchWithPlayers.player1.uuid)
+              ) {
+                const nickname = matchWithPlayers.player1.nickname;
+                if (nickname) {
+                  playerMap.set(matchWithPlayers.player1.uuid, nickname);
+                }
+              }
+
+              if (
+                matchWithPlayers.player2?.uuid &&
+                !playerMap.has(matchWithPlayers.player2.uuid)
+              ) {
+                const nickname = matchWithPlayers.player2.nickname;
+                if (nickname) {
+                  playerMap.set(matchWithPlayers.player2.uuid, nickname);
+                }
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tournament participants:', error);
+        // Fallback: use nicknames from matches
+        round.matches.forEach((match) => {
+          const matchWithPlayers = match as {
+            player1?: { uuid?: string; nickname?: string | null } | null;
+            player2?: { uuid?: string; nickname?: string | null } | null;
+          };
+
+          if (
+            matchWithPlayers.player1?.uuid &&
+            matchWithPlayers.player1.nickname
+          ) {
+            playerMap.set(
+              matchWithPlayers.player1.uuid,
+              matchWithPlayers.player1.nickname
+            );
+          }
+
+          if (
+            matchWithPlayers.player2?.uuid &&
+            matchWithPlayers.player2.nickname
+          ) {
+            playerMap.set(
+              matchWithPlayers.player2.uuid,
+              matchWithPlayers.player2.nickname
+            );
+          }
+        });
+      }
+    }
+
+    // Map matches - now using aliases directly (no UUIDs exposed)
     const uiMatches: Match[] = round.matches.map((match) => {
       const matchWithPlayers = match as {
-        player1?: { uuid?: string; nickname?: string | null } | null;
-        player2?: { uuid?: string; nickname?: string | null } | null;
+        player1?: { alias?: string | null; nickname?: string | null } | null;
+        player2?: { alias?: string | null; nickname?: string | null } | null;
       };
-      const player1Id = matchWithPlayers.player1?.uuid || null;
-      const player2Id = matchWithPlayers.player2?.uuid || null;
 
-      const opponent1 = player1Id
-        ? playerMap.has(player1Id)
-          ? (playerMap.get(player1Id) ?? 'Unknown')
-          : getPlayerNickname(matchWithPlayers.player1, player1Id)
-        : 'Nobody';
-
-      const opponent2 = player2Id
-        ? playerMap.has(player2Id)
-          ? (playerMap.get(player2Id) ?? 'Unknown')
-          : getPlayerNickname(matchWithPlayers.player2, player2Id)
-        : 'Nobody';
+      // Use alias first, fallback to nickname (no UUIDs)
+      const opponent1 =
+        matchWithPlayers.player1?.alias ||
+        matchWithPlayers.player1?.nickname ||
+        'Nobody';
+      const opponent2 =
+        matchWithPlayers.player2?.alias ||
+        matchWithPlayers.player2?.nickname ||
+        'Nobody';
 
       const hasNullPlayer = opponent1 === 'Nobody' || opponent2 === 'Nobody';
 
@@ -504,23 +561,25 @@ export default async function initRoute() {
     tournamentSocket.initialize();
     tournamentSocket.joinTournament(tournamentId);
 
-    const handleMatchUpdated = (data: {
-      tournamentUuid: string;
-      match: Match;
-    }) => {
-      if (data.tournamentUuid === tournamentId) {
+    const handleMatchUpdated = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        match: Match;
+      };
+      if (eventData.tournamentUuid === tournamentId) {
         // We could optimize to update just one match, but refreshing is safer
         void refreshRoundData();
       }
     };
 
-    const handleRoundCompleted = (data: {
-      tournamentUuid: string;
-      roundIndex: number;
-    }) => {
+    const handleRoundCompleted = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        roundIndex: number;
+      };
       if (
-        data.tournamentUuid === tournamentId &&
-        data.roundIndex === roundIndex
+        eventData.tournamentUuid === tournamentId &&
+        eventData.roundIndex === roundIndex
       ) {
         toast.show('Round completed!', { variant: 'success' });
         void refreshRoundData();

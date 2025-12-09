@@ -22,16 +22,16 @@ export interface TournamentRoundResponse {
     score1: number;
     score2: number;
     player1: {
-      uuid: string;
+      alias: string | null;
       nickname: string | null;
     } | null;
     player2: {
-      uuid: string;
+      alias: string | null;
       nickname: string | null;
     } | null;
   }>;
 }
 
 export interface TournamentParticipantsResponse {
-  participants: Array<string>;
+  participants: string[];
 }
