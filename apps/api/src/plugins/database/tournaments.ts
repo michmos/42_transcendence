@@ -6,7 +6,6 @@ import type {
   TournamentRound,
   status,
 } from 'db/generated/client/index.js';
-import type { TournamentRoundResponse } from 'types';
 
 export async function createTournament(data: {
   tournamentName: string;
@@ -233,124 +232,20 @@ export async function getTournamentRounds(
   });
 }
 
-export async function getTournamentRound(
-  tournamentId: string,
-  index: number
-): Promise<TournamentRoundResponse | null> {
-  const round = await Database.tournamentRound.findFirst({
+export async function getTournamentRound(tournamentId: string, index: number) {
+  return Database.tournamentRound.findFirst({
     where: {
       tournamentId,
       index,
     },
     select: {
-      uuid: true,
       index: true,
       status: true,
       matches: {
-        select: {
-          uuid: true,
-          status: true,
-          score1: true,
-          score2: true,
-          player1Id: true,
-          player2Id: true,
-        },
+        select: { uuid: true },
       },
     },
   });
-
-  if (!round) {
-    return null;
-  }
-
-  // Get aliases and nicknames for all players in matches (without exposing UUIDs)
-  const matchesWithAliases = await Promise.all(
-    round.matches.map(async (match) => {
-      let player1Alias: string | null = null;
-      let player1Nickname: string | null = null;
-      let player2Alias: string | null = null;
-      let player2Nickname: string | null = null;
-
-      if (match.player1Id) {
-        try {
-          player1Alias = await getUserAlias(match.player1Id, tournamentId);
-        } catch (error) {
-          // If alias not found, fall back to null (player might have left)
-          console.error(
-            `Error fetching alias for player1 ${match.player1Id}:`,
-            error
-          );
-        }
-        // Get nickname as fallback
-        try {
-          const player1 = await Database.user.findUnique({
-            where: { uuid: match.player1Id },
-            select: { nickname: true },
-          });
-          player1Nickname = player1?.nickname || null;
-        } catch (error) {
-          console.error(
-            `Error fetching nickname for player1 ${match.player1Id}:`,
-            error
-          );
-        }
-      }
-
-      if (match.player2Id) {
-        try {
-          player2Alias = await getUserAlias(match.player2Id, tournamentId);
-        } catch (error) {
-          // If alias not found, fall back to null (player might have left)
-          console.error(
-            `Error fetching alias for player2 ${match.player2Id}:`,
-            error
-          );
-        }
-        // Get nickname as fallback
-        try {
-          const player2 = await Database.user.findUnique({
-            where: { uuid: match.player2Id },
-            select: { nickname: true },
-          });
-          player2Nickname = player2?.nickname || null;
-        } catch (error) {
-          console.error(
-            `Error fetching nickname for player2 ${match.player2Id}:`,
-            error
-          );
-        }
-      }
-
-      return {
-        uuid: match.uuid,
-        status: match.status,
-        score1: match.score1,
-        score2: match.score2,
-        player1:
-          player1Alias || player1Nickname
-            ? {
-                alias: player1Alias,
-                nickname: player1Nickname,
-              }
-            : null,
-        player2:
-          player2Alias || player2Nickname
-            ? {
-                alias: player2Alias,
-                nickname: player2Nickname,
-              }
-            : null,
-      };
-    })
-  );
-
-  // Transform to match TournamentRoundResponse type (without UUIDs)
-  return {
-    uuid: round.uuid,
-    index: round.index,
-    status: round.status,
-    matches: matchesWithAliases,
-  };
 }
 
 export async function getCurrentTournamentRound(tournamentId: string) {

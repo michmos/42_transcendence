@@ -18,17 +18,6 @@ export interface TournamentRoundResponse {
   index: number;
   matches: Array<{
     uuid: string;
-    status: status;
-    score1: number;
-    score2: number;
-    player1: {
-      alias: string | null;
-      nickname: string | null;
-    } | null;
-    player2: {
-      alias: string | null;
-      nickname: string | null;
-    } | null;
   }>;
 }
 
