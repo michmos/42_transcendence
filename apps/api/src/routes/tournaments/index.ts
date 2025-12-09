@@ -4,7 +4,10 @@ import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
 import { status as statusEnum, type User } from 'db/generated/client/index.js';
-import { type TournamentRoundResponse } from 'types';
+import {
+  type TournamentRoundResponse,
+  type TournamentParticipantsResponse,
+} from 'types';
 import { Prisma } from 'db/generated/client';
 
 export default function (app: FastifyInstance): void {
@@ -342,7 +345,9 @@ export default function (app: FastifyInstance): void {
       const participantNames = await Promise.all(
         participants.map((user) => app.db.getUserAlias(user.uuid, tournamentId))
       );
-      return reply.status(200).send(participantNames);
+      return reply.status(200).send({
+        participants: participantNames,
+      } as TournamentParticipantsResponse);
     }
   );
 

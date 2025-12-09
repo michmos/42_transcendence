@@ -31,3 +31,7 @@ export interface TournamentRoundResponse {
     } | null;
   }>;
 }
+
+export interface TournamentParticipantsResponse {
+  participants: Array<string>;
+}
