@@ -217,10 +217,40 @@ export async function updateTournamentRound(
     uuid: string;
   }
 ): Promise<TournamentRound> {
-  return Database.tournamentRound.update({
+  const response = await Database.tournamentRound.update({
     where: { uuid: round.uuid },
     data: round,
   });
+  if (round.status === 'finished') {
+    // check whether all rounds finished
+    const tournamentId = response.tournamentId;
+    const unfinishedRounds = await Database.tournamentRound.findFirst({
+      where: {
+        tournamentId,
+        status: {
+          not: 'finished',
+        },
+      },
+    });
+    if (!unfinishedRounds) {
+      //update status
+      updateTournament({
+        uuid: tournamentId,
+        status: 'finished',
+      });
+    } else {
+      // update currentRound property
+      await Database.tournament.update({
+        where: { uuid: tournamentId },
+        data: {
+          currentRound: {
+            increment: 1,
+          },
+        },
+      });
+    }
+  }
+  return response;
 }
 
 export async function getTournamentRounds(
