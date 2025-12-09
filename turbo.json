@@ -40,15 +40,8 @@
       "env": ["DATABASE_URL"]
     },
 
-    "dep:build": {
-      "dependsOn": ["^db"],
-      "inputs": ["$TURBO_DEFAULT$"],
-      "outputs": ["dist/**", "out/**"],
-      "cache": false
-    },
-
     "app-base": {
-      "dependsOn": ["^dep:build", "^db"],
+      "dependsOn": ["^db"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "./packages/**",
@@ -60,7 +53,7 @@
     },
 
     "build": {
-      "dependsOn": ["^dep:build", "^db"],
+      "dependsOn": ["^db"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": ["dist/**", "out/**"],
       "cache": false
@@ -97,6 +90,11 @@
 
     "lint:fix": {
       "inputs": ["src/**", "$TURBO_DEFAULT$", "eslint.config.mjs"],
+      "cache": false
+    },
+
+    "typecheck": {
+      "inputs": ["src/**", "$TURBO_DEFAULT$"],
       "cache": false
     }
   }

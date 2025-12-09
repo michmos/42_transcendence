@@ -26,6 +26,9 @@ export default function (app: FastifyInstance): void {
         if (!uuidOther)
           return reply.code(404).send({ Error: 'user not found' });
 
+        if (!request.user)
+          return reply.code(401).send({ Error: 'unauthenticated' });
+
         const uuidSelf: string = request.user.uuid;
 
         const friendRecord = await app.db.findFriendRecord(uuidSelf, uuidOther);
@@ -80,6 +83,9 @@ export default function (app: FastifyInstance): void {
         const uuidOther: string | null = await getUserUuid(nickname);
         if (!uuidOther)
           return reply.code(404).send({ Error: 'user not found' });
+
+        if (!request.user)
+          return reply.code(401).send({ Error: 'unauthenticated' });
 
         const uuidSelf: string = request.user.uuid;
 
@@ -156,6 +162,9 @@ export default function (app: FastifyInstance): void {
         const uuidOther: string | null = await getUserUuid(nickname);
         if (!uuidOther)
           return reply.code(404).send({ Error: 'User not found' });
+
+        if (!request.user)
+          return reply.code(401).send({ Error: 'unauthenticated' });
 
         const uuidSelf: string = request.user.uuid;
 
