@@ -57,7 +57,7 @@ services:
       dockerfile: ./apps/api/Dockerfile
       args:
         CORS_URL: ${CORS_URL}
-        DATABASE_URL: file:/data/db/sqlite-database.db
+        DATABASE_URL: ${DATABASE_URL}
         CDN_PATH: ${CDN_PATH}
         ADMIN_API_KEY: ${ADMIN_API_KEY}
         GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
@@ -69,7 +69,8 @@ services:
         REDIRECT_URL: ${REDIRECT_URL}
         JWT_SECRET: ${JWT_SECRET}
     volumes:
-      - ./shared/private-data/db:/data/db:rw
+      - ./shared/private-data/db/db:/data/db:rw
+      - ./shared/private-data/cdn:/data/cdn:rw
     networks:
       - backend-network
     restart: unless-stopped
