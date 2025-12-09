@@ -62,106 +62,117 @@ function mapRoundStatusToUI(
 
 /**
  * Build leaderboard from tournament rounds and matches
+ * Extracts participants from matches and builds stats
+ * Uses aliases when available, falls back to nicknames
  */
 function buildLeaderboard(
   tournament: BackendTournament,
-  rounds: TournamentRound[]
+  rounds: TournamentRound[],
+  participantAliases?: Map<string, string>
 ): LeaderboardEntry[] {
-  // Get all participants
-  const participants = tournament.participants || [];
-
-  // Debug logging
-  console.log('Building leaderboard:', {
-    tournamentId: tournament.uuid,
-    participantsCount: participants.length,
-    participants: participants.map((p) => {
-      const participant = p as {
-        uuid: string;
-        alias?: string;
-        user?: { uuid?: string; nickname?: string };
-      };
-      return {
-        uuid: participant.uuid,
-        user: participant.user,
-        alias: participant.alias,
-      };
-    }),
-  });
-
   // Calculate stats per player
+  // Store alias (preferred) or nickname (fallback)
   const playerStats = new Map<
     string,
-    { wins: number; losses: number; scoreDiff: number; nickname: string }
+    { wins: number; losses: number; scoreDiff: number; displayName: string }
   >();
 
-  // Initialize player stats
+  // Also try to get participants from tournament.participants if available (for tournaments without matches yet)
+  const participants = tournament.participants || [];
   participants.forEach((participant) => {
-    // Handle nested user structure (TournamentParticipations.user)
     const participantTyped = participant as {
-      uuid: string;
+      uuid?: string;
       alias?: string;
       user?: { uuid?: string; nickname?: string };
     };
     const user = participantTyped.user;
-
-    // Get participant ID - use user.uuid (the actual user ID), not participant.uuid (participation record ID)
-    const participantId = user?.uuid || null;
-
-    // Use alias if available (from TournamentParticipations), otherwise fall back to nickname
+    const participantId = user?.uuid;
+    // Prefer alias from participants array, fallback to nickname
     const displayName = participantTyped.alias || user?.nickname || 'Unknown';
 
-    if (participantId) {
+    if (participantId && !playerStats.has(participantId)) {
+      // Initialize stats for participants from tournament.participants
       playerStats.set(participantId, {
         wins: 0,
         losses: 0,
         scoreDiff: 0,
-        nickname: displayName,
-      });
-      console.log('Added participant to leaderboard:', {
-        participantId,
         displayName,
       });
-    } else {
-      console.warn('Skipping participant - no ID found:', participant);
     }
   });
 
-  // Process all matches from all rounds
+  // Process all matches from all rounds to:
+  // 1. Extract all participants (from player1 and player2) - this is the main source
+  // 2. Calculate stats for finished matches
   rounds.forEach((round) => {
     round.matches.forEach((match) => {
-      if (match.status !== 'finished') return;
-
+      // Extract player info from matches (TournamentRoundResponse structure)
       const matchWithPlayers = match as {
-        player1?: { uuid?: string } | null;
-        player2?: { uuid?: string } | null;
+        player1?: { uuid?: string; nickname?: string | null } | null;
+        player2?: { uuid?: string; nickname?: string | null } | null;
+        score1?: number;
+        score2?: number;
+        status?: string;
       };
-      const player1Id = matchWithPlayers.player1?.uuid || null;
-      const player2Id = matchWithPlayers.player2?.uuid || null;
 
-      if (!player1Id || !player2Id) return;
+      const player1Id = matchWithPlayers.player1?.uuid;
+      const player1Nickname = matchWithPlayers.player1?.nickname;
+      const player2Id = matchWithPlayers.player2?.uuid;
+      const player2Nickname = matchWithPlayers.player2?.nickname;
 
-      const score1 = match.score1 || 0;
-      const score2 = match.score2 || 0;
+      // Get display name: prefer alias from map, fallback to nickname from match
+      const player1DisplayName =
+        (player1Id && participantAliases?.get(player1Id)) ||
+        player1Nickname ||
+        'Unknown';
+      const player2DisplayName =
+        (player2Id && participantAliases?.get(player2Id)) ||
+        player2Nickname ||
+        'Unknown';
 
-      // Update player 1 stats
-      const player1Stats = playerStats.get(player1Id);
-      if (player1Stats) {
-        player1Stats.scoreDiff += score1 - score2;
-        if (score1 > score2) {
-          player1Stats.wins++;
-        } else if (score1 < score2) {
-          player1Stats.losses++;
-        }
+      // Add players to stats if not already present (for participants who haven't played yet)
+      if (player1Id && !playerStats.has(player1Id)) {
+        playerStats.set(player1Id, {
+          wins: 0,
+          losses: 0,
+          scoreDiff: 0,
+          displayName: player1DisplayName,
+        });
+      }
+      if (player2Id && !playerStats.has(player2Id)) {
+        playerStats.set(player2Id, {
+          wins: 0,
+          losses: 0,
+          scoreDiff: 0,
+          displayName: player2DisplayName,
+        });
       }
 
-      // Update player 2 stats
-      const player2Stats = playerStats.get(player2Id);
-      if (player2Stats) {
-        player2Stats.scoreDiff += score2 - score1;
-        if (score2 > score1) {
-          player2Stats.wins++;
-        } else if (score2 < score1) {
-          player2Stats.losses++;
+      // Calculate stats for finished matches
+      if (matchWithPlayers.status === 'finished' && player1Id && player2Id) {
+        const score1 = matchWithPlayers.score1 || 0;
+        const score2 = matchWithPlayers.score2 || 0;
+
+        // Update player 1 stats
+        const player1Stats = playerStats.get(player1Id);
+        if (player1Stats) {
+          player1Stats.scoreDiff += score1 - score2;
+          if (score1 > score2) {
+            player1Stats.wins++;
+          } else if (score1 < score2) {
+            player1Stats.losses++;
+          }
+        }
+
+        // Update player 2 stats
+        const player2Stats = playerStats.get(player2Id);
+        if (player2Stats) {
+          player2Stats.scoreDiff += score2 - score1;
+          if (score2 > score1) {
+            player2Stats.wins++;
+          } else if (score2 < score1) {
+            player2Stats.losses++;
+          }
         }
       }
     });
@@ -171,7 +182,7 @@ function buildLeaderboard(
   const leaderboard: LeaderboardEntry[] = Array.from(playerStats.entries())
     .map(([, stats]) => ({
       rank: 0, // Will be set after sorting
-      player: stats.nickname,
+      player: stats.displayName, // Use alias (preferred) or nickname (fallback)
       points: stats.wins * 2 + stats.losses, // 2 points for win, 1 for loss
       scoreDiff: stats.scoreDiff,
     }))
@@ -186,6 +197,20 @@ function buildLeaderboard(
       ...entry,
       rank: index + 1,
     }));
+
+  // If no participants found in matches but tournament has players,
+  // show placeholder entries for participants who haven't played yet
+  if (leaderboard.length === 0 && tournament.playerCount > 0) {
+    // Create placeholder entries for all participants
+    for (let i = 0; i < tournament.playerCount; i++) {
+      leaderboard.push({
+        rank: i + 1,
+        player: `Player ${i + 1}`,
+        points: 0,
+        scoreDiff: 0,
+      });
+    }
+  }
 
   return leaderboard;
 }
@@ -334,7 +359,8 @@ function getRoundColor(status: string): string {
 
 function renderTournamentHeader(
   container: HTMLElement,
-  tournament: BackendTournament
+  tournament: BackendTournament,
+  isParticipant: boolean
 ) {
   const tournamentHeader = document.createElement('div');
   tournamentHeader.className =
@@ -352,74 +378,12 @@ function renderTournamentHeader(
   const badgesSection = document.createElement('div');
   badgesSection.className = 'flex gap-2';
 
-  // Add Join/Start button logic
-  const currentUserId = getCurrentUserId();
-  const participants = tournament.participants || [];
-  let isParticipant = false;
-
-  // Debug logging
-  console.log('Tournament detail page - Participant check:', {
-    tournamentId: tournament.uuid,
-    tournamentName: tournament.tournamentName,
-    currentUserId: currentUserId || 'NOT LOGGED IN',
-    participantsCount: participants.length,
-    participants: participants.map((p) => ({
-      participationUuid: p?.uuid, // Participation record ID
-      userUuid: (p as { user?: { uuid?: string } }).user?.uuid, // User UUID
-      alias: (p as { alias?: string }).alias,
-    })),
-  });
-
-  // PRIMARY CHECK: Check participants array from backend (source of truth)
-  if (currentUserId && participants.length > 0) {
-    // Check nested user.uuid (actual user ID), NOT participant.uuid (participation record ID)
-    isParticipant = participants.some((p) => {
-      const user = (p as { user?: { uuid?: string } }).user;
-      // Only use user.uuid - DO NOT use p.uuid (that's participation record ID)
-      const participantId = user?.uuid;
-      const matches = participantId === currentUserId;
-      if (matches) {
-        console.log('✓ Found matching participant in backend array:', {
-          participantId,
-          currentUserId,
-          alias: (p as { alias?: string }).alias,
-        });
-      }
-      return matches;
-    });
-  }
-
-  // FALLBACK CHECK: Check sessionStorage (for recently created/joined tournaments)
-  // Only use this if backend participants array is empty or not loaded yet
-  if (!isParticipant && currentUserId && participants.length === 0) {
-    const myTournaments = JSON.parse(
-      sessionStorage.getItem('myTournaments') || '[]'
-    ) as string[];
-    if (myTournaments.includes(tournament.uuid)) {
-      isParticipant = true;
-      console.log(
-        '✓ Found tournament in sessionStorage (recently created/joined, backend data not loaded yet):',
-        tournament.uuid
-      );
-    }
-  }
-
   const isOutstanding = tournament.status === 'outstanding';
   const isFull = tournament.playerCount >= tournament.maxPlayers;
   const hasMinPlayers = tournament.playerCount >= tournament.minPlayers;
 
-  console.log('Tournament detail page - Button logic:', {
-    isParticipant,
-    isOutstanding,
-    isFull,
-    hasMinPlayers,
-    currentUserId: currentUserId ? 'present' : 'null',
-    willShowJoinButton:
-      !isParticipant && currentUserId && isOutstanding && !isFull,
-    willShowStartButton: isParticipant && hasMinPlayers && isOutstanding,
-  });
-
   const buttonContainer = document.createElement('div');
+  const currentUserId = getCurrentUserId();
 
   // Logic matched with tournaments/index.ts
   if (isParticipant) {
@@ -683,7 +647,7 @@ export default async function initRoute() {
 
   // Get tournament UUID from route params
   const routeParams = window.routeParams || {};
-  const tournamentUuid = routeParams.id;
+  const tournamentUuid = routeParams['id'];
 
   if (!tournamentUuid) {
     pageRoot.innerHTML =
@@ -765,6 +729,39 @@ export default async function initRoute() {
   let currentTournament: BackendTournament | null = null;
   let currentLeaderboard: LeaderboardEntry[] = [];
   let currentUIRounds: Round[] = [];
+  let participantAliases = new Map<string, string>(); // Map of user UUID -> alias
+
+  /**
+   * Fetch participant aliases for the tournament
+   * TODO: This requires a backend endpoint that returns tournament participants with aliases
+   * For now, we extract aliases from tournament.participants if available, otherwise use nicknames from matches
+   */
+  const fetchParticipantAliases = (
+    tournament: BackendTournament
+  ): Map<string, string> => {
+    const aliasMap = new Map<string, string>();
+
+    // Try to get aliases from tournament.participants if available
+    const participants = tournament.participants || [];
+    participants.forEach((participant) => {
+      const participantTyped = participant as {
+        alias?: string;
+        user?: { uuid?: string };
+      };
+      const user = participantTyped.user;
+      const participantId = user?.uuid;
+      const alias = participantTyped.alias;
+      if (participantId && alias) {
+        aliasMap.set(participantId, alias);
+      }
+    });
+
+    // TODO: If no participants in response, we could fetch from a backend endpoint like:
+    // GET /api/tournaments/:uuid/participants
+    // This would return: Array<{ userId: string; alias: string }>
+
+    return aliasMap;
+  };
 
   // Function to refresh tournament data
   const refreshTournamentData = async () => {
@@ -795,12 +792,43 @@ export default async function initRoute() {
           name: `Round ${round.index + 1}`,
           status: mapRoundStatusToUI(round),
         }));
-        currentLeaderboard = buildLeaderboard(updatedTournament, updatedRounds);
+
+        // Fetch participant aliases
+        participantAliases = fetchParticipantAliases(updatedTournament);
+
+        currentLeaderboard = buildLeaderboard(
+          updatedTournament,
+          updatedRounds,
+          participantAliases
+        );
+
+        // Check if user is participant for button display
+        const currentUserId = getCurrentUserId();
+        let isParticipantRefresh = false;
+        if (currentUserId) {
+          try {
+            const myTournaments = await TournamentAPI.getMyTournaments();
+            isParticipantRefresh = myTournaments.some(
+              (t) => t.uuid === tournamentUuid
+            );
+          } catch (error) {
+            console.error('Error checking participation:', error);
+            const myTournamentsStorage = JSON.parse(
+              sessionStorage.getItem('myTournaments') || '[]'
+            ) as string[];
+            isParticipantRefresh =
+              myTournamentsStorage.includes(tournamentUuid);
+          }
+        }
 
         // Re-render the page with updated data
         innerContainer.innerHTML = '';
         const headerDiv = document.createElement('div');
-        renderTournamentHeader(headerDiv, updatedTournament);
+        renderTournamentHeader(
+          headerDiv,
+          updatedTournament,
+          isParticipantRefresh
+        );
         innerContainer.appendChild(headerDiv);
 
         // Re-add status badge
@@ -905,15 +933,38 @@ export default async function initRoute() {
       status: mapRoundStatusToUI(round),
     }));
 
-    // Build leaderboard
-    currentLeaderboard = buildLeaderboard(tournament, rounds);
+    // Fetch participant aliases
+    participantAliases = fetchParticipantAliases(tournament);
+
+    // Build leaderboard with alias map
+    currentLeaderboard = buildLeaderboard(
+      tournament,
+      rounds,
+      participantAliases
+    );
+
+    // Check if user is participant for button display
+    const currentUserId = getCurrentUserId();
+    let isParticipant = false;
+    if (currentUserId) {
+      try {
+        const myTournaments = await TournamentAPI.getMyTournaments();
+        isParticipant = myTournaments.some((t) => t.uuid === tournamentUuid);
+      } catch (error) {
+        console.error('Error checking participation:', error);
+        const myTournamentsStorage = JSON.parse(
+          sessionStorage.getItem('myTournaments') || '[]'
+        ) as string[];
+        isParticipant = myTournamentsStorage.includes(tournamentUuid);
+      }
+    }
 
     // Clear loading state and render content
     innerContainer.innerHTML = '';
 
     // Render header with tournament data
     const headerDiv = document.createElement('div');
-    renderTournamentHeader(headerDiv, tournament);
+    renderTournamentHeader(headerDiv, tournament, isParticipant);
     innerContainer.appendChild(headerDiv);
 
     // Add status badge to header
@@ -969,52 +1020,56 @@ export default async function initRoute() {
     tournamentSocket.initialize();
 
     // Set up socket listeners for tournament-specific updates
-    const handleTournamentUpdated = (data: {
-      uuid: string;
-      status?: status;
-      playerCount?: number;
-    }) => {
-      if (data.uuid === tournamentUuid && currentTournament) {
+    const handleTournamentUpdated = (data: unknown) => {
+      const eventData = data as {
+        uuid: string;
+        status?: status;
+        playerCount?: number;
+      };
+      if (eventData.uuid === tournamentUuid && currentTournament) {
         // Update tournament data
-        if (data.status) {
-          currentTournament.status = data.status;
+        if (eventData.status) {
+          currentTournament.status = eventData.status;
         }
-        if (data.playerCount !== undefined) {
-          currentTournament.playerCount = data.playerCount;
+        if (eventData.playerCount !== undefined) {
+          currentTournament.playerCount = eventData.playerCount;
         }
-        // Refresh the page to show updates
+        // Refresh the page to show updates (including leaderboard with new participants)
         void refreshTournamentData();
       }
     };
 
-    const handleUserJoined = (data: {
-      tournamentUuid: string;
-      user: unknown;
-    }) => {
-      if (data.tournamentUuid === tournamentUuid) {
-        // Refresh tournament to show updated player count
+    const handleUserJoined = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        user: unknown;
+      };
+      if (eventData.tournamentUuid === tournamentUuid) {
+        // Refresh tournament to show updated player count and leaderboard with new participant
         void refreshTournamentData();
       }
     };
 
-    const handleUserLeft = (data: {
-      tournamentUuid: string;
-      userUuid: string;
-    }) => {
-      if (data.tournamentUuid === tournamentUuid) {
-        // Refresh tournament to show updated player count
+    const handleUserLeft = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        userUuid: string;
+      };
+      if (eventData.tournamentUuid === tournamentUuid) {
+        // Refresh tournament to show updated player count and leaderboard
         void refreshTournamentData();
       }
     };
 
-    const handleTournamentStarted = (data: {
-      uuid: string;
-      rounds: TournamentRound[];
-      tournamentName?: string;
-    }) => {
-      if (data.uuid === tournamentUuid) {
+    const handleTournamentStarted = (data: unknown) => {
+      const eventData = data as {
+        uuid: string;
+        rounds: TournamentRound[];
+        tournamentName?: string;
+      };
+      if (eventData.uuid === tournamentUuid) {
         // Show toast notification
-        const tournamentName = data.tournamentName || 'Tournament';
+        const tournamentName = eventData.tournamentName || 'Tournament';
         toast.show(`${tournamentName} is about to start!`, {
           variant: 'success',
         });
@@ -1023,23 +1078,25 @@ export default async function initRoute() {
       }
     };
 
-    const handleMatchUpdated = (data: {
-      tournamentUuid: string;
-      roundIndex: number;
-      match: Match;
-    }) => {
-      if (data.tournamentUuid === tournamentUuid) {
-        // Match updated - refresh to show updated scores
+    const handleMatchUpdated = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        roundIndex: number;
+        match: Match;
+      };
+      if (eventData.tournamentUuid === tournamentUuid) {
+        // Match updated - refresh to show updated scores and leaderboard
         void refreshTournamentData();
       }
     };
 
-    const handleRoundCompleted = (data: {
-      tournamentUuid: string;
-      roundIndex: number;
-    }) => {
-      if (data.tournamentUuid === tournamentUuid) {
-        // Round completed - refresh to show updated status
+    const handleRoundCompleted = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        roundIndex: number;
+      };
+      if (eventData.tournamentUuid === tournamentUuid) {
+        // Round completed - refresh to show updated status and leaderboard
         void refreshTournamentData();
       }
     };

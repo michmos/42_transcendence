@@ -41,6 +41,32 @@ const TournamentAPI = {
   },
 
   /**
+   * Get tournaments where the current user is a participant
+   * @param status - Optional status filter ('outstanding' | 'ongoing' | 'finished' | 'canceled')
+   * @returns Promise<Tournament[]> - Array of tournaments where user is a participant
+   */
+  async getMyTournaments(status?: status): Promise<Tournament[]> {
+    try {
+      const url = status
+        ? `/api/user/me/tournaments?status=${status}`
+        : '/api/user/me/tournaments';
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch my tournaments: ${response.status}`);
+      }
+
+      return (await response.json()) as Tournament[];
+    } catch (error) {
+      console.error('Error fetching my tournaments:', error);
+      return [];
+    }
+  },
+
+  /**
    * Get a single tournament by UUID
    * @param uuid - Tournament UUID
    * @returns Promise<Tournament | null> - Tournament or null if not found

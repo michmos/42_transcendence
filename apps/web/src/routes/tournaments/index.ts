@@ -8,7 +8,6 @@ import type {
   status,
 } from '../../types/api.js';
 import { showApiError } from '../../utils/api-helpers.js';
-import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 
@@ -223,25 +222,24 @@ function renderErrorState(container: HTMLElement, message: string) {
   container.appendChild(errorState);
 }
 
-// Extended tournament type that includes participants
-type TournamentWithParticipants = BackendTournament & {
-  participants?: Array<{ uuid: string; nickname?: string }>;
-};
+// Tournament state management using Sets (no UUID exposure needed)
+// myTournaments: tournaments where user is a participant
+// openTournaments: outstanding tournaments available to join
+// tournamentsMap: full tournament objects for display
 
 function renderTournamentGrid(
   container: HTMLElement,
   tournaments: Tournament[],
-  backendTournaments: Array<BackendTournament | TournamentWithParticipants>,
-  currentUserId: string | null
+  backendTournaments: BackendTournament[],
+  myTournaments: Set<string>,
+  tournamentsMap: Map<string, BackendTournament>
 ) {
   const grid = document.createElement('div');
   grid.className = 'grid gap-6 md:grid-cols-2 lg:grid-cols-3';
 
   tournaments.forEach((tournament, index) => {
     // Type assertion needed because array access can return undefined
-    const backendTournament = backendTournaments[index] as
-      | TournamentWithParticipants
-      | undefined;
+    const backendTournament = backendTournaments[index];
     if (!backendTournament) {
       console.warn(`Backend tournament not found for index ${index}`);
       return;
@@ -251,112 +249,8 @@ function renderTournamentGrid(
     const isFull =
       backendTournament.playerCount >= backendTournament.maxPlayers;
 
-    // Check if user is participant
-    // Participants array includes nested user structure from backend
-    const participants: Array<{
-      uuid?: string; // Participation record ID (not user ID)
-      alias?: string;
-      user?: {
-        uuid?: string; // User UUID
-        nickname?: string;
-      };
-    }> = Array.isArray(backendTournament.participants)
-      ? (backendTournament.participants as Array<{
-          uuid?: string;
-          alias?: string;
-          user?: {
-            uuid?: string;
-            nickname?: string;
-          };
-        }>)
-      : [];
-
-    // Ensure participants array exists and is properly typed
-    if (!backendTournament.participants) {
-      console.warn('Tournament participants not loaded:', tournament.id);
-    }
-
-    // Debug logging - always log to help debug the issue
-    console.log('Tournament button logic:', {
-      tournamentName: tournament.name,
-      tournamentId: tournament.id,
-      currentUserId: currentUserId || 'NOT LOGGED IN',
-      participantsCount: participants.length,
-      participants: participants.map(
-        (p: { uuid?: string; userId?: string; nickname?: string }) => ({
-          uuid: p?.uuid || 'NO UUID',
-          userId: p?.userId || 'NO USER_ID',
-          nickname: p?.nickname || 'NO NICKNAME',
-        })
-      ),
-      playerCount: backendTournament.playerCount,
-      status: backendTournament.status,
-      isOutstanding,
-      isFull,
-    });
-
-    // Check if current user is a participant
-    // We check:
-    // 1. participants array from backend (most reliable - source of truth)
-    // 2. sessionStorage for tournaments we created/joined (fallback for recently joined)
-    let isParticipant = false;
-
-    // Debug: Log participant check details
-    console.log('Participant check for tournament:', {
-      tournamentId: tournament.id,
-      tournamentName: tournament.name,
-      currentUserId: currentUserId || 'NOT LOGGED IN',
-      participantsCount: participants.length,
-      participants: participants.map((p) => ({
-        participationUuid: p?.uuid, // Participation record ID
-        userUuid: p?.user?.uuid, // User UUID
-        alias: p?.alias,
-      })),
-    });
-
-    // PRIMARY CHECK: Check participants array from backend (source of truth)
-    if (currentUserId && participants.length > 0) {
-      isParticipant = participants.some(
-        (p: { uuid?: string; user?: { uuid?: string } }) => {
-          // Use user.uuid (actual user ID from relation), NOT participant.uuid (participation record ID)
-          const participantId = p?.user?.uuid;
-          const matches = participantId === currentUserId;
-          if (matches) {
-            console.log('✓ Found matching participant in backend array:', {
-              participantId,
-              currentUserId,
-              alias: (p as { alias?: string }).alias,
-            });
-          }
-          return matches;
-        }
-      );
-    }
-
-    // FALLBACK CHECK: Check sessionStorage (for recently created/joined tournaments)
-    // Only use this if backend participants array is empty or not loaded yet
-    if (!isParticipant && currentUserId && participants.length === 0) {
-      const myTournaments = JSON.parse(
-        sessionStorage.getItem('myTournaments') || '[]'
-      ) as string[];
-      if (myTournaments.includes(tournament.id)) {
-        isParticipant = true;
-        console.log(
-          '✓ Found tournament in sessionStorage (recently created/joined, backend data not loaded yet):',
-          tournament.id
-        );
-      }
-    }
-
-    console.log('Final participant check result:', {
-      tournamentId: tournament.id,
-      isParticipant,
-      currentUserId: currentUserId || 'NOT LOGGED IN',
-      isOutstanding,
-      isFull,
-      willShowJoinButton:
-        !isParticipant && currentUserId && isOutstanding && !isFull,
-    });
+    // Check if user is a participant using Set membership (no UUID exposure needed)
+    const isParticipant = myTournaments.has(tournament.id);
 
     // Check if minimum players have joined (for showing Start button)
     const hasMinPlayers =
@@ -415,24 +309,18 @@ function renderTournamentGrid(
           
           <div class="flex gap-2">
             ${(() => {
-              // Debug logging for button logic
-              console.log(`Button logic for ${tournament.name}:`, {
-                isParticipant,
-                hasMinPlayers,
-                isOutstanding,
-                isFull,
-                currentUserId: currentUserId ? 'present' : 'null',
-                playerCount: backendTournament.playerCount,
-                minPlayers: backendTournament.minPlayers,
-                maxPlayers: backendTournament.maxPlayers,
-                participantsCount: participants.length,
-              });
+              // Button logic using Set membership (no UUID exposure)
 
-              // Priority order (check in this exact order):
+              // Button display logic (priority order):
+              // 1. Participants see "Start" when min players reached (all participants can start)
+              // 2. Participants see "View Details" otherwise (creator and joined users)
+              // 3. Non-participants see "Join" button (for outstanding tournaments)
+              // 4. Everyone sees "View Details" for non-outstanding tournaments
 
-              // 1. If user IS participant
+              // 1. If user IS participant (creator or joined user)
               if (isParticipant) {
-                // 1a. If min players reached AND outstanding -> Show Start
+                // 1a. If min players reached AND outstanding -> Show Start button
+                // (All participants can start the tournament when min players reached)
                 if (hasMinPlayers && isOutstanding) {
                   return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium cursor-pointer start-tournament-btn" data-tournament-id="${tournament.id}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -441,7 +329,7 @@ function renderTournamentGrid(
                     Start
                   </button>`;
                 }
-                // 1b. Otherwise -> Show View Details
+                // 1b. Otherwise -> Show View Details (creator/participant sees this)
                 return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -476,11 +364,9 @@ function renderTournamentGrid(
                 </button>`;
               }
 
-              // 4. If user is logged in AND tournament is joinable -> Show Join button
-              // This should show for any logged-in user who is NOT a participant
-              if (currentUserId && isOutstanding && !isFull) {
-                // Double-check: if we somehow missed detecting participation, show Join anyway
-                // The backend will reject the join if they're already a participant
+              // 4. If tournament is joinable -> Show Join button
+              // Non-participants see this button to join the tournament
+              if (isOutstanding && !isFull) {
                 return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors font-medium cursor-pointer join-tournament-btn" data-tournament-id="${tournament.id}">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -494,7 +380,7 @@ function renderTournamentGrid(
                 </button>`;
               }
 
-              // 5. Default (not logged in) -> Show View Details
+              // 5. Default -> Show View Details
               return `<button class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary rounded-lg hover:bg-white/90 transition-colors font-medium cursor-pointer view-details-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -530,7 +416,12 @@ function renderTournamentGrid(
       joinBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        showJoinTournamentDialog(tournament.id, tournament.name);
+        showJoinTournamentDialog(
+          tournament.id,
+          tournament.name,
+          myTournaments,
+          tournamentsMap
+        );
       });
     }
 
@@ -618,7 +509,9 @@ interface WindowWithTournaments extends Window {
 
 function showJoinTournamentDialog(
   tournamentUuid: string,
-  tournamentName: string
+  tournamentName: string,
+  myTournaments: Set<string>,
+  tournamentsMap: Map<string, BackendTournament>
 ) {
   // Create modal backdrop
   const backdrop = document.createElement('div');
@@ -690,12 +583,10 @@ function showJoinTournamentDialog(
       if (!alias) {
         try {
           const currentUser = await UserAPI.getUserBasicInfo();
-          alias =
-            currentUser?.nickname ||
-            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+          alias = currentUser?.nickname || 'Player';
         } catch (error) {
           console.error('Error fetching user info:', error);
-          alias = `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+          alias = 'Player';
         }
       }
 
@@ -713,16 +604,19 @@ function showJoinTournamentDialog(
       try {
         await TournamentAPI.joinTournament(tournamentUuid, alias);
 
-        // Track that we're a participant in this tournament
-        const myTournaments = JSON.parse(
-          sessionStorage.getItem('myTournaments') || '[]'
-        ) as string[];
-        if (!myTournaments.includes(tournamentUuid)) {
-          myTournaments.push(tournamentUuid);
-          sessionStorage.setItem(
-            'myTournaments',
-            JSON.stringify(myTournaments)
-          );
+        // Add to myTournaments Set (user is now a participant)
+        myTournaments.add(tournamentUuid);
+        // Update tournament in Map if it exists, or fetch it
+        const existingTournament = tournamentsMap.get(tournamentUuid);
+        if (existingTournament) {
+          // Update playerCount (will be refreshed from server)
+          existingTournament.playerCount += 1;
+        } else {
+          // Fetch tournament if not in Map
+          const tournament = await TournamentAPI.getTournament(tournamentUuid);
+          if (tournament) {
+            tournamentsMap.set(tournamentUuid, tournament);
+          }
         }
 
         // Success - close dialog and refresh tournaments list
@@ -748,7 +642,10 @@ function showJoinTournamentDialog(
   });
 }
 
-function showNewTournamentDialog() {
+function showNewTournamentDialog(
+  myTournaments: Set<string>,
+  tournamentsMap: Map<string, BackendTournament>
+) {
   // Create modal backdrop - darker for better contrast
   const backdrop = document.createElement('div');
   backdrop.className =
@@ -919,36 +816,35 @@ function showNewTournamentDialog() {
         // Call API to create tournament
         const tournament = await TournamentAPI.createTournament(tournamentData);
 
-        // Auto-join the tournament as the creator
+        // Auto-join the tournament as the creator (required: creator must be added automatically)
         try {
           await TournamentAPI.joinTournament(tournament.uuid, alias);
-          // Track that we're a participant in this tournament (in case backend list doesn't include participants)
-          const myTournaments = JSON.parse(
-            sessionStorage.getItem('myTournaments') || '[]'
-          ) as string[];
-          if (!myTournaments.includes(tournament.uuid)) {
-            myTournaments.push(tournament.uuid);
-            sessionStorage.setItem(
-              'myTournaments',
-              JSON.stringify(myTournaments)
-            );
-          }
+          // Add to myTournaments Set (creator is automatically a participant)
+          myTournaments.add(tournament.uuid);
+          tournamentsMap.set(tournament.uuid, tournament);
+          toast.show('Tournament created and you have been added!', {
+            variant: 'success',
+          });
         } catch (joinError) {
-          // If join fails (e.g., already joined), log but don't fail the whole flow
-          console.warn('Auto-join after create failed:', joinError);
+          // If join fails, show error but still allow navigation
+          console.error('Auto-join after create failed:', joinError);
+          toast.show(
+            'Tournament created, but failed to add you automatically. Please join manually.',
+            { variant: 'warning' }
+          );
         }
 
-        // Success - close dialog and navigate to new tournament
+        // Success - close dialog
         closeDialog();
 
-        // Refresh tournaments list
+        // Refresh tournaments list to show updated participant status
         const windowWithTournaments = window as WindowWithTournaments;
         const loadTournamentsFn = windowWithTournaments.loadTournaments;
         if (typeof loadTournamentsFn === 'function') {
           await loadTournamentsFn();
         }
 
-        // Navigate to new tournament
+        // Navigate to new tournament details page
         void navigateTo(`/tournament/${tournament.uuid}`);
       } catch (error) {
         // Handle errors
@@ -972,6 +868,11 @@ export default async function initRoute() {
   if (!pageRoot) return;
 
   pageRoot.innerHTML = '';
+
+  // Tournament state management using Sets (no UUID exposure)
+  const myTournaments = new Set<string>(); // Tournaments where user is a participant
+  const openTournaments = new Set<string>(); // Outstanding tournaments available to join
+  const tournamentsMap = new Map<string, BackendTournament>(); // Full tournament objects
 
   let searchQuery = '';
   let allTournaments: Tournament[] = [];
@@ -1014,7 +915,9 @@ export default async function initRoute() {
   mainWrapper.appendChild(mainContent);
 
   // Render sections
-  renderPageHeader(mainContent, showNewTournamentDialog);
+  renderPageHeader(mainContent, () => {
+    showNewTournamentDialog(myTournaments, tournamentsMap);
+  });
 
   // Search functionality
   const searchContainer = document.createElement('div');
@@ -1051,21 +954,19 @@ export default async function initRoute() {
     if (filteredTournaments.length === 0) {
       renderEmptyState(gridContainer);
     } else {
-      const currentUserId = getCurrentUserId();
-      console.log('Current user ID:', currentUserId);
       renderTournamentGrid(
         gridContainer,
         filteredTournaments,
-        filteredBackendTournaments as Array<
-          BackendTournament | TournamentWithParticipants
-        >,
-        currentUserId
+        filteredBackendTournaments,
+        myTournaments,
+        tournamentsMap
       );
     }
   };
 
   /**
    * Load tournaments from API
+   * Fetches outstanding tournaments and user's tournaments, then populates Sets
    */
   async function loadTournaments(statusFilter?: status) {
     isLoading = true;
@@ -1074,30 +975,35 @@ export default async function initRoute() {
     updateTournamentGrid();
 
     try {
-      const backendTournaments =
-        await TournamentAPI.getTournaments(statusFilter);
+      // Fetch outstanding tournaments (for openTournaments set)
+      const outstandingTournaments = await TournamentAPI.getTournaments(
+        statusFilter || 'outstanding'
+      );
 
-      // Debug: Log the actual API response structure
-      const firstTournament = backendTournaments[0] as
-        | TournamentWithParticipants
-        | undefined;
-      console.log('Tournaments API response:', {
-        count: backendTournaments.length,
-        firstTournament: firstTournament
-          ? {
-              uuid: firstTournament.uuid,
-              tournamentName: firstTournament.tournamentName,
-              status: firstTournament.status,
-              playerCount: firstTournament.playerCount,
-              participants: firstTournament.participants,
-              participantsType: typeof firstTournament.participants,
-              participantsIsArray: Array.isArray(firstTournament.participants),
-            }
-          : 'No tournaments',
+      // Fetch user's tournaments (for myTournaments set)
+      const userTournaments =
+        await TournamentAPI.getMyTournaments(statusFilter);
+
+      // Populate Sets and Map
+      myTournaments.clear();
+      openTournaments.clear();
+      tournamentsMap.clear();
+
+      // Add user's tournaments to myTournaments
+      userTournaments.forEach((tournament) => {
+        myTournaments.add(tournament.uuid);
+        tournamentsMap.set(tournament.uuid, tournament);
       });
 
-      allBackendTournaments = backendTournaments;
-      allTournaments = backendTournaments.map(mapTournamentToUI);
+      // Add outstanding tournaments to openTournaments and Map
+      outstandingTournaments.forEach((tournament) => {
+        openTournaments.add(tournament.uuid);
+        tournamentsMap.set(tournament.uuid, tournament);
+      });
+
+      // Use all tournaments from Map for display
+      allBackendTournaments = Array.from(tournamentsMap.values());
+      allTournaments = allBackendTournaments.map(mapTournamentToUI);
       filteredTournaments = [...allTournaments];
       filteredBackendTournaments = [...allBackendTournaments];
       isLoading = false;
@@ -1125,95 +1031,153 @@ export default async function initRoute() {
 
   // Set up socket listeners for real-time updates
   // These will work once backend socket handler is implemented
-  const handleTournamentCreated = () => {
+  const handleTournamentCreated = (data: unknown) => {
+    const eventData = data as { tournamentUuid?: string };
     // Show toast notification
     toast.show('A new tournament has been created!', { variant: 'info' });
-    // When a tournament is created, refresh the list
-    void loadTournaments();
+    // If tournament is not in myTournaments, fetch it and add to openTournaments
+    if (
+      eventData.tournamentUuid &&
+      !myTournaments.has(eventData.tournamentUuid)
+    ) {
+      void (async () => {
+        const tournamentUuid = eventData.tournamentUuid;
+        if (!tournamentUuid) return;
+        const tournament = await TournamentAPI.getTournament(tournamentUuid);
+        if (tournament && tournament.status === 'outstanding') {
+          openTournaments.add(tournament.uuid);
+          tournamentsMap.set(tournament.uuid, tournament);
+          // Update display
+          allBackendTournaments = Array.from(tournamentsMap.values());
+          allTournaments = allBackendTournaments.map(mapTournamentToUI);
+          filteredTournaments = [...allTournaments];
+          filteredBackendTournaments = [...allBackendTournaments];
+          updateTournamentGrid();
+        }
+      })();
+    } else {
+      // Refresh the list
+      void loadTournaments();
+    }
   };
 
-  const handleTournamentStarted = (data: {
-    uuid?: string;
-    tournamentName?: string;
-  }) => {
+  const handleTournamentStarted = (data: unknown) => {
+    const eventData = data as { uuid?: string; tournamentName?: string };
     // Show toast notification with tournament name if available
-    const tournamentName = data.tournamentName || 'Tournament';
+    const tournamentName = eventData.tournamentName || 'Tournament';
     toast.show(`${tournamentName} is about to start!`, { variant: 'success' });
     // Refresh the list to show updated status
     void loadTournaments();
   };
 
-  const handleTournamentJoined = (data: {
-    uuid: string;
-    playerCount: number;
-  }) => {
+  const handleTournamentJoined = (data: unknown) => {
+    const eventData = data as { uuid: string; playerCount: number };
+    // Update tournament in Map
+    const tournament = tournamentsMap.get(eventData.uuid);
+    if (tournament) {
+      tournament.playerCount = eventData.playerCount;
+      // Update display arrays
+      const index = allBackendTournaments.findIndex(
+        (t) => t.uuid === eventData.uuid
+      );
+      if (index !== -1) {
+        allBackendTournaments[index] = tournament;
+        allTournaments[index] = mapTournamentToUI(tournament);
+        // Re-filter if search is active
+        if (searchQuery) {
+          const filtered = allTournaments.filter((t) =>
+            t.name.toLowerCase().includes(searchQuery)
+          );
+          filteredTournaments = filtered;
+          filteredBackendTournaments = filtered
+            .map((uiTournament) => {
+              return allBackendTournaments.find(
+                (bt) => bt.uuid === uiTournament.id
+              );
+            })
+            .filter((bt): bt is BackendTournament => bt !== undefined);
+        } else {
+          filteredTournaments = [...allTournaments];
+          filteredBackendTournaments = [...allBackendTournaments];
+        }
+        updateTournamentGrid();
+      }
+    }
     // Find tournament name for toast
-    const tournament = allBackendTournaments.find((t) => t.uuid === data.uuid);
     const tournamentName = tournament?.tournamentName || 'Tournament';
     // Show toast notification
     toast.show(
-      `Someone joined ${tournamentName} (${data.playerCount} players)`,
+      `Someone joined ${tournamentName} (${eventData.playerCount} players)`,
       {
         variant: 'info',
+      }
+    );
+  };
+
+  const handleTournamentLeft = (data: unknown) => {
+    const eventData = data as { uuid: string; playerCount: number };
+    // Find tournament name for toast
+    const tournament = allBackendTournaments.find(
+      (t) => t.uuid === eventData.uuid
+    );
+    const tournamentName = tournament?.tournamentName || 'Tournament';
+    // Show toast notification
+    toast.show(
+      `Someone left ${tournamentName} (${eventData.playerCount} players)`,
+      {
+        variant: 'warning',
       }
     );
     // Refresh full tournament list to get updated participants
     void loadTournaments();
   };
 
-  const handleTournamentLeft = (data: {
-    uuid: string;
-    playerCount: number;
-  }) => {
-    // Find tournament name for toast
-    const tournament = allBackendTournaments.find((t) => t.uuid === data.uuid);
-    const tournamentName = tournament?.tournamentName || 'Tournament';
-    // Show toast notification
-    toast.show(`Someone left ${tournamentName} (${data.playerCount} players)`, {
-      variant: 'warning',
-    });
-    // Refresh full tournament list to get updated participants
-    void loadTournaments();
-  };
-
-  const handleTournamentUpdated = (data: {
-    uuid: string;
-    status?: status;
-    playerCount?: number;
-  }) => {
-    // Update existing tournament in the list
-    const index = allBackendTournaments.findIndex((t) => t.uuid === data.uuid);
-    if (index !== -1) {
-      const tournamentToUpdate = allBackendTournaments[index];
-      if (tournamentToUpdate !== undefined) {
-        // Update backend tournament data
-        if (data.status) {
-          tournamentToUpdate.status = data.status;
+  const handleTournamentUpdated = (data: unknown) => {
+    const eventData = data as {
+      uuid: string;
+      status?: status;
+      playerCount?: number;
+    };
+    // Update tournament in Map
+    const tournament = tournamentsMap.get(eventData.uuid);
+    if (tournament) {
+      // Update tournament data
+      if (eventData.status) {
+        tournament.status = eventData.status;
+        // If tournament is no longer outstanding, remove from openTournaments
+        if (eventData.status !== 'outstanding') {
+          openTournaments.delete(eventData.uuid);
         }
-        if (data.playerCount !== undefined) {
-          tournamentToUpdate.playerCount = data.playerCount;
+      }
+      if (eventData.playerCount !== undefined) {
+        tournament.playerCount = eventData.playerCount;
+      }
+      // Update display arrays
+      const index = allBackendTournaments.findIndex(
+        (t) => t.uuid === eventData.uuid
+      );
+      if (index !== -1) {
+        allBackendTournaments[index] = tournament;
+        allTournaments[index] = mapTournamentToUI(tournament);
+        // Re-filter if search is active
+        if (searchQuery) {
+          const filtered = allTournaments.filter((t) =>
+            t.name.toLowerCase().includes(searchQuery)
+          );
+          filteredTournaments = filtered;
+          filteredBackendTournaments = filtered
+            .map((uiTournament) => {
+              return allBackendTournaments.find(
+                (bt) => bt.uuid === uiTournament.id
+              );
+            })
+            .filter((bt): bt is BackendTournament => bt !== undefined);
+        } else {
+          filteredTournaments = [...allTournaments];
+          filteredBackendTournaments = [...allBackendTournaments];
         }
-        // Update UI tournament
-        allTournaments[index] = mapTournamentToUI(tournamentToUpdate);
+        updateTournamentGrid();
       }
-      // Re-filter if search is active
-      if (searchQuery) {
-        const filtered = allTournaments.filter((t) =>
-          t.name.toLowerCase().includes(searchQuery)
-        );
-        filteredTournaments = filtered;
-        filteredBackendTournaments = filtered
-          .map((uiTournament) => {
-            return allBackendTournaments.find(
-              (bt) => bt.uuid === uiTournament.id
-            );
-          })
-          .filter((bt): bt is BackendTournament => bt !== undefined);
-      } else {
-        filteredTournaments = [...allTournaments];
-        filteredBackendTournaments = [...allBackendTournaments];
-      }
-      updateTournamentGrid();
     }
   };
 

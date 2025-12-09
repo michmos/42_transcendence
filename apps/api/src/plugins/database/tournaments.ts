@@ -111,42 +111,11 @@ export async function getUserAlias(userId: string, tournamentId: string) {
 }
 
 export async function getAllTournaments(): Promise<Tournament[]> {
-  return Database.tournament.findMany({
-    include: {
-      participants: {
-        select: {
-          uuid: true, // Participation record ID
-          alias: true, // Tournament-specific alias
-          user: {
-            select: {
-              uuid: true, // User UUID
-              nickname: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  return Database.tournament.findMany();
 }
 
 export async function getTournament(uuid: string): Promise<Tournament | null> {
-  return Database.tournament.findUnique({
-    where: { uuid },
-    include: {
-      participants: {
-        select: {
-          uuid: true, // Participation record ID
-          alias: true, // Tournament-specific alias
-          user: {
-            select: {
-              uuid: true, // User UUID
-              nickname: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  return Database.tournament.findUnique({ where: { uuid } });
 }
 
 export async function getTournamentByRound(
@@ -165,23 +134,7 @@ export async function getTournamentByRound(
 export async function getTournamentsByStatus(
   status: status
 ): Promise<Tournament[]> {
-  return Database.tournament.findMany({
-    where: { status },
-    include: {
-      participants: {
-        select: {
-          uuid: true, // Participation record ID
-          alias: true, // Tournament-specific alias
-          user: {
-            select: {
-              uuid: true, // User UUID
-              nickname: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  return Database.tournament.findMany({ where: { status } });
 }
 
 export async function getTournamentsByParticipant(
@@ -286,28 +239,10 @@ export async function getTournamentRound(tournamentId: string, index: number) {
       index,
     },
     select: {
-      uuid: true,
       index: true,
       status: true,
       matches: {
-        select: {
-          uuid: true,
-          status: true,
-          score1: true,
-          score2: true,
-          player1: {
-            select: {
-              uuid: true,
-              nickname: true,
-            },
-          },
-          player2: {
-            select: {
-              uuid: true,
-              nickname: true,
-            },
-          },
-        },
+        select: { uuid: true },
       },
     },
   });
