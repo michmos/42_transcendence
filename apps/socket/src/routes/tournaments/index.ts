@@ -47,11 +47,10 @@ export default function (app: FastifyInstance): void {
         })
       );
 
-      // TODO: handle tournament start here
       RoomManager.get(`tournament:${request.body.tournamentUuid}`)?.broadcast(
         JSON.stringify({
           event: 'notify',
-          message: `Join the first match of ${request.body.tournamentName} in the next 60 seconds!`,
+          message: `Join the first match of ${request.body.tournamentName}!`,
         })
       );
       return reply.status(200).send();
