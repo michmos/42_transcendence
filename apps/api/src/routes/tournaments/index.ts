@@ -70,11 +70,10 @@ export default function (app: FastifyInstance): void {
         !(await app.db.participatesInTournament(
           getUuid(request),
           request.params.uuid
-        ))
+        )) &&
+        !isAdmin(request, reply)
       ) {
-        return reply.status(403).send({
-          error: 'Unauthorized: User does not participate in Tournament',
-        });
+        return;
       }
 
       // generate Tournament plan
