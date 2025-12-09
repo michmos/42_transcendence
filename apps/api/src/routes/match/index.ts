@@ -1,9 +1,10 @@
 import { type FastifyInstance } from 'fastify';
 import * as schemas from './validation.js';
 import { type Match, Prisma } from 'db/generated/client/index.js';
-import { getPlayerName } from './utils.js';
+import { getPlayerName, updateMatch } from './utils.js';
 import { type MatchResponse, type MatchParticipantsResponse } from 'types';
 import { isAdmin } from '../../plugins/auth/utils.js';
+import { messageSocketServer } from '../tournaments/utils.js';
 
 export default function (app: FastifyInstance): void {
   app.get<{ Params: schemas.singleUuidParam }>(
@@ -120,21 +121,36 @@ export default function (app: FastifyInstance): void {
           return reply.status(404).send('Match not found');
         }
 
-        let updatedMatch;
-        if (match.tournamentRoundId) {
-          updatedMatch = await app.db.updateTournamentMatch({
-            ...request.body,
-            uuid: request.params.uuid,
-            tournamentRoundId: match.tournamentRoundId,
-          });
-        } else {
-          updatedMatch = await app.db.updateMatch({
-            ...request.body,
-            uuid: request.params.uuid,
-          });
-        }
+        const updatedMatch = await updateMatch(app, match, request.body);
 
-        return reply.status(200).send(updatedMatch);
+        reply.status(200).send(updatedMatch);
+
+        if (match.tournamentRoundId && updatedMatch.status === 'finished') {
+          const round = await app.db.getTournamentRound(
+            match.tournamentRoundId
+          );
+          if (round?.status === 'finished') {
+            const tournament = await app.db.getTournamentByRound(
+              match.tournamentRoundId
+            );
+            if (tournament?.status === 'finished') {
+              await messageSocketServer('/tournaments/broadcast/updated', {
+                tournamentUuid: tournament.uuid,
+                tournamentName: tournament.tournamentName,
+                status: 'finished',
+              });
+            } else {
+              await messageSocketServer(
+                '/tournaments/broadcast/round/started',
+                {
+                  tournamentUuid: tournament.uuid,
+                  tournamentName: tournament.tournamentName,
+                  tournamentRound: tournament.currentRound,
+                }
+              );
+            }
+          }
+        }
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2025') {

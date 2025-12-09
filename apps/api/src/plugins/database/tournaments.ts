@@ -1,4 +1,5 @@
 import Database from 'db';
+import { type TournamentRoundResponse } from 'types';
 
 import type {
   Match,
@@ -262,11 +263,21 @@ export async function getTournamentRounds(
   });
 }
 
-export async function getTournamentRound(tournamentId: string, index: number) {
+export async function getTournamentRound(
+  roundId: string
+): Promise<TournamentRoundResponse | null>;
+export async function getTournamentRound(
+  tournamentId: string,
+  index: number
+): Promise<TournamentRoundResponse | null>;
+export async function getTournamentRound(
+  arg1: string,
+  arg2?: number
+): Promise<TournamentRoundResponse | null> {
   return Database.tournamentRound.findFirst({
     where: {
-      tournamentId,
-      index,
+      ...(arg2 !== undefined && { tournamentId: arg1, index: arg2 }),
+      ...(arg2 === undefined && { uuid: arg1 }),
     },
     select: {
       index: true,
