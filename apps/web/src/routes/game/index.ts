@@ -241,9 +241,6 @@ function cleanup() {
 export default async function initRoute() {
   console.log('init route called');
 
-  // Cleanup any existing connections first
-  cleanup();
-
   // Mark route as active
   isRouteActive = true;
   const pageRoot = document.querySelector('.game-page') as HTMLElement;
