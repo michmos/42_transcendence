@@ -59,9 +59,6 @@ const UserAPI = {
     }
   },
 
-  async getUserBasicInfo(): Promise<Partial<User> | null> {
-    return this.getMe();
-  },
   async getUsers(): Promise<User[]> {
     try {
       const response = await fetch('/api/user', {

@@ -405,7 +405,7 @@ export default async function initRoute() {
         });
 
       // Get user's tournament alias from tournament.participants
-      const currentUserId = getCurrentUserId();
+      const currentUserId = window.user?.cleanedUserData.uuid;
       let userAlias: string | null = null;
 
       if (currentUserId && tournament.participants) {
@@ -483,7 +483,7 @@ export default async function initRoute() {
       });
 
     // Get user's tournament alias
-    const currentUserId = getCurrentUserId();
+    const currentUserId = window.user?.cleanedUserData.uuid;
     let userAlias: string | null = null;
 
     // Strategy 1: Get alias from tournament.participants by matching user UUID

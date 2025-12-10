@@ -309,10 +309,10 @@ function showJoinTournamentDialog(
           const currentUser = await UserAPI.getMe();
           alias =
             currentUser?.nickname ||
-            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+            `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
         } catch (error) {
           console.error('Error fetching user info:', error);
-          alias = `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+          alias = `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
         }
       }
 
@@ -400,7 +400,7 @@ function renderTournamentHeader(
   const hasMinPlayers = tournament.playerCount >= tournament.minPlayers;
 
   const buttonContainer = document.createElement('div');
-  const currentUserId = getCurrentUserId();
+  const currentUserId = window.user?.cleanedUserData.uuid;
 
   // Logic matched with tournaments/index.ts
   if (isParticipant) {
@@ -856,7 +856,7 @@ export default async function initRoute() {
         );
 
         // Check if user is participant for button display
-        const currentUserId = getCurrentUserId();
+        const currentUserId = window.user?.cleanedUserData.uuid;
         let isParticipantRefresh = false;
         if (currentUserId) {
           try {
@@ -1000,7 +1000,7 @@ export default async function initRoute() {
     );
 
     // Check if user is participant for button display
-    const currentUserId = getCurrentUserId();
+    const currentUserId = window.user?.cleanedUserData.uuid;
     let isParticipant = false;
     if (currentUserId) {
       try {
