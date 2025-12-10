@@ -16,7 +16,7 @@ export function updateGameRoomData(
   overrides: Partial<GameRoomData>
 ) {
   const room = RoomManager.get(roomName);
-  if (!room) return; // TODO: maybe throw
+  if (!room) return;
 
   const currentData = room.getData() as GameRoomData;
   if (overrides.currentGameState) {
@@ -48,17 +48,14 @@ export default {
       case 'join-room':
         return handleJoinRoom(socket, message);
       case 'leave-room':
-        if (socket.isInRoom(message.room)) {
-          leaveGamePage(socket);
-        }
-        break;
+        return leaveGamePage(socket);
       case 'message':
         if (socket.isInRoom(message.room)) {
           handleInput(message, socket);
         }
         break;
     }
-	// handleRoomInput(message, socket);
+    // handleRoomInput(message, socket);
   },
 
   onClose: (socket: WSocket) => {
