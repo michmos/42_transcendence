@@ -1,4 +1,5 @@
 import Database from 'db';
+import { type TournamentRoundResponse } from 'types';
 
 import type {
   Match,
@@ -217,10 +218,40 @@ export async function updateTournamentRound(
     uuid: string;
   }
 ): Promise<TournamentRound> {
-  return Database.tournamentRound.update({
+  const response = await Database.tournamentRound.update({
     where: { uuid: round.uuid },
     data: round,
   });
+  if (round.status === 'finished') {
+    // check whether all rounds finished
+    const tournamentId = response.tournamentId;
+    const unfinishedRounds = await Database.tournamentRound.findFirst({
+      where: {
+        tournamentId,
+        status: {
+          not: 'finished',
+        },
+      },
+    });
+    if (!unfinishedRounds) {
+      //update status
+      updateTournament({
+        uuid: tournamentId,
+        status: 'finished',
+      });
+    } else {
+      // update currentRound property
+      await Database.tournament.update({
+        where: { uuid: tournamentId },
+        data: {
+          currentRound: {
+            increment: 1,
+          },
+        },
+      });
+    }
+  }
+  return response;
 }
 
 export async function getTournamentRounds(
@@ -232,13 +263,24 @@ export async function getTournamentRounds(
   });
 }
 
-export async function getTournamentRound(tournamentId: string, index: number) {
+export async function getTournamentRound(
+  roundId: string
+): Promise<TournamentRoundResponse | null>;
+export async function getTournamentRound(
+  tournamentId: string,
+  index: number
+): Promise<TournamentRoundResponse | null>;
+export async function getTournamentRound(
+  arg1: string,
+  arg2?: number
+): Promise<TournamentRoundResponse | null> {
   return Database.tournamentRound.findFirst({
     where: {
-      tournamentId,
-      index,
+      ...(arg2 !== undefined && { tournamentId: arg1, index: arg2 }),
+      ...(arg2 === undefined && { uuid: arg1 }),
     },
     select: {
+      uuid: true,
       index: true,
       status: true,
       matches: {

@@ -2,9 +2,22 @@ import { Navbar, Card, Badge } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import TournamentAPI from '../../plugins/api/tournaments.js';
+import MatchAPI from '../../plugins/api/match.js';
 import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
+import { getCurrentUserId } from '../../utils/auth-state.js';
+import tournamentSocket from '../../plugins/websocket/tournament.js';
+import toast from '../../utils/toast.js';
 
+// Extend Window interface for SPA navigation
+declare global {
+  interface Window {
+    navigateToRoute?: (href: string) => void;
+    routeParams?: Record<string, string>;
+  }
+}
+
+// UI Match interface (mapped from backend)
 interface Match {
   id: string;
   opponent1: string;
@@ -12,6 +25,7 @@ interface Match {
   score1: number;
   score2: number;
   status: 'completed' | 'live' | 'upcoming';
+  hasNullPlayer?: boolean;
 }
 
 /**
@@ -31,29 +45,6 @@ function mapMatchStatusToUI(
     default:
       return 'upcoming';
   }
-}
-
-/**
- * Get player nickname from match player data
- * Handles both cases: when player relation is loaded and when only ID is available
- */
-function getPlayerNickname(
-  player:
-    | { nickname?: string | null; email?: string | null }
-    | null
-    | undefined,
-  playerId?: string | null
-): string {
-  // If player object exists with nickname/email, use it
-  if (player) {
-    return player.nickname || player.email || 'Unknown';
-  }
-  // If only playerId is available, show placeholder
-  // TODO: Could fetch user data separately if needed
-  if (playerId) {
-    return 'Player'; // Placeholder - could fetch user data if needed
-  }
-  return 'TBD';
 }
 
 function renderRoundHeader(
@@ -94,7 +85,11 @@ function renderRoundHeader(
   container.appendChild(roundHeader);
 }
 
-function renderMatches(container: HTMLElement, matches: Match[]) {
+function renderMatches(
+  container: HTMLElement,
+  matches: Match[],
+  _currentUserId: string | null
+) {
   const matchesCardContainer = document.createElement('div');
   const matchesCard = new Card(matchesCardContainer, {
     title: 'Matches',
@@ -113,8 +108,19 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
   } else {
     matches.forEach((match) => {
       const matchItem = document.createElement('div');
-      matchItem.className =
-        'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all hover:bg-white/10';
+
+      // Gray out matches with null players (automatic wins)
+      const baseClasses = 'overflow-hidden rounded-lg border transition-all';
+      let matchClasses = baseClasses;
+
+      if (match.hasNullPlayer) {
+        matchClasses = `${baseClasses} border-white/20 bg-white/5 opacity-50 grayscale`;
+      } else {
+        matchClasses = `${baseClasses} border-white/20 bg-white/5 hover:bg-white/10`;
+      }
+
+      matchItem.className = matchClasses;
+      matchItem.id = `match-${match.id}`; // Add ID for easier updates
 
       matchItem.innerHTML = `
       <div class="flex items-center p-6">
@@ -126,12 +132,12 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
         <!-- Score - Always centered -->
         <div class="flex-shrink-0 mx-8">
           <div class="flex items-center gap-3">
-            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10">
-              <span class="text-2xl font-bold text-white">${match.score1}</span>
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 transition-colors ${match.status === 'live' ? 'bg-accent/20 animate-pulse' : ''}">
+              <span class="text-2xl font-bold text-white" id="score1-${match.id}">${match.score1}</span>
             </div>
             <span class="text-xl text-white/60">-</span>
-            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10">
-              <span class="text-2xl font-bold text-white">${match.score2}</span>
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 transition-colors ${match.status === 'live' ? 'bg-accent/20 animate-pulse' : ''}">
+              <span class="text-2xl font-bold text-white" id="score2-${match.id}">${match.score2}</span>
             </div>
           </div>
         </div>
@@ -186,21 +192,17 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
 function renderInfoCard(container: HTMLElement) {
   const infoCardContainer = document.createElement('div');
   infoCardContainer.className = 'mt-6';
-  const infoCard = new Card(infoCardContainer, {
-    variant: 'default',
-  });
-
-  const cardBody = infoCard.getBodyElement();
-  if (cardBody) {
-    cardBody.innerHTML = `
-      <div class="pt-6">
-        <p class="text-center text-white/80">
-          This would need to be done with websocket for live updates.
-          All matches are updated in real-time as they progress.
-        </p>
+  // Removed "This would need to be done with websocket" text
+  // Replaced with live updates indicator
+  infoCardContainer.innerHTML = `
+    <div class="flex items-center justify-center gap-2 text-white/60 text-sm">
+      <span class="relative flex h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/50 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+      </span>
+      Live updates enabled
       </div>
     `;
-  }
 
   container.appendChild(infoCardContainer);
 }
@@ -278,12 +280,14 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userInfo?.nickname,
-    userAvatar: userInfo?.avatar || undefined,
+    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
+    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
       navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // Add back button
@@ -319,15 +323,64 @@ export default async function initRoute() {
   // Show loading state initially
   renderLoadingState(innerContainer);
 
+  // Function to refresh round data
+  const refreshRoundData = async () => {
+    try {
+      // Re-fetch tournament
+      const tournament = await TournamentAPI.getTournament(tournamentId);
+      if (!tournament) return;
+
+      // Re-fetch round
+      const round = await TournamentAPI.getTournamentRound(
+        tournamentId,
+        roundIndex
+      );
+      if (!round) return;
+
+      // Fetch full match details for each match UUID
+      const matchDetails = await Promise.all(
+        round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+      );
+
+      // Map matches using MatchResponse data
+      const uiMatches: Match[] = matchDetails
+        .filter((match): match is NonNullable<typeof match> => match !== null)
+        .map((match) => {
+          const opponent1 = match.player1Name || 'Nobody';
+          const opponent2 = match.player2Name || 'Nobody';
+          const hasNullPlayer =
+            opponent1 === 'Nobody' || opponent2 === 'Nobody';
+
+          return {
+            id: match.uuid,
+            opponent1,
+            opponent2,
+            score1: match.score1 || 0,
+            score2: match.score2 || 0,
+            status: mapMatchStatusToUI(match.status),
+            hasNullPlayer,
+          };
+        });
+
+      // Clear and re-render
+      innerContainer.innerHTML = '';
+      const currentUserId = getCurrentUserId();
+      renderRoundHeader(innerContainer, roundIndex, tournament.tournamentName);
+      renderMatches(innerContainer, uiMatches, currentUserId);
+      renderInfoCard(innerContainer);
+    } catch (error) {
+      console.error('Error refreshing round data:', error);
+    }
+  };
+
   try {
-    // Fetch tournament to get name and participants
+    // Initial Fetch
     const tournament = await TournamentAPI.getTournament(tournamentId);
     if (!tournament) {
       renderErrorState(innerContainer, 'Tournament not found');
       return;
     }
 
-    // Fetch round
     const round = await TournamentAPI.getTournamentRound(
       tournamentId,
       roundIndex
@@ -337,43 +390,68 @@ export default async function initRoute() {
       return;
     }
 
-    // Create player ID to nickname map from tournament participants
-    const playerMap = new Map<string, string>();
-    if (tournament.participants) {
-      tournament.participants.forEach((participant) => {
-        const nickname = participant.nickname || participant.email || 'Unknown';
-        playerMap.set(participant.uuid, nickname);
+    // Fetch full match details for each match UUID
+    const matchDetails = await Promise.all(
+      round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+    );
+
+    // Map matches using MatchResponse data
+    const uiMatches: Match[] = matchDetails
+      .filter((match): match is NonNullable<typeof match> => match !== null)
+      .map((match) => {
+        const opponent1 = match.player1Name || 'Nobody';
+        const opponent2 = match.player2Name || 'Nobody';
+        const hasNullPlayer = opponent1 === 'Nobody' || opponent2 === 'Nobody';
+
+        return {
+          id: match.uuid,
+          opponent1,
+          opponent2,
+          score1: match.score1 || 0,
+          score2: match.score2 || 0,
+          status: mapMatchStatusToUI(match.status),
+          hasNullPlayer,
+        };
       });
-    }
 
-    // Map matches to UI format with player nicknames
-    const uiMatches: Match[] = round.matches.map((match) => {
-      const opponent1 =
-        match.player1Id && playerMap.has(match.player1Id)
-          ? (playerMap.get(match.player1Id) ?? 'Unknown')
-          : getPlayerNickname(match.player1, match.player1Id);
-      const opponent2 =
-        match.player2Id && playerMap.has(match.player2Id)
-          ? (playerMap.get(match.player2Id) ?? 'Unknown')
-          : getPlayerNickname(match.player2, match.player2Id);
-
-      return {
-        id: match.uuid,
-        opponent1,
-        opponent2,
-        score1: match.Score1 || 0,
-        score2: match.Score2 || 0,
-        status: mapMatchStatusToUI(match.status),
-      };
-    });
-
-    // Clear loading state and render content
+    // Render content
     innerContainer.innerHTML = '';
-
-    // Render sections
+    const currentUserId = getCurrentUserId();
     renderRoundHeader(innerContainer, roundIndex, tournament.tournamentName);
-    renderMatches(innerContainer, uiMatches);
+    renderMatches(innerContainer, uiMatches, currentUserId);
     renderInfoCard(innerContainer);
+
+    // ===== SOCKET INTEGRATION =====
+    tournamentSocket.initialize();
+    tournamentSocket.joinTournament(tournamentId);
+
+    const handleMatchUpdated = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        match: Match;
+      };
+      if (eventData.tournamentUuid === tournamentId) {
+        // We could optimize to update just one match, but refreshing is safer
+        void refreshRoundData();
+      }
+    };
+
+    const handleRoundCompleted = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        roundIndex: number;
+      };
+      if (
+        eventData.tournamentUuid === tournamentId &&
+        eventData.roundIndex === roundIndex
+      ) {
+        toast.show('Round completed!', { variant: 'success' });
+        void refreshRoundData();
+      }
+    };
+
+    tournamentSocket.on('match-updated', handleMatchUpdated);
+    tournamentSocket.on('round-completed', handleRoundCompleted);
   } catch (error) {
     innerContainer.innerHTML = '';
     const errorMessage =

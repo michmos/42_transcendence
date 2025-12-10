@@ -20,3 +20,8 @@ export interface MatchResponse {
   score1: number;
   score2: number;
 }
+
+export interface MatchParticipantsResponse {
+  player1Id: string | null;
+  player2Id: string | null;
+}

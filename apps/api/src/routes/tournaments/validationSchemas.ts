@@ -88,6 +88,13 @@ export const getTournament = {
 export type getTournamentParams = Static<typeof getTournament.params>;
 export type singleUuidParam = Static<typeof getTournament.params>;
 
+// GET /tournaments/:uuid/participants
+export const getTournamentParticipants = {
+  params: Type.Object({
+    uuid: Type.String(),
+  }),
+};
+
 // GET /tournaments/:uuid/rounds/:roundIndex
 export const getTournamentRound = {
   params: Type.Object({
