@@ -40,10 +40,13 @@ export default function (app: FastifyInstance): void {
       schema: schemas.tournamentStarted,
     },
     async function (request, reply) {
-      RoomManager.get('tournament:main')?.broadcast(
+      // Only broadcast to specific tournament room (participants only)
+      // This prevents duplicate toasts for users in both tournament:main and tournament:${uuid}
+      RoomManager.get(`tournament:${request.body.tournamentUuid}`)?.broadcast(
         JSON.stringify({
           event: 'tournament-started',
           uuid: request.body.tournamentUuid,
+          tournamentName: request.body.tournamentName,
         })
       );
 
@@ -71,7 +74,19 @@ export default function (app: FastifyInstance): void {
       }
 
       participants.add(userUuid);
+
+      // Broadcast to tournament:main for list updates (player count change)
+      // This allows everyone to see updated player counts in real-time
       RoomManager.get('tournament:main')?.broadcast(
+        JSON.stringify({
+          event: 'tournament-joined',
+          uuid: tournamentUuid,
+          playerCount: request.body.playerCount,
+        })
+      );
+
+      // Broadcast to specific tournament room for participant notifications (toast)
+      RoomManager.get(`tournament:${tournamentUuid}`)?.broadcast(
         JSON.stringify({
           event: 'tournament-joined',
           uuid: tournamentUuid,

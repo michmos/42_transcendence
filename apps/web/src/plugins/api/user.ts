@@ -17,6 +17,7 @@ export interface ProfileFriend {
   avatar: string | null;
   state: 'REQUESTED' | 'ACCEPTED' | 'REJECTED';
   isRequester: boolean;
+  isOnline: boolean;
 }
 
 export interface UserProfileData {

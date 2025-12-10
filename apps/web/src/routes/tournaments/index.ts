@@ -1063,10 +1063,16 @@ export default async function initRoute() {
 
   const handleTournamentStarted = (data: unknown) => {
     const eventData = data as { uuid?: string; tournamentName?: string };
-    // Show toast notification with tournament name if available
-    const tournamentName = eventData.tournamentName || 'Tournament';
-    toast.show(`${tournamentName} is about to start!`, { variant: 'success' });
-    // Refresh the list to show updated status
+
+    // Show toast if user is a participant in this tournament
+    if (eventData.uuid && myTournaments.has(eventData.uuid)) {
+      const tournamentName = eventData.tournamentName || 'Tournament';
+      toast.show(`${tournamentName} is about to start!`, {
+        variant: 'success',
+      });
+    }
+
+    // Update tournament list to show status change
     void loadTournaments();
   };
 
@@ -1103,15 +1109,8 @@ export default async function initRoute() {
         updateTournamentGrid();
       }
     }
-    // Find tournament name for toast
-    const tournamentName = tournament?.tournamentName || 'Tournament';
-    // Show toast notification
-    toast.show(
-      `Someone joined ${tournamentName} (${eventData.playerCount} players)`,
-      {
-        variant: 'info',
-      }
-    );
+    // Don't show toast on tournaments list page - only update the list
+    // Participants will see the toast on the specific tournament page
   };
 
   const handleTournamentLeft = (data: unknown) => {
@@ -1183,7 +1182,9 @@ export default async function initRoute() {
 
   // Register socket listeners
   tournamentSocket.on('tournament-created', handleTournamentCreated);
+  // Note: tournament-started is handled on tournament detail page only (participants)
   tournamentSocket.on('tournament-started', handleTournamentStarted);
+  // Note: tournament-joined is handled on tournament detail page only (participants)
   tournamentSocket.on('tournament-joined', handleTournamentJoined);
   tournamentSocket.on('tournament-left', handleTournamentLeft);
   tournamentSocket.on('tournament-updated', handleTournamentUpdated);

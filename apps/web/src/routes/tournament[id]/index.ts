@@ -1104,10 +1104,15 @@ export default async function initRoute() {
 
     const handleUserJoined = (data: unknown) => {
       const eventData = data as {
-        tournamentUuid: string;
-        user: unknown;
+        uuid: string;
+        playerCount?: number;
       };
-      if (eventData.tournamentUuid === tournamentUuid) {
+      if (eventData.uuid === tournamentUuid) {
+        // Show toast notification for participants
+        const playerCount = eventData.playerCount || 0;
+        toast.show(`Someone joined this tournament (${playerCount} players)`, {
+          variant: 'info',
+        });
         // Refresh tournament to show updated player count and leaderboard with new participant
         void refreshTournamentData();
       }
@@ -1127,11 +1132,11 @@ export default async function initRoute() {
     const handleTournamentStarted = (data: unknown) => {
       const eventData = data as {
         uuid: string;
-        rounds: TournamentRound[];
+        rounds?: TournamentRound[];
         tournamentName?: string;
       };
       if (eventData.uuid === tournamentUuid) {
-        // Show toast notification
+        // Show toast notification (only for participants on this page)
         const tournamentName = eventData.tournamentName || 'Tournament';
         toast.show(`${tournamentName} is about to start!`, {
           variant: 'success',
