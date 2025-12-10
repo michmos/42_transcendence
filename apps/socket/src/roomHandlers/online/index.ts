@@ -33,6 +33,8 @@ export default {
     console.log('onOPEN got nickname:', nickname);
 
     const result = onlineUsers.get(socket.uuid);
+    // If result is not undefined, that means user already has a socket open, we only +1 to socketCount, we don't broadcast online message.
+    // If result is undefined, we add new entry to onlineUsers map and broadcast online message to everyone in the 'Online' room.
     if (result) {
       onlineUsers.set(socket.uuid, {
         ...result,

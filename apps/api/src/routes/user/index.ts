@@ -17,6 +17,7 @@ import type { fullFriendshipRecord } from '../friends/types.js';
 import type { UserMatchRecord, UserDashboardResponse } from 'types';
 
 export default function (app: FastifyInstance): void {
+  // ----------- Get all users
   app.get('/', async function (request, reply) {
     try {
       if (!isAdmin(request, reply)) return;
@@ -27,13 +28,15 @@ export default function (app: FastifyInstance): void {
       return reply.code(500).send({ Error: 'Failed getting all user data' });
     }
   });
+
+  // ----------- user/me requests for dashboard and socket API calls
   app.get('/me/uuid', async function (request, reply) {
     return reply.status(200).send({ uuid: getUuid(request) });
   });
 
   // TODO: Hacked this in as the web is requesting /me for own user data
 
-  //      Might need to refactor later
+  // Might need to refactor later
 
   app.get('/me', async function (request, reply) {
     try {
@@ -82,8 +85,28 @@ export default function (app: FastifyInstance): void {
     }
   });
 
-  // USER SETTINGS
+  app.patch<{ Params: schemas.changeStatusParamsType }>(
+    '/me/isOnline/:boolean',
+    {
+      schema: schemas.changeStatus,
+    },
+    async function (request, reply) {
+      try {
+        const uuidSelf: string = request.user.uuid;
 
+        const isOnline: boolean = request.params.boolean;
+        await app.db.setUserOnlineStatus(uuidSelf, isOnline);
+        return reply.status(204).send();
+      } catch (error) {
+        app.log.error(error);
+        return reply
+          .code(500)
+          .send({ Error: 'Failed setting Online field to true' });
+      }
+    }
+  );
+
+  // ----------- User settings
   app.patch<{ Body: schemas.PatchUserMeSetNicknameType }>(
     '/me/nickname',
     {
@@ -121,15 +144,16 @@ export default function (app: FastifyInstance): void {
         return reply.code(415).send({
           Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
         });
+
       // Reading file into buffer. Max 2MB
       const buffer = await file.toBuffer();
       if (buffer.length > 2 * 1024 * 1024)
         return reply.code(413).send({
           Error: 'File too large. Must be smaller than 2MB',
         });
-      // Getting own uuid and extracting filename from file
+
       const uuidSelf: string = request.user.uuid;
-      // generating new filename for avatar
+
       const avatarUuid = crypto.randomUUID();
       const newFilename = `${avatarUuid}.png`;
       const savePath = path.join(
@@ -137,23 +161,20 @@ export default function (app: FastifyInstance): void {
         'public/userAvatars',
         newFilename
       );
-      // Store relative path from the CDN root: /userAvatars/filename.png
       const relPath = `/userAvatars/${newFilename}`;
-      // ensure that directory exists
+
       await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
       try {
         await sharp(buffer)
           .resize(256, 256, { fit: 'cover' })
-
           .png({ quality: 80 })
-
           .toFile(savePath);
       } catch {
         return reply.code(415).send({
           Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
         });
       }
-      // Setting/replacing image file path in user's record database
+
       const userData = await app.db.setUserMeAvatar(uuidSelf, relPath);
       return reply.code(200).send(cleanSelfUserData(userData));
     } catch (error) {
@@ -162,6 +183,7 @@ export default function (app: FastifyInstance): void {
     }
   });
 
+  // ----------- Get user's current tournaments
   app.get<{ Querystring: getTournamentsQuerystring }>(
     '/me/tournaments',
     { schema: getTournaments },
@@ -174,7 +196,7 @@ export default function (app: FastifyInstance): void {
     }
   );
 
-  // OTHER USER
+  // ----------- Other user API calls
   app.get<{ Params: schemas.GetOtherUserProfileType }>(
     '/:nickname',
     { schema: schemas.GetOtherUserProfile },
@@ -184,7 +206,6 @@ export default function (app: FastifyInstance): void {
         const user = await app.db.getUserByNickname(nickname);
         if (!user) return reply.code(404).send({ Error: 'user not found' });
         const cleanedUser = cleanOtherUserData(user);
-        // console.log('Cleaned Other user data:', cleanedUser); // FOR TESTING ONLY
         return reply.code(200).send(cleanedUser);
       } catch (error) {
         app.log.error(error);
@@ -193,18 +214,18 @@ export default function (app: FastifyInstance): void {
     }
   );
 
-  // ----------- ADD / DELETE USERS
-  app.post('/', async function (request, reply) {
-    const { email } = request.body as { email: string };
-    if (!isAdmin(request, reply)) return;
-    if (!email) {
-      return new Error('Email is required');
-    }
-    const nickname = await app.db.generateUniqueNickName();
-    return await app.db.addUser(email, nickname);
-  });
+  // ----------- Add / delete users as admin
+  // app.post('/', async function (request, reply) {
+  //   const { email } = request.body as { email: string };
+  //   if (!isAdmin(request, reply)) return;
+  //   if (!email) {
+  //     return new Error('Email is required');
+  //   }
+  //   const nickname = await app.db.generateUniqueNickName();
+  //   return await app.db.addUser(email, nickname);
+  // });
 
-  // First deletes user's Friends records, and then deletes own User record
+  // ----------- First deletes user's Friends records, and then deletes own User record
   app.delete('/', async function (request, reply) {
     const { uuid } = request.body as { uuid: string };
     if (!isAdmin(request, reply) || !isSameUUID(request, reply, uuid)) return;
@@ -214,25 +235,4 @@ export default function (app: FastifyInstance): void {
     await app.db.deleteMultipleFriends(uuid);
     return await app.db.removeUser(uuid);
   });
-
-  app.patch<{ Params: schemas.changeStatusParamsType }>(
-    '/me/isOnline/:boolean',
-    {
-      schema: schemas.changeStatus,
-    },
-    async function (request, reply) {
-      try {
-        const uuidSelf: string = request.user.uuid;
-
-        const isOnline: boolean = request.params.boolean;
-        await app.db.setUserOnlineStatus(uuidSelf, isOnline);
-        return reply.status(204).send();
-      } catch (error) {
-        app.log.error(error);
-        return reply
-          .code(500)
-          .send({ Error: 'Failed setting Online field to true' });
-      }
-    }
-  );
 }
