@@ -1,4 +1,5 @@
 import { createEnv } from '@t3-oss/env-core';
+
 import { z } from 'zod';
 
 export const env = createEnv({
@@ -7,6 +8,7 @@ export const env = createEnv({
     API_SERVER: z.string().default('http://localhost:3000'),
     SOCKET_SERVER: z.string().default('ws://localhost:3001'),
     SWAGGER_SERVER: z.string().default('http://localhost:3000/documentation'),
+    CDN_SERVER: z.string().default('http://localhost:3008'),
   },
   runtimeEnv: import.meta.env,
 });

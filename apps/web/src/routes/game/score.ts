@@ -1,10 +1,8 @@
 import { getCanvas, getCtx } from './state';
 
-const canvas = getCanvas();
-const ctx = getCtx();
-
 // Custom bitmap font for authentic arcade look
 function drawDigit(digit: number, x: number, y: number, size = 4) {
+  const ctx = getCtx();
   if (!ctx) return;
   const pixelSize = size;
   // 5x9 pixel patterns for digits 0-9 & :
@@ -193,6 +191,7 @@ export function drawTime(
   y: number,
   size: number
 ) {
+  const canvas = getCanvas();
   const totalSeconds = Math.floor(milliseconds / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;

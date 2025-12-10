@@ -13,9 +13,14 @@
 import { type status } from 'db/generated/client/index.js';
 
 export interface TournamentRoundResponse {
+  uuid: string;
   status: status;
   index: number;
   matches: Array<{
     uuid: string;
   }>;
+}
+
+export interface TournamentParticipantsResponse {
+  participants: string[];
 }

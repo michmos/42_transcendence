@@ -1,18 +1,29 @@
 import { Card, Button } from '../../components/index.js';
+import { getCurrentSession } from '../../utils/auth-state.js';
+import { navigateTo } from '../../utils/navigation.js';
 
-export default function initRoute() {
+export default async function initRoute() {
+  // Check if we already have a session in memory (from app.ts)
+  // app.ts already checked auth, so just use that session
+  const currentSession = await getCurrentSession();
+  if (currentSession && currentSession.uuid) {
+    navigateTo('/profile');
+    return;
+  }
+
+  // No session - show login page
+  // (app.ts should have redirected if needed, but just in case we're here)
   const pageRoot = document.querySelector('.root-page');
   if (!pageRoot) return;
   pageRoot.classList.add('overflow-hidden', 'h-screen', 'bg-gradient-primary');
 
   // Style the h1 title from the HTML - moved lower with top padding
-  const pageTitle = pageRoot.querySelector('h1');
+  const pageTitle = pageRoot.querySelector('h1') as HTMLElement | null;
   if (pageTitle) {
     pageTitle.className = 'text-white text-center mb-8 text-5xl font-bold';
-    (pageTitle as HTMLElement).style.textShadow =
-      '2px 2px 4px rgba(0, 0, 0, 0.3)';
-    (pageTitle as HTMLElement).style.paddingTop = '80px';
-    (pageTitle as HTMLElement).style.marginTop = '0';
+    pageTitle.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.3)';
+    pageTitle.style.paddingTop = '80px';
+    pageTitle.style.marginTop = '0';
   }
 
   const cardMount = document.getElementById('loginCard');
@@ -91,6 +102,8 @@ export default function initRoute() {
     new Button(btnWrapper, {
       text: buttonText,
       onClick: () => {
+        // Set flag so app.ts knows we're doing OAuth
+        sessionStorage.setItem('oauth_redirect', 'true');
         window.location.href = `/api/auth/login?provider=${provider}`;
       },
       variant: 'secondary',

@@ -21,6 +21,7 @@ export function cleanOtherUserData(user: User): Partial<User> {
 
 export function cleanSelfUserData(user: User): Partial<User> {
   const {
+    uuid,
     createdAt,
     nickname,
     avatar,
@@ -31,6 +32,7 @@ export function cleanSelfUserData(user: User): Partial<User> {
     tournamentsWon,
   } = user;
   return {
+    uuid,
     createdAt,
     nickname,
     avatar,

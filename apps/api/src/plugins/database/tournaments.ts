@@ -239,6 +239,7 @@ export async function getTournamentRound(tournamentId: string, index: number) {
       index,
     },
     select: {
+      uuid: true,
       index: true,
       status: true,
       matches: {
