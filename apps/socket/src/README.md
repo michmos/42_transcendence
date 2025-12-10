@@ -185,4 +185,3 @@ The RoomManager is a singleton that performs actions to sockets on a room level.
   RoomManager.get(`someExistingRoom`)?.has(socket: WebSocket); // check if a socket is in the room
 ```
 
-## TODOs

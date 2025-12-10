@@ -34,10 +34,6 @@ export default function (app: FastifyInstance): void {
     return reply.status(200).send({ uuid: getUuid(request) });
   });
 
-  // TODO: Hacked this in as the web is requesting /me for own user data
-
-  // Might need to refactor later
-
   app.get('/me', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;
