@@ -19,13 +19,18 @@ export function updateGameRoomData(
   if (!room) return; // TODO: maybe throw
 
   const currentData = room.getData() as GameRoomData;
-  const updatedData = {
-    ...currentData,
-    ...overrides,
-  };
-
-  room.setData(updatedData);
-  return updatedData;
+  if (overrides.currentGameState) {
+    currentData.currentGameState = overrides.currentGameState;
+  }
+  if (overrides.isLocalGame) {
+    currentData.isLocalGame = overrides.isLocalGame;
+  }
+  if (overrides.player1Uuid) {
+    currentData.player1Uuid = overrides.player1Uuid;
+  }
+  if (overrides.player2Uuid) {
+    currentData.player2Uuid = overrides.player2Uuid;
+  }
 }
 
 export default {
