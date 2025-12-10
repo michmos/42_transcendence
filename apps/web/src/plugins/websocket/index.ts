@@ -14,6 +14,9 @@ class Socket {
 
   public registerWebSocketHook(hook: (_event: MessageEvent) => void) {
     this.hooks.push(hook);
+    return () => {
+      this.hooks = this.hooks.filter((h) => h !== hook);
+    };
   }
 
   private executeWebSocketCallbacks(event: MessageEvent) {
