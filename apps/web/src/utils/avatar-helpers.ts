@@ -20,6 +20,5 @@ export function getAvatarSrc(
   }
 
   // Prepend /cdn to route through the CDN proxy
-  console.log(`Avatar path converted to CDN URL: /cdn/${avatarPath}`);
   return `/cdn/${avatarPath}`;
 }
