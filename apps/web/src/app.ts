@@ -14,7 +14,7 @@ window.router = router;
 window.api = API;
 
 // Fetch current user profile
-window.user = await API.user.getUserProfile();
+window.user = await window.api.user.getUserProfile();
 
 // Render initial route based on authentication state
 if (!window.user) {

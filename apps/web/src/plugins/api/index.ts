@@ -13,4 +13,3 @@ const API = {
 };
 
 export default API;
-export { AuthAPI };
