@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const env = createEnv({
   server: {
     API_PORT: z.coerce.number().default(3000),
+    SOCKET_SERVER: z.string().default('http://localhost:3001'),
 
     CORS_URL: z.string().nonempty('CORS_URL is required'),
     REDIRECT_URL: z.string().nonempty('REDIRECT_URL is required'),
