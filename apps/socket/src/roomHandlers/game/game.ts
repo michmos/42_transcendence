@@ -305,30 +305,39 @@ export function asyncGameLoop(gameRoom: string) {
     updateGameRoomData(gameRoom, { currentGameState: initGameState });
 
     const intervalId = setInterval(() => {
-      const roomData = RoomManager.get(gameRoom)?.getData() as GameRoomData;
-      if (!roomData) {
-        clearInterval(intervalId);
-        reject(new Error('Room closed unexpectedly'));
-      }
-      const currentGameState = roomData.currentGameState;
-      updateGame(currentGameState);
-      if (currentGameState.gameOver) {
-        clearInterval(intervalId);
-        resolve(roomData);
-      }
+      try {
+        const roomData = RoomManager.get(gameRoom)?.getData() as GameRoomData;
+        if (!roomData || !roomData.currentGameState) {
+          // socket left room -> room no longer exists (autoforfeit)
+          clearInterval(intervalId);
+          resolve(roomData);
+        }
+        const currentGameState = roomData.currentGameState;
+        updateGame(currentGameState);
+        if (currentGameState.gameOver) {
+          clearInterval(intervalId);
+          resolve(roomData);
+        }
 
-      // Broadcast updated game state to all clients in the room
-      RoomManager.get(gameRoom)?.broadcast(
-        JSON.stringify({
-          type: 'message',
-          room: gameRoom,
-          data: {
-            subtype: 'state',
-            timestamp: Date.now(),
-            serverState: currentGameState,
-          },
-        })
-      );
+        // Broadcast updated game state to all clients in the room
+        RoomManager.get(gameRoom)?.broadcast(
+          JSON.stringify({
+            type: 'message',
+            room: gameRoom,
+            data: {
+              subtype: 'state',
+              timestamp: Date.now(),
+              serverState: currentGameState,
+            },
+          })
+        );
+      } catch (error) {
+        console.error(
+          `Error occurred in game loop: ${(error as Error).message}`
+        );
+        clearInterval(intervalId);
+        reject();
+      }
     }, 1000 / 60);
   });
 }
