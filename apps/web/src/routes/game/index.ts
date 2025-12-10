@@ -138,11 +138,15 @@ let unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
   }
 });
 
+// Store event listener functions so we can remove them
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
+
 function setupEventListeners() {
   console.log('setup event listener being called');
 
   // handle key presses
-  document.addEventListener('keydown', (e) => {
+  keydownHandler = (e) => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'p') {
       sendMessage({ action: 'pause' });
@@ -153,13 +157,14 @@ function setupEventListeners() {
     if (e.key === '.') {
       sendMessage({ action: 'ai' });
     }
-  });
-  // handle key release
-  document.addEventListener('keyup', (e: KeyboardEvent) => {
-    keys[e.key.toLowerCase()] = false;
-  });
+  };
+  document.addEventListener('keydown', keydownHandler);
 
-  // windo
+  // handle key release
+  keyupHandler = (e: KeyboardEvent) => {
+    keys[e.key.toLowerCase()] = false;
+  };
+  document.addEventListener('keyup', keyupHandler);
 }
 
 // Cleanup function to close WebSocket when leaving route
@@ -167,10 +172,6 @@ let controlsUpdateInterval: ReturnType<typeof setInterval> | null = null;
 let gameLoopAnimationFrame: number | null = null;
 let inputInterval: ReturnType<typeof setInterval> | null = null;
 let isRouteActive = false;
-
-// Store event listener functions so we can remove them
-let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
-let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 
 function cleanup() {
   isRouteActive = false;
