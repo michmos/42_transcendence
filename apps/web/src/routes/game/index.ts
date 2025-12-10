@@ -46,29 +46,23 @@ export interface GenericMessage {
   data: unknown;
 }
 
-export type IncomingMessage = StateMessage | RoleMessage | GenericMessage;
+export interface RoomMessage {
+  event: string;
+  uuid: string;
+}
+
+export type IncomingMessage =
+  | StateMessage
+  | RoleMessage
+  | GenericMessage
+  | RoomMessage;
 
 let TEST_ROOM: string = 'game:placeholder';
-const canvas = getCanvas();
-
-window.socket.joinRoom('game:online');
-
-window.socket.registerWebSocketHook((event: MessageEvent) => {
-  // console.log("hook called");
-  const message = JSON.parse(event.data) as { event: string; uuid: string };
-  // console.log(message);
-  // console.log("message.event: ", message.event);
-  switch (message.event) {
-    case 'room-created':
-      TEST_ROOM = message.uuid;
-      console.log('room created', TEST_ROOM);
-    // store uuid
-  }
-});
 
 // --- Type guards ---
 function isStateMessage(msg: IncomingMessage): msg is StateMessage {
   return (
+    'type' in msg &&
     msg.type === 'message' &&
     typeof msg.data === 'object' &&
     msg.data !== null &&
@@ -76,8 +70,13 @@ function isStateMessage(msg: IncomingMessage): msg is StateMessage {
   );
 }
 
+function isRoomMessage(msg: IncomingMessage): msg is RoomMessage {
+  return 'event' in msg && 'uuid' in msg;
+}
+
 function isRoleMessage(msg: IncomingMessage): msg is RoleMessage {
   return (
+    'type' in msg &&
     msg.type === 'message' &&
     typeof msg.data === 'object' &&
     msg.data !== null &&
@@ -87,10 +86,43 @@ function isRoleMessage(msg: IncomingMessage): msg is RoleMessage {
 
 const keys: Record<string, boolean> = {};
 
+function setupInitialEventListeners() {
+  console.log('setting up important event listeners');
+  window.socket.registerWebSocketHook((event) => {
+    const message = JSON.parse(event.data as string) as IncomingMessage;
+    console.log('message received', message);
+
+    // ---- ROOM MESSAGE ----
+    if (isRoomMessage(message)) {
+      console.log('room message received');
+      const message = JSON.parse(event.data) as RoomMessage;
+      switch (message.event) {
+        case 'room-created':
+          TEST_ROOM = message.uuid;
+          console.log('room created', TEST_ROOM);
+      }
+    }
+
+    // ---- ROLE MESSAGE ----
+    if (isRoleMessage(message)) {
+      console.log('role message received');
+      const data = message.data;
+      setRole(data.role);
+
+      console.log(
+        `🎮 Received role "${data.role}" for client ID: ${data.clientId}`
+      );
+    }
+  });
+}
+
 function setupEventListeners() {
+  console.log('setup event listener being called');
+
   // Register a hook to handle all incoming messages
   window.socket.registerWebSocketHook((event) => {
     const message = JSON.parse(event.data as string) as IncomingMessage;
+    console.log('message received', message);
 
     // ---- STATE MESSAGE ----
     if (isStateMessage(message)) {
@@ -114,16 +146,6 @@ function setupEventListeners() {
         localPaddles.leftY = newState.leftY;
         localPaddles.rightY = newState.rightY;
       }
-    }
-
-    // ---- ROLE MESSAGE ----
-    if (isRoleMessage(message)) {
-      const data = message.data;
-      setRole(data.role);
-
-      console.log(
-        `🎮 Received role "${data.role}" for client ID: ${data.clientId}`
-      );
     }
   });
   // handle key presses
@@ -154,7 +176,6 @@ let isRouteActive = false;
 // Store event listener functions so we can remove them
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
-let visibilityChangeHandler: (() => void) | null = null;
 
 function cleanup() {
   isRouteActive = false;
@@ -204,6 +225,10 @@ function cleanup() {
 
 // Initialize page structure and game
 export default async function initRoute() {
+  console.log('init route called');
+
+  // setting up event listeners to catch role and room
+  setupInitialEventListeners();
   // Cleanup any existing connections first
   cleanup();
 
@@ -289,6 +314,7 @@ export default async function initRoute() {
   // Show nickname input dialog before starting game (local = 2 players)
   showLocalGameNicknameDialog(() => {
     // Callback after nicknames are set - initialize game
+    console.log('init game called');
     initializeGame();
   });
 }
