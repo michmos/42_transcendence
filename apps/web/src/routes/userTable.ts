@@ -65,7 +65,8 @@ function userTableLogic() {
 
   console.log('🌐 Fetching users from API...');
   // Fetch and display users
-  API.getUsers()
+  API.user
+    .getUsers()
     .then((users) => {
       console.log('✅ Users fetched:', users.length, 'users');
       users.forEach((user, index) => {
@@ -104,7 +105,7 @@ function generateUserLogic() {
       if (errorMessage) errorMessage.style.display = 'none';
 
       try {
-        const newUser = await API.generateUser();
+        const newUser = await API.user.generateUser();
         if (!newUser) {
           if (loadingIndicator) loadingIndicator.style.display = 'none';
           if (errorMessage) {

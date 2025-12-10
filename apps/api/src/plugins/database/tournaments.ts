@@ -280,6 +280,7 @@ export async function getTournamentRound(
       ...(arg2 === undefined && { uuid: arg1 }),
     },
     select: {
+      uuid: true,
       index: true,
       status: true,
       matches: {
