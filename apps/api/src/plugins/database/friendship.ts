@@ -80,25 +80,6 @@ export async function getFriendsMe(
   return foundRelations;
 }
 
-export async function getFriendsUuid(uuid: string): Promise<string[]> {
-  const foundRelations = await Database.friendship.findMany({
-    where: {
-      AND: [
-        {
-          OR: [{ friendAId: uuid }, { friendBId: uuid }],
-        },
-        {
-          state: 'ACCEPTED',
-        },
-      ],
-    },
-  });
-  return foundRelations.map((friendRecord) => {
-    if (friendRecord.friendAId === uuid) return friendRecord.friendBId;
-    else return friendRecord.friendAId;
-  });
-}
-
 export async function deleteFriend(uuid: string): Promise<Friendship> {
   return Database.friendship.delete({
     where: { uuid },

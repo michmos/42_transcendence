@@ -3,7 +3,6 @@ import type { User, Friendship } from 'db/generated/client/client.js';
 import { friendshipState } from 'db/generated/client/client.js';
 import {
   findFriendRecord,
-  getFriendsUuid,
   modifyFriendsState,
 } from '../../plugins/database/friendship.js';
 import {
@@ -14,7 +13,7 @@ import { cleanFriendshipRecord } from './utils.js';
 import * as schemas from './friendshipValidationSchemas.js';
 
 export default function (app: FastifyInstance): void {
-  // Send friend request to another user
+  // ----------- Send friend request to another user
   app.post<{ Params: schemas.PostAddFriendType }>(
     '/:nickname',
     {
@@ -66,7 +65,7 @@ export default function (app: FastifyInstance): void {
     }
   );
 
-  // Accept or reject a friend request
+  // ----------- Accept or reject a friend request
   app.patch<{
     Params: schemas.PatchFriendRequestParams;
     Body: schemas.PatchFriendRequestBody;
@@ -144,7 +143,7 @@ export default function (app: FastifyInstance): void {
     }
   );
 
-  // Delete a friend request, remove user from rejected friend request, remove friend
+  // ----------- Delete a friend request, remove user from rejected friend request, remove friend
   app.delete<{ Params: schemas.DeleteFriendType }>(
     '/:nickname',
     { schema: schemas.DeleteFriend },
@@ -194,20 +193,7 @@ export default function (app: FastifyInstance): void {
     }
   );
 
-  app.get('/', async function (request, reply) {
-    try {
-      const uuidSelf: string = request.user.uuid;
-      return reply.code(200).send(await getFriendsUuid(uuidSelf));
-    } catch (error) {
-      app.log.error(error);
-      return reply
-        .code(500)
-        .send({ Error: 'Failed fetching accepted friends for socket' });
-    }
-  });
-
   // ------------- Helper function
-
   async function getUserUuid(nickname: string) {
     const user: User | null = await app.db.getUserByNickname(nickname);
     if (!user) return null;
