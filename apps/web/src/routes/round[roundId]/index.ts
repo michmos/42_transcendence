@@ -8,6 +8,7 @@ import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { joinTournamentMatch } from '../game/buttonLogic.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // UI Match interface (mapped from backend)
 interface Match {
@@ -321,8 +322,8 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo?.nickname && { userNickname: userInfo['nickname'] }),
-    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
+    userNickname: userInfo?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
     onSettingsClick: () => {
       navigateTo('/settings');
     },
