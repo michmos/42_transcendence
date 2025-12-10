@@ -3,11 +3,12 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI, { type ProfileFriend } from '../../plugins/api/user.js';
 import FriendsAPI from '../../plugins/api/friends.js';
+import { getAvatarSrc } from 'src/utils/avatar-helpers.js';
 
 export default function initRoute() {
   // Get the nickname from route parameters
   const routeParams = window.routeParams;
-  const nickname = routeParams?.id || '';
+  const nickname = routeParams?.['id'] || '';
 
   if (!nickname) {
     renderError('No user nickname provided');
@@ -50,8 +51,8 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: currentUserInfo?.nickname,
-    userAvatar: currentUserInfo?.avatar || undefined,
+    userNickname: currentUserInfo?.nickname || '',
+    userAvatar: getAvatarSrc(currentUserInfo?.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -78,7 +79,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     // Fetch user data
     const userData = await UserAPI.getUserByNickname(nickname);
 
-    if (!userData || !userData.nickname) {
+    if (!userData || !userData['nickname']) {
       renderError('User not found', mainContent);
       return;
     }
@@ -86,7 +87,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     // Check if viewing own profile
     const currentUserProfile = await UserAPI.getUserProfile();
     const isSelf =
-      currentUserProfile?.cleanedUserData.nickname?.toLowerCase() ===
+      currentUserProfile?.cleanedUserData['nickname']?.toLowerCase() ===
       nickname.toLowerCase();
 
     if (isSelf) {
@@ -111,7 +112,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     pageHeader.className = 'mb-8 flex items-center gap-6';
 
     const avatar = userData.avatar || null;
-    const userNickname = userData.nickname || nickname;
+    const userNickname = userData['nickname'] || nickname;
 
     const avatarDisplay = document.createElement('div');
     avatarDisplay.className =

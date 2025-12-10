@@ -5,7 +5,6 @@ import TournamentAPI from '../../plugins/api/tournaments.js';
 import MatchAPI from '../../plugins/api/match.js';
 import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
-import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { joinTournamentMatch } from '../game/buttonLogic.js';
@@ -281,7 +280,7 @@ function renderErrorState(container: HTMLElement, message: string) {
 }
 
 export default async function initRoute() {
-  if (window.user != null) {
+  if (window.user == null) {
     navigateTo('/');
     return;
   }
@@ -322,7 +321,7 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
+    ...(userInfo?.nickname && { userNickname: userInfo['nickname'] }),
     ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
       navigateTo('/settings');
@@ -484,6 +483,7 @@ export default async function initRoute() {
 
     // Get user's tournament alias
     const currentUserId = window.user?.cleanedUserData.uuid;
+
     let userAlias: string | null = null;
 
     // Strategy 1: Get alias from tournament.participants by matching user UUID

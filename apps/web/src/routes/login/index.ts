@@ -1,5 +1,4 @@
 import { Card, Button } from '../../components/index.js';
-import { navigateTo } from '../../utils/navigation.js';
 
 export default function initRoute() {
   // Check if we already have a session in memory (from app.ts)

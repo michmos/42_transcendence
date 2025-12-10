@@ -385,16 +385,13 @@ function initializeGame() {
   gameLoop();
 }
 
-function setupControlsDisplay() {
+function updateControls() {
   const controlsContainer = document.getElementById('gameControls');
   if (!controlsContainer) return;
+  controlsContainer.innerHTML = '';
 
-  // Update controls display based on role
-  function updateControls() {
-    controlsContainer.innerHTML = '';
-
-    if (role === 'player1') {
-      controlsContainer.innerHTML = `
+  if (role === 'player1') {
+    controlsContainer.innerHTML = `
         <div class="flex flex-col items-center gap-2">
           <div class="text-2xl">↑</div>
           <div class="text-sm text-white/80">W</div>
@@ -404,8 +401,8 @@ function setupControlsDisplay() {
           <div class="text-sm text-white/80">S</div>
         </div>
       `;
-    } else if (role === 'player2') {
-      controlsContainer.innerHTML = `
+  } else if (role === 'player2') {
+    controlsContainer.innerHTML = `
         <div class="flex flex-col items-center gap-2">
           <div class="text-2xl">↑</div>
           <div class="text-sm text-white/80">W</div>
@@ -415,8 +412,8 @@ function setupControlsDisplay() {
           <div class="text-sm text-white/80">S</div>
         </div>
       `;
-    } else if (role === 'local') {
-      controlsContainer.innerHTML = `
+  } else if (role === 'local') {
+    controlsContainer.innerHTML = `
         <div class="flex flex-col items-center gap-2">
           <div class="text-lg font-semibold">Left Player</div>
           <div class="flex gap-4">
@@ -445,12 +442,15 @@ function setupControlsDisplay() {
           </div>
         </div>
       `;
-    } else {
-      controlsContainer.innerHTML = `
+  } else {
+    controlsContainer.innerHTML = `
         <div class="text-white/60 text-sm">Spectating - No controls</div>
       `;
-    }
   }
+}
+
+function setupControlsDisplay() {
+  // Update controls display based on role
 
   // Update initially
   updateControls();
@@ -721,7 +721,7 @@ function setupGameInput() {
       !serverState.gamePaused &&
       !serverState.gameOver
     ) {
-      if (keys.w) {
+      if (keys['w']) {
         if (role === 'player2' && localPaddles.rightY > 0) {
           localPaddles.rightY -= 5;
         } else if (localPaddles.leftY > 0) {
@@ -729,7 +729,7 @@ function setupGameInput() {
         }
         sendMessage({ type: 'game', action: 'up' });
       }
-      if (keys.s) {
+      if (keys['s']) {
         if (
           role === 'player2' &&
           localPaddles.rightY < canvas.height - serverState.paddleHeight
@@ -743,13 +743,13 @@ function setupGameInput() {
         }
         sendMessage({ type: 'game', action: 'down' });
       }
-      if (keys.o) {
+      if (keys['o']) {
         if (role === 'local' && localPaddles.rightY > 0) {
           localPaddles.rightY -= 5;
         }
         sendMessage({ type: 'game', action: 'up_r' });
       }
-      if (keys.l) {
+      if (keys['l']) {
         if (
           role === 'local' &&
           localPaddles.rightY < canvas.height - serverState.paddleHeight

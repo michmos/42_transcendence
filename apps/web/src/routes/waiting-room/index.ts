@@ -18,7 +18,7 @@ export default function initRoute() {
   });
 }
 
-async function renderWaitingRoom(pageRoot: HTMLElement) {
+async function renderWaitingRoom(pageRoot: Element) {
   // Main wrapper with gradient background
   const mainWrapper = document.createElement('div');
   mainWrapper.className = 'min-h-screen bg-gradient-primary';
@@ -37,7 +37,7 @@ async function renderWaitingRoom(pageRoot: HTMLElement) {
       { label: 'Tournaments', href: '/tournaments', active: false },
     ],
     userNickname: userInfo?.nickname || 'Guest',
-    userAvatar: getAvatarSrc(userInfo?.avatarUrl),
+    userAvatar: getAvatarSrc(userInfo?.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },

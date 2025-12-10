@@ -141,7 +141,11 @@ export default async function initRoute() {
   });
 
   // Recent Matches
-  renderRecentMatches(leftColumn, userMatches, cleanedUserData.nickname || '');
+  renderRecentMatches(
+    leftColumn,
+    userMatches,
+    cleanedUserData['nickname'] || ''
+  );
 
   // ===== RIGHT COLUMN (Quick Actions & Events) =====
   const rightColumn = document.createElement('div');
@@ -526,9 +530,9 @@ function renderFriendsTab(
 
       // Get current user's nickname from profile data
       const profileData = await UserAPI.getUserProfile();
-      const currentNickname = profileData?.cleanedUserData.nickname || '';
+      const currentNickname = profileData?.cleanedUserData['nickname'] || '';
       const isSelf =
-        user.nickname?.toLowerCase() === currentNickname.toLowerCase();
+        user['nickname']?.toLowerCase() === currentNickname.toLowerCase();
 
       // Render search result
       const resultItem = createSearchResultItem(user, friendship, isSelf);
@@ -732,7 +736,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
   acceptBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     void (async () => {
-      const nickname = acceptBtn.dataset.nickname || '';
+      const nickname = acceptBtn.dataset['nickname'] || '';
       acceptBtn.disabled = true;
       acceptBtn.textContent = 'Accepting...';
 
@@ -784,7 +788,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
   rejectBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     void (async () => {
-      const nickname = rejectBtn.dataset.nickname || '';
+      const nickname = rejectBtn.dataset['nickname'] || '';
       rejectBtn.disabled = true;
       rejectBtn.textContent = 'Rejecting...';
 
@@ -840,7 +844,7 @@ function createSearchResultItem(
   item.className =
     'flex items-center gap-3 p-4 rounded-lg bg-gradient-card backdrop-blur-glass border border-border';
 
-  const nickname = user.nickname || 'Unknown';
+  const nickname = user['nickname'] || 'Unknown';
   const avatar = user.avatar || null;
   const initials = nickname
     .split(' ')
@@ -931,7 +935,7 @@ function createSearchResultItem(
     addFriendBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       void (async () => {
-        const nickname = addFriendBtn.dataset.nickname || '';
+        const nickname = addFriendBtn.dataset['nickname'] || '';
         addFriendBtn.disabled = true;
         addFriendBtn.textContent = 'Sending...';
 
@@ -1000,7 +1004,7 @@ function createSearchResultItem(
   if (viewProfileBtn) {
     viewProfileBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const nickname = viewProfileBtn.dataset.nickname || '';
+      const nickname = viewProfileBtn.dataset['nickname'] || '';
       void navigateTo(`/user/${nickname}`);
     });
   }
@@ -1046,7 +1050,7 @@ function createBlockedUserItem(user: ProfileFriend): HTMLElement {
   unblockBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     void (async () => {
-      const nickname = unblockBtn.dataset.nickname || '';
+      const nickname = unblockBtn.dataset['nickname'] || '';
 
       if (!confirm(`Remove ${nickname} from blocked users?`)) {
         return;

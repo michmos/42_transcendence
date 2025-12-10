@@ -10,7 +10,6 @@ import type {
   status,
 } from '../../types/api.js';
 import { showApiError } from '../../utils/api-helpers.js';
-import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 
@@ -336,6 +335,7 @@ function showJoinTournamentDialog(
         ) as string[];
         if (!myTournaments.includes(tournamentUuid)) {
           myTournaments.push(tournamentUuid);
+          // TODO This is not working when loggin in on other machines/browsers!!!!
           sessionStorage.setItem(
             'myTournaments',
             JSON.stringify(myTournaments)
@@ -690,7 +690,7 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
+    ...(userInfo?.nickname && { userNickname: userInfo['nickname'] }),
     ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
       void navigateTo('/settings');

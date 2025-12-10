@@ -82,7 +82,7 @@ export async function handleApiError(response: Response): Promise<ApiError> {
     message: errorMessage,
     status,
     shouldRedirect,
-    redirectPath,
+    ...(redirectPath && { redirectPath }),
   };
 
   // Auto-redirect if needed

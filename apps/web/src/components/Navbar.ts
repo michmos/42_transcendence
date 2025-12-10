@@ -211,14 +211,7 @@ export class Navbar {
     headerInner.appendChild(flexContainer);
     header.appendChild(headerInner);
     this.container.appendChild(header);
-
-    // Cleanup function - remove event listener when component is destroyed
-    this.cleanup = () => {
-      document.removeEventListener('click', outsideClickHandler);
-    };
   }
-
-  private cleanup?: () => void;
 
   private toggleDropdown(): void {
     this.isDropdownOpen = !this.isDropdownOpen;

@@ -40,7 +40,7 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userData.nickname || 'User',
+    userNickname: userData['nickname'] || 'User',
     userAvatar: currentAvatar,
 
     onSettingsClick: () => {
@@ -51,7 +51,7 @@ export default async function initRoute() {
     },
   });
 
-  const currentNickname = userData.nickname || '';
+  const currentNickname = userData['nickname'] || '';
 
   // Email is not included in cleanedUserData for security reasons
 

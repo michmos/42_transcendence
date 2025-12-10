@@ -1,6 +1,6 @@
 export default function initRoute() {
   // Get the ID from the route parameters
-  const id = window.routeParams?.id || 'unknown';
+  const id = window.routeParams?.['id'] || 'unknown';
 
   console.log('Route params available:', window.routeParams);
 

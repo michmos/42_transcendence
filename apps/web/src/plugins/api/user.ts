@@ -48,7 +48,7 @@ const UserAPI = {
       const res = (await response.json()) as Partial<User>;
 
       // Check if response has required fields
-      if (!res.nickname || !res.uuid) {
+      if (!res['nickname'] || !res.uuid) {
         return null;
       }
 
