@@ -3,7 +3,7 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI, { type ProfileFriend } from '../../plugins/api/user.js';
 import FriendsAPI from '../../plugins/api/friends.js';
-import { getAvatarSrc } from 'src/utils/avatar-helpers.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 export default function initRoute() {
   // Get the nickname from route parameters
