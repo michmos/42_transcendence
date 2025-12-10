@@ -14,14 +14,6 @@ import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-    routeParams?: Record<string, string>;
-  }
-}
-
 // UI Round interface (mapped from backend)
 interface Round {
   id: number;
@@ -314,7 +306,7 @@ function showJoinTournamentDialog(
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
-          const currentUser = await UserAPI.getUserBasicInfo();
+          const currentUser = await UserAPI.getMe();
           alias =
             currentUser?.nickname ||
             `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
@@ -352,6 +344,7 @@ function showJoinTournamentDialog(
 
         // Success - close dialog and reload page to refresh tournament data
         closeDialog();
+        // TODO: Replace with SPA state update
         window.location.reload();
       } catch (error) {
         // Handle errors
@@ -690,7 +683,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [

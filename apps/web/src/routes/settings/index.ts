@@ -4,23 +4,11 @@ import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI from '../../plugins/api/user.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
-
 export default async function initRoute() {
   const pageRoot = document.querySelector<HTMLElement>('.settings-page');
+
   if (!pageRoot) return;
+
   pageRoot.innerHTML = '';
 
   // Main wrapper with gradient background - matching other pages structure
@@ -31,24 +19,6 @@ export default async function initRoute() {
   // ===== HEADER =====
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
-
-  // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
-  new Navbar(headerContainer, {
-    title: 'The Pong Game',
-    links: [
-      { label: 'Tournaments', href: '/tournaments', active: false },
-      { label: 'Profile', href: '/profile', active: false },
-    ],
-    userNickname: userInfo?.nickname || 'User',
-    userAvatar: getAvatarSrc(userInfo?.avatar) || null,
-    onSettingsClick: () => {
-      void navigateTo('/settings');
-    },
-    onLogoutClick: () => {
-      void handleLogout();
-    },
-  });
 
   // Fetch full user profile data
   const profileData = await UserAPI.getUserProfile();
@@ -61,8 +31,28 @@ export default async function initRoute() {
   }
 
   const userData = profileData.cleanedUserData;
+  const currentAvatar = getAvatarSrc(userData.avatar);
+
+  // const userInfo = await UserAPI.getMe();
+  new Navbar(headerContainer, {
+    title: 'The Pong Game',
+    links: [
+      { label: 'Tournaments', href: '/tournaments', active: false },
+      { label: 'Profile', href: '/profile', active: false },
+    ],
+    userNickname: userData.nickname || 'User',
+    userAvatar: currentAvatar,
+
+    onSettingsClick: () => {
+      void navigateTo('/settings');
+    },
+    onLogoutClick: () => {
+      void handleLogout();
+    },
+  });
+
   const currentNickname = userData.nickname || '';
-  const currentAvatar = getAvatarSrc(userData.avatar || null);
+
   // Email is not included in cleanedUserData for security reasons
 
   // ===== MAIN CONTENT =====

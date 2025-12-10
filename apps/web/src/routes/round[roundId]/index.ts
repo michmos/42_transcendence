@@ -10,14 +10,6 @@ import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { joinTournamentMatch } from '../game/buttonLogic.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-    routeParams?: Record<string, string>;
-  }
-}
-
 // UI Match interface (mapped from backend)
 interface Match {
   id: string;
@@ -289,6 +281,11 @@ function renderErrorState(container: HTMLElement, message: string) {
 }
 
 export default async function initRoute() {
+  if (window.user != null) {
+    navigateTo('/');
+    return;
+  }
+
   const roundRoot = document.querySelector<HTMLElement>('.round-detail-page');
   if (!roundRoot) return;
 
@@ -318,7 +315,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [

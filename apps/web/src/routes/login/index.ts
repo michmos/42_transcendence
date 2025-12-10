@@ -1,15 +1,9 @@
 import { Card, Button } from '../../components/index.js';
-import { getCurrentSession } from '../../utils/auth-state.js';
 import { navigateTo } from '../../utils/navigation.js';
 
-export default async function initRoute() {
+export default function initRoute() {
   // Check if we already have a session in memory (from app.ts)
   // app.ts already checked auth, so just use that session
-  const currentSession = await getCurrentSession();
-  if (currentSession && currentSession.uuid) {
-    navigateTo('/profile');
-    return;
-  }
 
   // No session - show login page
   // (app.ts should have redirected if needed, but just in case we're here)
@@ -103,7 +97,7 @@ export default async function initRoute() {
       text: buttonText,
       onClick: () => {
         // Set flag so app.ts knows we're doing OAuth
-        sessionStorage.setItem('oauth_redirect', 'true');
+        // sessionStorage.setItem('oauth_redirect', 'true');
         window.location.href = `/api/auth/login?provider=${provider}`;
       },
       variant: 'secondary',

@@ -10,13 +10,7 @@ import type {
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
-
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
-}
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // UI Tournament interface (mapped from backend)
 interface Tournament {
@@ -582,7 +576,7 @@ function showJoinTournamentDialog(
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
-          const currentUser = await UserAPI.getUserBasicInfo();
+          const currentUser = await UserAPI.getMe();
           alias = currentUser?.nickname || 'Player';
         } catch (error) {
           console.error('Error fetching user info:', error);
@@ -895,12 +889,12 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [{ label: 'Profile', href: '/profile', active: false }],
-    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
-    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
+    userNickname: userInfo?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },

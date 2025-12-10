@@ -43,7 +43,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch current user data for navbar
-  const currentUserInfo = await UserAPI.getUserBasicInfo();
+  const currentUserInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
@@ -258,6 +258,7 @@ function createFriendshipActionButton(
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
           // Refresh page to update friendship status
           setTimeout(() => {
+            // TODO: Replace with SPA state update
             window.location.reload();
           }, 1000);
         } catch (error) {
@@ -290,6 +291,7 @@ function createFriendshipActionButton(
           button.className =
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
           setTimeout(() => {
+            // TODO: Replace with SPA state update
             window.location.reload();
           }, 1000);
         } catch (error) {
@@ -325,6 +327,7 @@ function createFriendshipActionButton(
           try {
             await FriendsAPI.acceptFriendRequest(nickname);
             setTimeout(() => {
+              // TODO: Replace with SPA state update
               window.location.reload();
             }, 1000);
           } catch (error) {
@@ -353,6 +356,7 @@ function createFriendshipActionButton(
           try {
             await FriendsAPI.rejectFriendRequest(nickname);
             setTimeout(() => {
+              // TODO: Replace with SPA state update
               window.location.reload();
             }, 1000);
           } catch (error) {

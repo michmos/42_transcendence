@@ -9,7 +9,6 @@
 export function getAvatarSrc(
   avatarPath: string | null | undefined
 ): string | null {
-  console.log(`Converting avatar path: ${avatarPath}`);
   if (!avatarPath) {
     return null;
   }
