@@ -89,7 +89,6 @@ const keys: Record<string, boolean> = {};
 
 let unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
   const message = JSON.parse(event.data as string) as IncomingMessage;
-  console.log('message received', message);
 
   // ---- ROOM MESSAGE ----
   if (isRoomMessage(message)) {
@@ -141,6 +140,7 @@ let unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
 // Store event listener functions so we can remove them
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
+let unloadHandler: (() => void) | null = null;
 
 function setupEventListeners() {
   console.log('setup event listener being called');
@@ -165,6 +165,14 @@ function setupEventListeners() {
     keys[e.key.toLowerCase()] = false;
   };
   document.addEventListener('keyup', keyupHandler);
+
+  // handle page leave
+  unloadHandler = () => {
+    if (isRouteActive) {
+      cleanup();
+    }
+  };
+  window.addEventListener('popstate', unloadHandler);
 }
 
 // Cleanup function to close WebSocket when leaving route
@@ -205,6 +213,10 @@ function cleanup() {
   if (keyupHandler) {
     document.removeEventListener('keyup', keyupHandler);
     keyupHandler = null;
+  }
+  if (unloadHandler) {
+    window.removeEventListener('beforeunload', unloadHandler);
+    unloadHandler = null;
   }
 
   // remove on message socket hook
