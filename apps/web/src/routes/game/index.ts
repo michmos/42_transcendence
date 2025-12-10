@@ -87,68 +87,60 @@ function isRoleMessage(msg: IncomingMessage): msg is RoleMessage {
 
 const keys: Record<string, boolean> = {};
 
-function setupInitialEventListeners() {
-  console.log('setting up important event listeners');
-  window.socket.registerWebSocketHook((event) => {
-    const message = JSON.parse(event.data as string) as IncomingMessage;
-    console.log('message received', message);
+let unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+  const message = JSON.parse(event.data as string) as IncomingMessage;
+  console.log('message received', message);
 
-    // ---- ROOM MESSAGE ----
-    if (isRoomMessage(message)) {
-      console.log('room message received');
-      const message = JSON.parse(event.data) as RoomMessage;
-      switch (message.event) {
-        case 'room-created':
-          TEST_ROOM = message.uuid;
-          console.log('room created', TEST_ROOM);
-      }
+  // ---- ROOM MESSAGE ----
+  if (isRoomMessage(message)) {
+    console.log('room message received');
+    const message = JSON.parse(event.data) as RoomMessage;
+    switch (message.event) {
+      case 'room-created':
+        TEST_ROOM = message.uuid;
+        console.log('room created', TEST_ROOM);
+    }
+  }
+
+  // ---- ROLE MESSAGE ----
+  if (isRoleMessage(message)) {
+    console.log('role message received');
+    const data = message.data;
+    setRole(data.role);
+
+    console.log(
+      `🎮 Received role "${data.role}" for client ID: ${data.clientId}`
+    );
+  }
+
+  // ---- STATE MESSAGE ----
+  if (isStateMessage(message)) {
+    const data = message.data;
+    const newState = data.serverState;
+
+    const now = performance.now();
+    const deltaTime = now - lastServerUpdate;
+
+    if (lastServerUpdate > 0 && deltaTime > 0) {
+      ballVelocity.x =
+        (newState.ballX - serverState.ballX) / (deltaTime / 1000);
+      ballVelocity.y =
+        (newState.ballY - serverState.ballY) / (deltaTime / 1000);
     }
 
-    // ---- ROLE MESSAGE ----
-    if (isRoleMessage(message)) {
-      console.log('role message received');
-      const data = message.data;
-      setRole(data.role);
+    setServerState(newState);
+    setLastServerUpdate(now);
 
-      console.log(
-        `🎮 Received role "${data.role}" for client ID: ${data.clientId}`
-      );
+    if (window.socket.isConnected()) {
+      localPaddles.leftY = newState.leftY;
+      localPaddles.rightY = newState.rightY;
     }
-  });
-}
+  }
+});
 
 function setupEventListeners() {
   console.log('setup event listener being called');
 
-  // Register a hook to handle all incoming messages
-  window.socket.registerWebSocketHook((event) => {
-    const message = JSON.parse(event.data as string) as IncomingMessage;
-    console.log('message received', message);
-
-    // ---- STATE MESSAGE ----
-    if (isStateMessage(message)) {
-      const data = message.data;
-      const newState = data.serverState;
-
-      const now = performance.now();
-      const deltaTime = now - lastServerUpdate;
-
-      if (lastServerUpdate > 0 && deltaTime > 0) {
-        ballVelocity.x =
-          (newState.ballX - serverState.ballX) / (deltaTime / 1000);
-        ballVelocity.y =
-          (newState.ballY - serverState.ballY) / (deltaTime / 1000);
-      }
-
-      setServerState(newState);
-      setLastServerUpdate(now);
-
-      if (window.socket.isConnected()) {
-        localPaddles.leftY = newState.leftY;
-        localPaddles.rightY = newState.rightY;
-      }
-    }
-  });
   // handle key presses
   document.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
@@ -166,6 +158,8 @@ function setupEventListeners() {
   document.addEventListener('keyup', (e: KeyboardEvent) => {
     keys[e.key.toLowerCase()] = false;
   });
+
+  // windo
 }
 
 // Cleanup function to close WebSocket when leaving route
@@ -180,6 +174,9 @@ let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 
 function cleanup() {
   isRouteActive = false;
+
+  // leave match if still inside one
+  leaveMatch();
 
   // Stop game loop
   if (gameLoopAnimationFrame !== null) {
@@ -209,6 +206,9 @@ function cleanup() {
     keyupHandler = null;
   }
 
+  // remove on message socket hook
+  unregisterOnMessageHook();
+
   // Clear keys state
   Object.keys(keys).forEach((key) => {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -228,8 +228,6 @@ function cleanup() {
 export default async function initRoute() {
   console.log('init route called');
 
-  // setting up event listeners to catch role and room
-  setupInitialEventListeners();
   // Cleanup any existing connections first
   cleanup();
 
