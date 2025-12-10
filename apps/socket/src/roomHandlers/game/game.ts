@@ -302,7 +302,7 @@ export function updateGame(currentGameState: GameState) {
 
 export function asyncGameLoop(gameRoom: string) {
   return new Promise<GameRoomData>((resolve, reject) => {
-    updateGameRoomData(gameRoom, { currentGameState: initGameState });
+    updateGameRoomData(gameRoom, { currentGameState: { ...initGameState } });
 
     const intervalId = setInterval(() => {
       try {
