@@ -17,7 +17,7 @@ services:
       context: .
       dockerfile: services/database-creator/Dockerfile
       args:
-        DATABASE_URL: file:/data/db/sqlite-database.db
+        DATABASE_URL: ${DATABASE_URL}
     volumes:
       - ./shared/private-data/db:/data/db:rw
     networks:
@@ -30,6 +30,7 @@ services:
       description: "Nginx Static File Server for Frontend Application"
     volumes:
       - ./shared/public-data/frontend:/usr/share/nginx/html:ro
+      - ./services/nginx-frontend/config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - backend-network
     image: nginx:stable-alpine
@@ -58,6 +59,7 @@ services:
       args:
         CORS_URL: ${CORS_URL}
         DATABASE_URL: ${DATABASE_URL}
+        SOCKET_SERVER: ${SOCKET_SERVER}
         CDN_PATH: ${CDN_PATH}
         ADMIN_API_KEY: ${ADMIN_API_KEY}
         GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
@@ -69,8 +71,8 @@ services:
         REDIRECT_URL: ${REDIRECT_URL}
         JWT_SECRET: ${JWT_SECRET}
     volumes:
-      - ./shared/private-data/db/db:/data/db:rw
-      - ./shared/private-data/cdn:/data/cdn:rw
+      - ./shared/private-data/db:/data/db:rw
+      - ./shared/public-data/cdn:/data/cdn:rw
     networks:
       - backend-network
     restart: unless-stopped
