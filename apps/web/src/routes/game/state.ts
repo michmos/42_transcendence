@@ -79,7 +79,7 @@ export interface ServerState {
   gameStartTime: number;
 }
 
-export let role = 'spectator';
+export let role = 'local';
 
 // === Player nickname (session-only, not persisted) ===
 export let playerNickname: string | null = null;
