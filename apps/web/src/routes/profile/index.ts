@@ -1231,7 +1231,7 @@ function renderQuickActions(container: HTMLElement): void {
     label: 'Play Online',
     onClick: () => {
       joinOnlineMatch();
-      // TODO:Backend will handle the game start logic - no navigation needed
+      navigateTo('/game');
     },
   });
 
