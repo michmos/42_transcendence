@@ -41,6 +41,14 @@ export async function joinTournament(
     // TODO: handle error
     return false;
   }
+
+  // Store the alias in localStorage for this tournament
+  // This allows us to identify the user's matches without relying on backend participants data
+  localStorage.setItem(`tournament-${tournamentUuid}-alias`, alias);
+  console.log(
+    `💾 Stored tournament alias: "${alias}" for tournament ${tournamentUuid}`
+  );
+
   window.socket.joinRoom(`tournament:${tournamentUuid}`);
   return true;
 }

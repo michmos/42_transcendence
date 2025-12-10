@@ -8,6 +8,7 @@ import { showApiError } from '../../utils/api-helpers.js';
 import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
+import { joinTournamentMatch } from '../game/buttonLogic.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -88,7 +89,8 @@ function renderRoundHeader(
 function renderMatches(
   container: HTMLElement,
   matches: Match[],
-  _currentUserId: string | null
+  userNickname: string | null = null,
+  userAlias: string | null = null
 ) {
   const matchesCardContainer = document.createElement('div');
   const matchesCard = new Card(matchesCardContainer, {
@@ -122,6 +124,22 @@ function renderMatches(
       matchItem.className = matchClasses;
       matchItem.id = `match-${match.id}`; // Add ID for easier updates
 
+      // Check if user is a participant in this match
+      // Player names can be either aliases (for tournament matches) or nicknames (for regular matches)
+      const nicknameMatches =
+        userNickname &&
+        (match.opponent1 === userNickname || match.opponent2 === userNickname);
+      const aliasMatches =
+        userAlias &&
+        (match.opponent1 === userAlias || match.opponent2 === userAlias);
+
+      const isUserParticipant = nicknameMatches || aliasMatches;
+
+      const showStartButton =
+        isUserParticipant &&
+        match.status === 'upcoming' &&
+        !match.hasNullPlayer;
+
       matchItem.innerHTML = `
       <div class="flex items-center p-6">
         <!-- Opponent 1 -->
@@ -142,40 +160,69 @@ function renderMatches(
           </div>
         </div>
 
-        <!-- Opponent 2 + Status Badge - Fixed width container -->
+        <!-- Opponent 2 + Status Badge/Button - Fixed width container -->
         <div class="flex-1 min-w-0 flex items-center justify-end gap-4">
           <!-- Opponent 2 -->
           <div class="text-right min-w-0">
             <p class="text-lg font-semibold text-white truncate">${match.opponent2}</p>
           </div>
 
-          <!-- Status Badge - Fixed width to ensure alignment -->
-          <div class="flex-shrink-0 w-24 flex justify-end" id="status-badge-${match.id}"></div>
+          <!-- Status Badge or Start Button - Fixed width to ensure alignment -->
+          <div class="flex-shrink-0 flex justify-end gap-2" id="match-actions-${match.id}">
+            ${
+              showStartButton
+                ? `
+              <button 
+                id="start-game-btn-${match.id}"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium cursor-pointer text-sm whitespace-nowrap"
+              >
+                Start Game
+              </button>
+            `
+                : `
+              <div class="w-24 flex justify-end" id="status-badge-${match.id}"></div>
+            `
+            }
+          </div>
         </div>
       </div>
     `;
 
-      // Append status badge
-      const badgeContainer = matchItem.querySelector<HTMLElement>(
-        `#status-badge-${match.id}`
-      );
-      if (badgeContainer) {
-        const statusText =
-          match.status === 'completed'
-            ? 'Final'
-            : match.status === 'live'
-              ? 'LIVE'
-              : 'Scheduled';
-        const variant =
-          match.status === 'completed'
-            ? 'success'
-            : match.status === 'live'
-              ? 'warning'
-              : 'default';
-        new Badge(badgeContainer, {
-          text: statusText,
-          variant: variant,
-        });
+      // Append status badge (if not showing start button)
+      if (!showStartButton) {
+        const badgeContainer = matchItem.querySelector<HTMLElement>(
+          `#status-badge-${match.id}`
+        );
+        if (badgeContainer) {
+          const statusText =
+            match.status === 'completed'
+              ? 'Final'
+              : match.status === 'live'
+                ? 'LIVE'
+                : 'Upcoming';
+          const variant =
+            match.status === 'completed'
+              ? 'success'
+              : match.status === 'live'
+                ? 'warning'
+                : 'default';
+          new Badge(badgeContainer, {
+            text: statusText,
+            variant: variant,
+          });
+        }
+      } else {
+        // Add click handler for Start Game button
+        const startButton = matchItem.querySelector<HTMLButtonElement>(
+          `#start-game-btn-${match.id}`
+        );
+        if (startButton) {
+          startButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            joinTournamentMatch(match.id);
+          });
+        }
       }
 
       matchesContainer.appendChild(matchItem);
@@ -252,10 +299,8 @@ export default async function initRoute() {
   const roundId = routeParams['roundId'] || '1';
   const roundIndex = parseInt(roundId, 10) - 1; // Convert to 0-based index
 
-  // Get tournamentId from sessionStorage (set when navigating from tournament page)
-  // This allows us to navigate back to the correct tournament
-  const tournamentId =
-    sessionStorage.getItem('lastTournamentId') || routeParams['tournamentId'];
+  // Get tournament ID from route parameters (from URL: /tournament/:tournamentId/round/:roundId)
+  const tournamentId = routeParams['tournamentId'];
 
   if (!tournamentId) {
     roundRoot.innerHTML =
@@ -362,11 +407,36 @@ export default async function initRoute() {
           };
         });
 
+      // Get user's tournament alias from tournament.participants
+      const currentUserId = getCurrentUserId();
+      let userAlias: string | null = null;
+
+      if (currentUserId && tournament.participants) {
+        const userParticipant = tournament.participants.find(
+          (p) => p.user.uuid === currentUserId
+        );
+        userAlias = userParticipant?.alias || null;
+      }
+
+      // Get alias from localStorage (stored when joining/creating tournament)
+      if (!userAlias) {
+        const storedAlias = localStorage.getItem(
+          `tournament-${tournamentId}-alias`
+        );
+        if (storedAlias) {
+          userAlias = storedAlias;
+        }
+      }
+
       // Clear and re-render
       innerContainer.innerHTML = '';
-      const currentUserId = getCurrentUserId();
       renderRoundHeader(innerContainer, roundIndex, tournament.tournamentName);
-      renderMatches(innerContainer, uiMatches, currentUserId);
+      renderMatches(
+        innerContainer,
+        uiMatches,
+        userInfo?.nickname || null,
+        userAlias
+      );
       renderInfoCard(innerContainer);
     } catch (error) {
       console.error('Error refreshing round data:', error);
@@ -374,13 +444,14 @@ export default async function initRoute() {
   };
 
   try {
-    // Initial Fetch
+    // Fetch tournament data
     const tournament = await TournamentAPI.getTournament(tournamentId);
     if (!tournament) {
       renderErrorState(innerContainer, 'Tournament not found');
       return;
     }
 
+    // Fetch round data
     const round = await TournamentAPI.getTournamentRound(
       tournamentId,
       roundIndex
@@ -414,11 +485,37 @@ export default async function initRoute() {
         };
       });
 
+    // Get user's tournament alias
+    const currentUserId = getCurrentUserId();
+    let userAlias: string | null = null;
+
+    // Strategy 1: Get alias from tournament.participants by matching user UUID
+    if (currentUserId && tournament.participants) {
+      const userParticipant = tournament.participants.find(
+        (p) => p.user.uuid === currentUserId
+      );
+      userAlias = userParticipant?.alias || null;
+    }
+
+    // Strategy 2: Get alias from localStorage (stored when joining/creating tournament)
+    if (!userAlias) {
+      const storedAlias = localStorage.getItem(
+        `tournament-${tournamentId}-alias`
+      );
+      if (storedAlias) {
+        userAlias = storedAlias;
+      }
+    }
+
     // Render content
     innerContainer.innerHTML = '';
-    const currentUserId = getCurrentUserId();
     renderRoundHeader(innerContainer, roundIndex, tournament.tournamentName);
-    renderMatches(innerContainer, uiMatches, currentUserId);
+    renderMatches(
+      innerContainer,
+      uiMatches,
+      userInfo?.nickname || null,
+      userAlias
+    );
     renderInfoCard(innerContainer);
 
     // ===== SOCKET INTEGRATION =====
