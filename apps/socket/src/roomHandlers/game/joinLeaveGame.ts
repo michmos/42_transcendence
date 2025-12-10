@@ -64,7 +64,6 @@ async function handleJoinOnlineGame(socket: WSocket) {
   socketToGameroom.set(socket, newRoomName);
   socketToGameroom.set(otherSocket, newRoomName);
 
-  // notify clients
   RoomManager.get(newRoomName)?.broadcast(
     JSON.stringify({
       event: 'room-created',
@@ -91,6 +90,9 @@ async function handleJoinLocalGame(socket: WSocket) {
   // join room
   socket.join(newRoomName);
 
+  // delay to load event listiners on frontend
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
   // send roles
   sendRole(socket, newRoomName, 'local');
 
@@ -103,9 +105,17 @@ async function handleJoinLocalGame(socket: WSocket) {
   // add to match map
   socketToGameroom.set(socket, newRoomName);
 
+  // notify clients
+  socket.send(
+    JSON.stringify({
+      event: 'room-created',
+      uuid: newRoomName,
+    })
+  );
+
   // start match
   console.log(`starting localGame: ${newRoomName} with ${socket.uuid}`);
-  const finalGameData = await asyncGameLoop(newRoomName);
+  await asyncGameLoop(newRoomName);
   console.log(`localGame ended: ${newRoomName} with ${socket.uuid}`);
 }
 

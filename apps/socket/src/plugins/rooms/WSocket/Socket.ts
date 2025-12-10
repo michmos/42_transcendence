@@ -51,6 +51,7 @@ export default class WSocket {
 
   private async processMessageQueue() {
     if (this.isProcessingQueue) {
+      console.log('early return');
       return;
     }
     this.isProcessingQueue = true;
@@ -63,7 +64,7 @@ export default class WSocket {
       // apply all onMessage callbacks in order (of registration)
       for (const callback of this.onMessageCallbacks) {
         try {
-          await Promise.resolve(callback(oldestMessage));
+          Promise.resolve(callback(oldestMessage));
         } catch (error) {
           this.consoleError(`error on message: ${(error as Error).message}`);
           this.sendError('Internal error');

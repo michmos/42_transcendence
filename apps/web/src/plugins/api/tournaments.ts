@@ -185,6 +185,11 @@ const TournamentAPI = {
         throw new Error(`Failed to join tournament: ${response.status}`);
       }
 
+      // Store the alias in localStorage for this tournament
+      // This allows us to identify the user's matches by comparing stored alias with match player names
+      // Key format: tournament-{tournamentUuid}-alias
+      localStorage.setItem(`tournament-${tournamentUuid}-alias`, alias);
+
       // Join socket room if available
       if (window.socket) {
         window.socket.joinRoom(`tournament:${tournamentUuid}`);
