@@ -1,16 +1,19 @@
 import { WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { type Tournament } from 'db/generated/client/index.js';
-
+import { env } from '../../env.js';
 async function fetchTournaments(socket: WSocket, queryString: string) {
   //TODO: api should be adapted to handle multiple statuses at once
-  const response = await fetch(`/api/user/me/tournaments?${queryString}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Cookie: `session=${socket.jwt}`,
-    },
-    credentials: 'include',
-  });
+  const response = await fetch(
+    `${env.API_SERVER}/user/me/tournaments?${queryString}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `session=${socket.jwt}`,
+      },
+      credentials: 'include',
+    }
+  );
   if (!response.ok) {
     throw new Error(
       `Fetching tournaments failed: ${response.status} ${response.statusText}`
