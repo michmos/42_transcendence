@@ -119,7 +119,7 @@ async function handleJoinLocalGame(socket: WSocket) {
 
   // start match
   console.log(`starting localGame: ${newRoomName} with ${socket.uuid}`);
-  const finalGameData = await asyncGameLoop(newRoomName);
+  await asyncGameLoop(newRoomName);
   console.log(`localGame ended: ${newRoomName} with ${socket.uuid}`);
 }
 
