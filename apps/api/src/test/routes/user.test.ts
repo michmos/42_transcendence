@@ -432,12 +432,12 @@ describe('GET /user/me/tournaments', () => {
   });
 });
 
-describe('PATCH /user/me/isOnline/:boolean', () => {
+describe('PATCH /user/me/isOnline/:status', () => {
   test('set to true -> 204', async () => {
     const response = await app.inject({
       method: 'PATCH',
-      url: '/user/me/isOnline/true'
-    })
+      url: '/user/me/isOnline/true',
+    });
     expect(response.statusCode).toBe(204);
     const user = await app.db.getUser(normalUser.uuid);
     expect(user!.isOnline).toBe(true);
@@ -445,10 +445,10 @@ describe('PATCH /user/me/isOnline/:boolean', () => {
   test('set to false -> 204', async () => {
     const response = await app.inject({
       method: 'PATCH',
-      url: '/user/me/isOnline/false'
-    })
+      url: '/user/me/isOnline/false',
+    });
     expect(response.statusCode).toBe(204);
     const user = await app.db.getUser(normalUser.uuid);
     expect(user!.isOnline).toBe(false);
-  })
+  });
 });

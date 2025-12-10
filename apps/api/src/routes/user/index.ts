@@ -77,7 +77,6 @@ export default function (app: FastifyInstance): void {
       const uuidSelf: string = request.user.uuid;
       const userData = await app.db.getUserMe(uuidSelf);
       const { nickname } = userData;
-      console.log(nickname);
       return reply.code(200).send({ nickname: nickname });
     } catch (error) {
       app.log.error(error);
@@ -86,22 +85,29 @@ export default function (app: FastifyInstance): void {
   });
 
   app.patch<{ Params: schemas.changeStatusParamsType }>(
-    '/me/isOnline/:boolean',
+    '/me/isOnline/:status',
     {
-      schema: schemas.changeStatus,
+      schema: schemas.ChangeStatus,
     },
     async function (request, reply) {
       try {
         const uuidSelf: string = request.user.uuid;
 
-        const isOnline: boolean = request.params.boolean;
-        await app.db.setUserOnlineStatus(uuidSelf, isOnline);
+        const isOnline: string = request.params.status;
+        let status: boolean;
+        if (isOnline === 'true') status = true;
+        else if (isOnline === 'false') status = false;
+        else {
+          reply.status(204).send({ Error: 'Invalid status parameter' });
+          return;
+        }
+        await app.db.setUserOnlineStatus(uuidSelf, status);
         return reply.status(204).send();
       } catch (error) {
         app.log.error(error);
-        return reply
-          .code(500)
-          .send({ Error: 'Failed setting Online field to true' });
+        return reply.code(500).send({
+          Error: `Failed to update online status to ${request.params.status}`,
+        });
       }
     }
   );

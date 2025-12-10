@@ -8,8 +8,6 @@ export default {
   onOpen: async (socket: WSocket) => {
     socket.join('online');
 
-    console.log('onOPEN');
-
     const selfNicknameResponse: Response = await fetch(
       `${env.API_SERVER}/user/me/nickname`,
       {
@@ -30,8 +28,6 @@ export default {
       (await selfNicknameResponse.json()) as { nickname: string }
     ).nickname;
 
-    console.log('onOPEN got nickname:', nickname);
-
     const result = onlineUsers.get(socket.uuid);
     // If result is not undefined, that means user already has a socket open, we only +1 to socketCount, we don't broadcast online message.
     // If result is undefined, we add new entry to onlineUsers map and broadcast online message to everyone in the 'Online' room.
@@ -40,7 +36,6 @@ export default {
         ...result,
         socketCount: result.socketCount + 1,
       });
-      console.log('Adding new user to map, size:', onlineUsers.size);
     } else {
       onlineUsers.set(socket.uuid, { nickname, socketCount: 1 });
       const userOnlineStatusResponse: Response = await fetch(
@@ -52,7 +47,7 @@ export default {
           },
         }
       );
-      if (!userOnlineStatusResponse) {
+      if (!userOnlineStatusResponse.ok) {
         console.error(
           'room "Online": Failed to make API call to change user "isOnline" field to "true" in db'
         );

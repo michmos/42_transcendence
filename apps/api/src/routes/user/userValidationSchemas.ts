@@ -30,9 +30,9 @@ export const GetOtherUserProfile = {
 } as const;
 export type GetOtherUserProfileType = Static<typeof GetOtherUserProfile.params>;
 
-export const changeStatus = {
+export const ChangeStatus = {
   params: Type.Object({
-    boolean: Type.Boolean(),
+    status: Type.Union([Type.Literal('true'), Type.Literal('false')]),
   }),
 };
-export type changeStatusParamsType = Static<typeof changeStatus.params>;
+export type changeStatusParamsType = Static<typeof ChangeStatus.params>;
