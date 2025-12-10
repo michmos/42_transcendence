@@ -35,6 +35,7 @@
     "fastify-plugin": "^5.1.0",
     "googleapis": "^160.0.0",
     "jsonwebtoken": "^9.0.2",
+    "sharp": "^0.33.5",
     "simple-oauth2": "^5.1.0",
     "types": "../../packages/types",
     "zod": "^4.1.5",
