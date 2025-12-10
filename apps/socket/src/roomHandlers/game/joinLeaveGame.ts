@@ -109,6 +109,14 @@ async function handleJoinLocalGame(socket: WSocket) {
   // add to match map
   socketToGameroom.set(socket, newRoomName);
 
+  // notify clients
+  socket.send(
+    JSON.stringify({
+      event: 'room-created',
+      uuid: newRoomName,
+    })
+  );
+
   // start match
   console.log(`starting localGame: ${newRoomName} with ${socket.uuid}`);
   const finalGameData = await asyncGameLoop(newRoomName);
