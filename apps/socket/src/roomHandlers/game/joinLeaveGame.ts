@@ -49,9 +49,6 @@ async function handleJoinOnlineGame(socket: WSocket) {
   socket.join(newRoomName);
   otherSocket!.join(newRoomName); // TODO: rmv !
 
-  // delay to load event listiners on frontend
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
   // send roles
   sendRole(socket, newRoomName, 'player1');
   sendRole(otherSocket, newRoomName, 'player2');
@@ -67,7 +64,6 @@ async function handleJoinOnlineGame(socket: WSocket) {
   socketToGameroom.set(socket, newRoomName);
   socketToGameroom.set(otherSocket, newRoomName);
 
-  // notify clients
   RoomManager.get(newRoomName)?.broadcast(
     JSON.stringify({
       event: 'room-created',

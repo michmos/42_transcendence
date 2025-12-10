@@ -17,6 +17,8 @@ import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 
+export let isLocalGame = true;
+
 // Extend Window interface for SPA navigation
 declare global {
   interface Window {
@@ -1220,6 +1222,7 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🎮',
     label: 'Play Locally',
     onClick: () => {
+      isLocalGame = true;
       joinLocalMatch();
       navigateTo('/game');
     },
@@ -1230,6 +1233,7 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🌐',
     label: 'Play Online',
     onClick: () => {
+      isLocalGame = false;
       joinOnlineMatch();
       navigateTo('/game');
     },
