@@ -557,9 +557,8 @@ function renderTournamentProgress(
       roundItem.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Store tournamentId in sessionStorage for round page to use
-        sessionStorage.setItem('lastTournamentId', tournamentUuid);
-        void navigateTo(`/round/${round.id}`);
+        // Navigate with tournament ID in URL (no sessionStorage needed)
+        void navigateTo(`/tournament/${tournamentUuid}/round/${round.id}`);
       });
     }
 
@@ -791,7 +790,6 @@ export default async function initRoute() {
     // Otherwise, fetch from the participants endpoint
     let allAliases: string[] = [];
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const participantsResponse =
         await TournamentAPI.getTournamentParticipants(tournamentUuid).catch(
           () => null

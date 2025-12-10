@@ -55,16 +55,18 @@ export const dynamicRoutes = [
     css: () => import('./routes/user[id]/index.css?inline'),
     script: () => import('./routes/user[id]/index.js'),
   },
+  // Tournament round route MUST come before tournament detail route
+  // because /tournament/:tournamentId/round/:roundId is more specific
+  {
+    pattern: /^\/tournament\/(?<tournamentId>[^/]+)\/round\/(?<roundId>[^/]+)$/,
+    html: () => import('./routes/round[roundId]/index.html?raw'),
+    css: () => import('./routes/round[roundId]/index.css?inline'),
+    script: () => import('./routes/round[roundId]/index.js'),
+  },
   {
     pattern: /^\/tournament\/(?<id>[^/]+)$/,
     html: () => import('./routes/tournament[id]/index.html?raw'),
     css: () => import('./routes/tournament[id]/index.css?inline'),
     script: () => import('./routes/tournament[id]/index.js'),
-  },
-  {
-    pattern: /^\/round\/(?<roundId>[^/]+)$/,
-    html: () => import('./routes/round[roundId]/index.html?raw'),
-    css: () => import('./routes/round[roundId]/index.css?inline'),
-    script: () => import('./routes/round[roundId]/index.js'),
   },
 ];
