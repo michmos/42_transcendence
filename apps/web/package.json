@@ -30,7 +30,7 @@
     "fastify": "^5.5.0",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.20.5",
-    "types": "link:../../packages/types",
+    "types": "../../packages/types",
     "typescript": "^5.9.2",
     "vite": "^7.1.4",
     "vite-plugin-static-copy": "^3.1.2",

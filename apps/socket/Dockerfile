@@ -16,6 +16,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Copy all packages (shared dependencies)
 COPY packages/database ./packages/database
+COPY packages/types ./packages/types
 
 # Copy Socket application
 COPY apps/socket/ ./apps/socket/
