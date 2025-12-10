@@ -41,6 +41,7 @@ export async function joinTournament(
     // TODO: handle error
     return false;
   }
+
   window.socket.joinRoom(`tournament:${tournamentUuid}`);
   return true;
 }

@@ -3,6 +3,7 @@ import { Navbar } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI from '../../plugins/api/user.js';
+import { leaveMatch } from './buttonLogic.js';
 
 import {
   getCanvas,
@@ -270,6 +271,20 @@ export default async function initRoute() {
     'flex items-center justify-center gap-8 text-white';
   controlsContainer.style.minHeight = '60px';
   canvasContainer.appendChild(controlsContainer);
+
+  // Leave Match button
+  const leaveButtonContainer = document.createElement('div');
+  leaveButtonContainer.className = 'mt-4';
+  const leaveButton = document.createElement('button');
+  leaveButton.className =
+    'px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium cursor-pointer';
+  leaveButton.textContent = 'Leave Match';
+  leaveButton.addEventListener('click', () => {
+    leaveMatch();
+    navigateTo('/profile');
+  });
+  leaveButtonContainer.appendChild(leaveButton);
+  canvasContainer.appendChild(leaveButtonContainer);
 
   // Show nickname input dialog before starting game (local = 2 players)
   showLocalGameNicknameDialog(() => {

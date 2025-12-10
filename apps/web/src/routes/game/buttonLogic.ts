@@ -13,4 +13,3 @@ export function joinTournamentMatch(uuid: string) {
 export function leaveMatch() {
   window.socket.leaveRoom('game:main');
 }
-
