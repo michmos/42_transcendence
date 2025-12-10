@@ -4,6 +4,7 @@ export function cleanOtherUserData(user: User): Partial<User> {
   const {
     nickname,
     avatar,
+    isOnline,
     gamesPlayed,
     gamesWon,
     tournamentsPlayed,
@@ -12,6 +13,7 @@ export function cleanOtherUserData(user: User): Partial<User> {
   return {
     nickname,
     avatar,
+    isOnline,
     gamesPlayed,
     gamesWon,
     tournamentsPlayed,
@@ -26,6 +28,7 @@ export function cleanSelfUserData(user: User): Partial<User> {
     nickname,
     avatar,
     role,
+    isOnline,
     gamesPlayed,
     gamesWon,
     tournamentsPlayed,
@@ -37,6 +40,7 @@ export function cleanSelfUserData(user: User): Partial<User> {
     nickname,
     avatar,
     role,
+    isOnline,
     gamesPlayed,
     gamesWon,
     tournamentsPlayed,
