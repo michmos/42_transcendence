@@ -12,3 +12,4 @@ package-lock.json
 AGENTS.md
 shared/
 packages/database/db.sqlite
+packages/database/db.sqlite

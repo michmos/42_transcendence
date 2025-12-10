@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`;
+const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket/`;
 
 // Connect to WebSocket
 window.socket = new Socket(socketUrl);
