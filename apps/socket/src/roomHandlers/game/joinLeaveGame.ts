@@ -10,15 +10,10 @@ const waitingList: WSocket[] = [];
 let lastGameId = 0; // TODO: replace with uuid from fetch Match (API Call)
 const socketToGameroom = new Map<WSocket, string>();
 
-function sendRole(
-  socket: WSocket,
-  roomName: string,
-  role: 'local' | 'player1' | 'player2'
-) {
+function sendRole(socket: WSocket, role: 'local' | 'player1' | 'player2') {
   socket.send(
     JSON.stringify({
       type: 'message',
-      room: roomName,
       data: {
         subtype: 'role',
         role,
@@ -34,50 +29,49 @@ async function handleJoinOnlineGame(socket: WSocket) {
     // add to waiting list
     waitingList.push(socket);
     socket.send('waiting for opponent');
+    sendRole(socket, 'player1');
     return;
   }
+
+  const roomName = `game:${lastGameId}`;
+  lastGameId++;
+
   // get opponent
   const otherSocket = waitingList.pop();
   if (!otherSocket) {
     throw new Error('No opponent found in waiting list');
   }
 
-  const newRoomName = `game:${lastGameId}`;
-  lastGameId++;
+  socket.join(roomName);
+  otherSocket.join(roomName);
 
-  // join room
-  socket.join(newRoomName);
-  otherSocket!.join(newRoomName); // TODO: rmv !
-
-  // send roles
-  sendRole(otherSocket, newRoomName, 'player1');
-  sendRole(socket, newRoomName, 'player2');
+  sendRole(socket, 'player2');
 
   // update room data
-  updateGameRoomData(newRoomName, {
+  updateGameRoomData(roomName, {
     player1Uuid: otherSocket.uuid,
     player2Uuid: socket.uuid,
     isLocalGame: false,
   });
 
   // add to match map
-  socketToGameroom.set(socket, newRoomName);
-  socketToGameroom.set(otherSocket, newRoomName);
+  socketToGameroom.set(socket, roomName);
+  socketToGameroom.set(otherSocket, roomName);
 
-  RoomManager.get(newRoomName)?.broadcast(
+  RoomManager.get(roomName)?.broadcast(
     JSON.stringify({
       event: 'room-created',
-      uuid: newRoomName,
+      uuid: roomName,
     })
   );
 
   // start match
   console.log(
-    `starting online game: ${newRoomName} between ${socket.uuid} and ${otherSocket.uuid}`
+    `starting online game: ${roomName} between ${socket.uuid} and ${otherSocket.uuid}`
   );
-  const finalGameData = await asyncGameLoop(newRoomName);
+  const finalGameData = await asyncGameLoop(roomName);
   console.log(
-    `online game ended: ${newRoomName} between ${socket.uuid} and ${otherSocket.uuid}`
+    `online game ended: ${roomName} between ${socket.uuid} and ${otherSocket.uuid}`
   );
   // post to API
   await API.postFinishedOnlineMatch(finalGameData);
@@ -91,7 +85,7 @@ async function handleJoinLocalGame(socket: WSocket) {
   socket.join(newRoomName);
 
   // send roles
-  sendRole(socket, newRoomName, 'local');
+  sendRole(socket, 'local');
 
   // update room data
   updateGameRoomData(newRoomName, {
@@ -156,7 +150,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   socketToGameroom.set(socket, roomName);
   if (!room) {
     // opponent not joined yet
-    sendRole(socket, roomName, 'player1');
+    sendRole(socket, 'player1');
     updateGameRoomData(roomName, {
       player1Uuid: socket.uuid,
       isLocalGame: false,
@@ -164,7 +158,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
     return;
   } else {
     // opponent joined
-    sendRole(socket, roomName, 'player2');
+    sendRole(socket, 'player2');
     updateGameRoomData(roomName, { player2Uuid: socket.uuid });
   }
 
