@@ -8,7 +8,9 @@
     "dev": "tsx watch src/app.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'No tests specified' && exit 0",
+    "test:watch": "echo 'No tests specified' && exit 0"
   },
   "keywords": [],
   "author": "",

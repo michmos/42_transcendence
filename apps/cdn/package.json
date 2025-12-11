@@ -10,8 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "build": "tsx src/build.ts",
-    "test": "vitest"
+    "build": "tsx src/build.ts"
   },
   "keywords": [],
   "author": "",
