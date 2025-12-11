@@ -1,6 +1,6 @@
 import { WSocket } from '../../plugins/rooms/WSocket/index.js';
-import { type Tournament } from 'db/generated/client/index.js';
 import { env } from '../../env.js';
+import { type TournamentParticipation } from 'types';
 
 export async function fetchTournaments(socket: WSocket, queryString: string) {
   const response = await fetch(
@@ -20,17 +20,11 @@ export async function fetchTournaments(socket: WSocket, queryString: string) {
     );
   }
 
-  const tournaments = (await response.json()) as Array<
-    Partial<Tournament> & {
-      uuid: string;
-    }
-  >;
-  //TODO: api should be adapted to only return uuids in the first place
+  const participations =
+    (await response.json()) as Array<TournamentParticipation>;
   const tournamentUuids = new Set<string>();
-  for (const tournament of tournaments) {
-    if (tournament.uuid) {
-      tournamentUuids.add(tournament.uuid);
-    }
+  for (const part of participations) {
+    tournamentUuids.add(part.tournamentId);
   }
   return tournamentUuids;
 }
