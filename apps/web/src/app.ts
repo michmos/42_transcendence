@@ -17,9 +17,13 @@ window.api = API;
 window.user = await window.api.user.getUserProfile();
 
 // Render initial route based on authentication state
-if (!window.user) {
+if (window.user == null) {
   window.router.navigate('/login');
+} else if (
+  window.location.pathname === '/' ||
+  window.location.pathname === '/login'
+) {
+  window.router.navigate('/profile');
 } else {
   window.router.navigate(window.location.pathname);
-  // await window.router.render();
 }

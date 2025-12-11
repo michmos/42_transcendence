@@ -13,7 +13,7 @@ COPY pnpm-workspace.yaml package.json ./
 # Copy all packages (shared dependencies)
 COPY packages/ ./packages/
 
-# Copy API application
+# Copy application
 COPY ./apps/web/ ./apps/web/
 
 # Install all dependencies (including shared packages)
@@ -29,10 +29,10 @@ RUN pnpm run --filter="db" build
 RUN pnpm run --filter="fastify-oauth" build
 RUN pnpm run --filter="types" build
 
-# Set working directory to API app
+# Set working directory to application
 WORKDIR /workspace/apps/web
 
-# Build the API application
+# Build the application
 RUN pnpm run build
 
 # Copy built files to volume mount point

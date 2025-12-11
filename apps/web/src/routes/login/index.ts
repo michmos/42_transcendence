@@ -1,12 +1,6 @@
 import { Card, Button } from '../../components/index.js';
 
 export default function initRoute() {
-  // Check if we already have a session in memory (from app.ts)
-  // app.ts already checked auth, so just use that session
-  if (window.user) window.router.navigate('/');
-
-  // No session - show login page
-  // (app.ts should have redirected if needed, but just in case we're here)
   const pageRoot = document.querySelector('.root-page');
   if (!pageRoot) return;
   pageRoot.classList.add('overflow-hidden', 'h-screen', 'bg-gradient-primary');

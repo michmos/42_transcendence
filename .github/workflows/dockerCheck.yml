@@ -26,50 +26,8 @@ jobs:
                   mode: example
                   load-mode: strict
 
-            - name: Build frontend builder image
-              run: |
-                  docker build \
-                    --file apps/web/Dockerfile \
-                    --tag transcendence-frontend:test \
-                    apps/web
-
-            - name: Build API image
-              run: |
-                  docker build \
-                    --file apps/api/Dockerfile \
-                    --tag transcendence-api:test \
-                    --build-arg CORS_URL=${{ env.CORS_URL }} \
-                    --build-arg DATABASE_URL=${{ env.DATABASE_URL }} \
-                    --build-arg SOCKET_SERVER=${{ env.SOCKET_SERVER }} \
-                    --build-arg CDN_PATH=${{ env.CDN_PATH }} \
-                    --build-arg ADMIN_API_KEY=${{ env.ADMIN_API_KEY }} \
-                    --build-arg GOOGLE_CLIENT_ID=${{ env.GOOGLE_CLIENT_ID }} \
-                    --build-arg GOOGLE_CLIENT_SECRET=${{ env.GOOGLE_CLIENT_SECRET }} \
-                    --build-arg FORTYTWO_CLIENT_ID=${{ env.FORTYTWO_CLIENT_ID }} \
-                    --build-arg FORTYTWO_CLIENT_SECRET=${{ env.FORTYTWO_CLIENT_SECRET }} \
-                    --build-arg GITHUB_CLIENT_ID=${{ env.GITHUB_CLIENT_ID }} \
-                    --build-arg GITHUB_CLIENT_SECRET=${{ env.GITHUB_CLIENT_SECRET }} \
-                    --build-arg REDIRECT_URL=${{ env.REDIRECT_URL }} \
-                    --build-arg JWT_SECRET=${{ env.JWT_SECRET }} \
-                    .
-
-            - name: Build Socket image
-              run: |
-                  docker build \
-                    --file apps/socket/Dockerfile \
-                    --tag transcendence-socket:test \
-                    --build-arg DATABASE_URL=${{ env.DATABASE_URL }} \
-                    --build-arg API_SERVER=${{ env.API_SERVER }} \
-                    --build-arg ADMIN_API_KEY=${{ env.ADMIN_API_KEY }} \
-                    .
-
-            - name: Build Database Creator image
-              run: |
-                  docker build \
-                    --file services/database-creator/Dockerfile \
-                    --tag transcendence-db-creator:test \
-                    --build-arg DATABASE_URL=${{ env.DATABASE_URL }} \
-                    .
+            - name: Build all images with docker-compose
+              run: docker compose build
 
             - name: Docker build summary
               run: |
