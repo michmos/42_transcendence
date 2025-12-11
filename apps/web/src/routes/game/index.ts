@@ -4,7 +4,7 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI from '../../plugins/api/user.js';
 import { leaveMatch } from './buttonLogic.js';
-import { isLocalGame } from '../profile/index.js';
+import { getIsLocalGame } from '../profile/index.js';
 
 import {
   getCanvas,
@@ -327,7 +327,7 @@ export default async function initRoute() {
   canvasContainer.appendChild(leaveButtonContainer);
 
   // Show nickname input dialog before starting game (local = 2 players)
-  if (isLocalGame) {
+  if (getIsLocalGame()) {
     showLocalGameNicknameDialog(() => {
       // Callback after nicknames are set - initialize game
       console.log('init game called');

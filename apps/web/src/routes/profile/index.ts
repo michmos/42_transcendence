@@ -18,7 +18,10 @@ import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 import { setupWebSocketHook } from '../game/index.js';
 
-export let isLocalGame = true;
+let isLocalGame = true;
+export function getIsLocalGame(): boolean {
+  return isLocalGame;
+}
 
 // Extend Window interface for SPA navigation
 declare global {
