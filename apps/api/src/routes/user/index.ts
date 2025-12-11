@@ -1,7 +1,7 @@
 import { type FastifyInstance } from 'fastify';
 import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
 import { cleanSelfUserData, cleanOtherUserData } from './utils.js';
-import fs from 'fs';
+import * as fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import sharp from 'sharp';
@@ -177,6 +177,18 @@ export default function (app: FastifyInstance): void {
           Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
         });
       }
+      const userOwnData = await app.db.getUserMe(uuidSelf);
+      if (userOwnData.avatar !== null) {
+        const oldImagePath: string = path.join(
+          `${env.CDN_PATH}`,
+          userOwnData.avatar
+        );
+        console.log('OldImagePath:', oldImagePath);
+        fs.unlink(oldImagePath, (error) => {
+          if (error) app.log.error(error);
+        });
+      }
+
       // Setting/replacing image file path in user's record database
       const userData = await app.db.setUserMeAvatar(uuidSelf, filePath);
       return reply.code(200).send(cleanSelfUserData(userData));
