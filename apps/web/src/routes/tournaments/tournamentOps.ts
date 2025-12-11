@@ -1,4 +1,5 @@
 import type { Tournament } from '../../types/api.js';
+// TODO: @pminialg this file can be deleted no? because it is now in /plugins/api/tournaments
 
 export async function createTournament(specs: {
   tournamentName: string;

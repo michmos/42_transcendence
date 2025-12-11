@@ -25,7 +25,6 @@ export async function fetchTournaments(socket: WSocket, queryString: string) {
       uuid: string;
     }
   >;
-  //TODO: api should be adapted to only return uuids in the first place
   const tournamentUuids = new Set<string>();
   for (const tournament of tournaments) {
     if (tournament.uuid) {
