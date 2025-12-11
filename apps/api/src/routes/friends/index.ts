@@ -157,7 +157,6 @@ export default function (app: FastifyInstance): void {
         if (!uuidOther)
           return reply.code(404).send({ Error: 'User not found' });
 
-
         const uuidSelf: string = request.user.uuid;
 
         const friendRecord = await findFriendRecord(uuidSelf, uuidOther);

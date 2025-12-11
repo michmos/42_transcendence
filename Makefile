@@ -22,6 +22,6 @@ build: ## Build steps before production build
 	pnpm build
 
 
-lint: ## Run linting and type checking
+lint: build ## Run linting and type checking
 	pnpm lint
 	pnpm typecheck
