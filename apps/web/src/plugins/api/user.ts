@@ -49,7 +49,7 @@ const UserAPI = {
       const res = (await response.json()) as Partial<User>;
 
       // Check if response has required fields
-      if (!res.nickname || !res.uuid) {
+      if (!res['nickname'] || !res.uuid) {
         return null;
       }
 
@@ -60,9 +60,6 @@ const UserAPI = {
     }
   },
 
-  async getUserBasicInfo(): Promise<Partial<User> | null> {
-    return this.getMe();
-  },
   async getUsers(): Promise<User[]> {
     try {
       const response = await fetch('/api/user', {

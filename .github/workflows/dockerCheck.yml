@@ -1,0 +1,35 @@
+name: docker build check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # populates environment with variables defined in .env.example
+      # mode: add on to .env
+      # load-mode: strict -> fail if file not found
+      - name: Load .env file
+        uses: xom9ikk/dotenv@v2.3.0
+        with:
+          path: ./
+          mode: example
+          load-mode: strict
+
+      - name: Build all images with docker-compose
+        run: docker compose build
+
+      - name: Docker build summary
+        run: |
+          echo "✅ All Docker images built successfully!"
+          docker images | grep transcendence

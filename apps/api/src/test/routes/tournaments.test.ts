@@ -10,6 +10,7 @@ import { app } from '../setup.js';
 import {
   status as statusEnum,
   type Tournament,
+  type Match,
 } from 'db/generated/client/index.js';
 
 import {
@@ -437,6 +438,54 @@ describe('PATCH /tournaments/{uuid}/start', () => {
       body: {},
     });
     expect(response.statusCode).toBe(200);
+  });
+
+  test('valid: start tournament with uneven amount of players -> 200', async () => {
+    const tournament = await createValidTournament(app);
+    for (let i = 0; i < 3; ++i) {
+      const user = await app.db.addUser(`mail${i}`, `nickname${i}`);
+      await app.db.addUserToTournament(user.uuid, tournament.uuid, `alias${i}`);
+    }
+
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}/start`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(200);
+
+    // get round
+    const firstRound: TournamentRoundResponse | null =
+      await app.db.getTournamentRound(tournament.uuid, 0);
+    assert(firstRound !== null);
+    expect(firstRound.matches).toHaveLength(2);
+
+    // fetch full match data for that round from db
+    const matches: Match[] = [];
+    for (const match of firstRound.matches) {
+      const fullMatch = await app.db.getMatch(match.uuid);
+      assert(fullMatch !== null);
+      matches.push(fullMatch);
+    }
+
+    // check that exactly one match is auto-forfeit
+    const autoForfeitMatch = matches.find(
+      (match) => match.status === 'finished' && match.winnerId !== null
+    );
+    assert(autoForfeitMatch !== undefined);
+    if (autoForfeitMatch.winnerId === autoForfeitMatch.player1Id) {
+      expect(autoForfeitMatch.score1).toBe(10);
+      expect(autoForfeitMatch.score2).toBe(0);
+    } else {
+      expect(autoForfeitMatch?.score1).toBe(0);
+      expect(autoForfeitMatch?.score2).toBe(10);
+    }
+    if (autoForfeitMatch.uuid === matches[0]?.uuid) {
+      expect(matches[1]?.status).toBe('outstanding');
+    } else {
+      expect(matches[0]?.status).toBe('outstanding');
+    }
   });
 
   test('invalid: start non-outstanding tournament', async () => {

@@ -5,18 +5,10 @@ import TournamentAPI from '../../plugins/api/tournaments.js';
 import MatchAPI from '../../plugins/api/match.js';
 import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
-import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { joinTournamentMatch } from '../game/buttonLogic.js';
-
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-    routeParams?: Record<string, string>;
-  }
-}
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // UI Match interface (mapped from backend)
 interface Match {
@@ -289,6 +281,11 @@ function renderErrorState(container: HTMLElement, message: string) {
 }
 
 export default async function initRoute() {
+  if (window.user == null) {
+    navigateTo('/');
+    return;
+  }
+
   const roundRoot = document.querySelector<HTMLElement>('.round-detail-page');
   if (!roundRoot) return;
 
@@ -318,15 +315,15 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
-    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
+    userNickname: userInfo?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
     onSettingsClick: () => {
       navigateTo('/settings');
     },
@@ -408,7 +405,7 @@ export default async function initRoute() {
         });
 
       // Get user's tournament alias from tournament.participants
-      const currentUserId = getCurrentUserId();
+      const currentUserId = window.user?.cleanedUserData.uuid;
       let userAlias: string | null = null;
 
       if (currentUserId && tournament.participants) {
@@ -486,7 +483,8 @@ export default async function initRoute() {
       });
 
     // Get user's tournament alias
-    const currentUserId = getCurrentUserId();
+    const currentUserId = window.user?.cleanedUserData.uuid;
+
     let userAlias: string | null = null;
 
     // Strategy 1: Get alias from tournament.participants by matching user UUID

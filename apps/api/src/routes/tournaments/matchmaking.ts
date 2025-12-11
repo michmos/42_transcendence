@@ -37,9 +37,28 @@ function generateRound(roundRobin: RoundRobin<User>): Array<Partial<Match>> {
   const matches: Array<Partial<Match>> = [];
   const playerCount = roundRobin.length();
   for (let start = 0, end = playerCount - 1; start < end; ++start, --end) {
+    const player1Id = roundRobin.at(start)?.uuid ?? null;
+    const player2Id = roundRobin.at(end)?.uuid ?? null;
+
+    if (!player1Id && !player2Id) {
+      continue;
+    }
+
+    let autoForfeit: Partial<Match> = {};
+    if (!player1Id || !player2Id) {
+      // one player is null, auto-forfeit
+      autoForfeit = {
+        score1: !player1Id ? 0 : 10,
+        score2: !player2Id ? 0 : 10,
+        winnerId: player1Id ?? player2Id,
+        status: 'finished' as const,
+      };
+    }
+
     matches.push({
-      player1Id: roundRobin.at(start)?.uuid ?? null,
-      player2Id: roundRobin.at(end)?.uuid ?? null,
+      player1Id,
+      player2Id,
+      ...autoForfeit,
     });
   }
   return matches;
