@@ -6,7 +6,8 @@ services:
     volumes:
       - ./shared/public-data/frontend:/www
     build:
-      context: ./apps/web
+      context: .
+      dockerfile: ./apps/web/Dockerfile
     restart: on-failure
 
   database-creator:
@@ -28,25 +29,30 @@ services:
     container_name: frontend
     labels:
       description: "Nginx Static File Server for Frontend Application"
+    build:
+      context: ./services/nginx-frontend
     volumes:
       - ./shared/public-data/frontend:/usr/share/nginx/html:ro
-      - ./services/nginx-frontend/config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - backend-network
-    image: nginx:stable-alpine
     restart: unless-stopped
     depends_on:
       - builder-frontend
+      - database-creator
+      - cdn
+      - api
+      - socket
 
   cdn:
     container_name: cdn
     labels:
       description: "Nginx Static File Server for CDN"
+    build:
+      context: ./services/nginx-cdn
     volumes:
       - ./shared/public-data/cdn:/usr/share/nginx/html:ro
     networks:
       - backend-network
-    image: nginx:stable-alpine
     restart: unless-stopped
 
   api:
@@ -97,20 +103,19 @@ services:
     restart: unless-stopped
     depends_on:
       - database-creator
+      - api
 
   nginx-proxy:
     container_name: nginx-proxy
     labels:
       description: "Nginx Proxy for Web Application"
     ports:
-      - "443:443"
-      - "80:80"
+      - "8443:443"
     networks:
       - backend-network
       - public-network
     build:
       context: ./services/nginx-proxy
-      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       - frontend

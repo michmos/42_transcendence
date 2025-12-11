@@ -18,4 +18,5 @@ RUN apk add --no-cache openssl && \
 	-out /etc/ssl/certs/nginx-selfsigned.crt
 
 
+EXPOSE 443
 EXPOSE 80

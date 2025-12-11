@@ -8,11 +8,15 @@ help:
 docker: ## Start development server with Docker
 	docker compose -f docker-compose.yml up --build
 
-dev: build ## Start development server
+
+install: ## Install dependencies
+	pnpm install
+
+dev: install build ## Start development server
 	pnpm dev
 
 
-preview: build ## Preview preview build
+preview: install build ## Preview preview build
 	pnpm preview
 
 
