@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { env } from '../../env.js';
+import { API } from '../../plugins/api/index.js';
 
 function getSessionCookie(request: FastifyRequest): string | null {
   if (!request.headers.cookie) {
@@ -15,26 +16,6 @@ function getSessionCookie(request: FastifyRequest): string | null {
   return remainder.split(';')[0] ?? null;
 }
 
-async function fetchUuid(sessionCookie: string): Promise<string> {
-  const response = await fetch(`${env.API_SERVER}/user/me/uuid`, {
-    method: 'GET',
-    headers: {
-      Cookie: `session=${sessionCookie}`,
-    },
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Authentication failed: ${response.status} ${response.statusText}`
-    );
-  }
-  const data = (await response.json()) as { uuid: string };
-  if (!data) {
-    throw new Error(`Authentication failed: Invalid user data`);
-  }
-  return data.uuid;
-}
-
 /**
  * authenticate client through session cookie
  * @request: Fastify request
@@ -47,7 +28,7 @@ async function authenticateClient(request: FastifyRequest) {
     throw new Error(`Authentication failed: No session cookie`);
   }
 
-  const uuid = await fetchUuid(sessionCookie);
+  const uuid = await API.fetchUserUuid(sessionCookie);
   request.setDecorator('identifiers', {
     jwt: sessionCookie,
     uuid,

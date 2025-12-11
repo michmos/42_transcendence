@@ -16,6 +16,12 @@ import FriendsAPI from '../../plugins/api/friends.js';
 import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
+import { setupWebSocketHook } from '../game/index.js';
+
+let isLocalGame = true;
+export function getIsLocalGame(): boolean {
+  return isLocalGame;
+}
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -1220,6 +1226,8 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🎮',
     label: 'Play Locally',
     onClick: () => {
+      isLocalGame = true;
+      setupWebSocketHook();
       joinLocalMatch();
       navigateTo('/game');
     },
@@ -1230,8 +1238,10 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🌐',
     label: 'Play Online',
     onClick: () => {
+      isLocalGame = false;
+      setupWebSocketHook();
       joinOnlineMatch();
-      // TODO:Backend will handle the game start logic - no navigation needed
+      navigateTo('/game');
     },
   });
 

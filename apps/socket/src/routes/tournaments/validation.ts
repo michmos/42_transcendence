@@ -38,6 +38,18 @@ export const tournamentStarted = {
 };
 export type tournamentStartedBody = Static<typeof tournamentStarted.body>;
 
+// POST /tournaments/broadcast/round/started
+export const tournamentRoundStarted = {
+  body: Type.Object({
+    tournamentUuid: Type.String(),
+    tournamentName: Type.String(),
+    tournamentRound: Type.String(),
+  }),
+};
+export type tournamentRoundStartedBody = Static<
+  typeof tournamentRoundStarted.body
+>;
+
 // POST /tournaments/broadcast/updated
 export const tournamentUpdated = {
   body: Type.Object({

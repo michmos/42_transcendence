@@ -47,6 +47,14 @@ class RoomManager {
     });
   }
 
+  public getDataOrThrow(roomName: string): object {
+    const room = this._rooms.get(roomName);
+    if (!room) {
+      throw new Error('getDataOrThrow(): room not found');
+    }
+    return room.getData();
+  }
+
   public get(roomName: string): Room | undefined {
     return this._rooms.get(roomName)?.toPublicInterface();
   }
