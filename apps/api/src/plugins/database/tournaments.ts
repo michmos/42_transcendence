@@ -152,6 +152,22 @@ export async function getTournamentsByParticipant(
   });
 }
 
+export async function getTournamentParticipationsByUserAndStatus(
+  userId: string,
+  status?: status
+) {
+  return await Database.tournamentParticipations.findMany({
+    where: {
+      userId,
+      ...(status !== undefined ? { tournament: { status } } : {}),
+    },
+    select: {
+      tournamentId: true,
+      userId: true,
+    },
+  });
+}
+
 // delete a tournament including all tournament rounds (not including the matches)
 export async function removeTournament(uuid: string): Promise<Tournament> {
   const tournament = await Database.tournament.delete({
