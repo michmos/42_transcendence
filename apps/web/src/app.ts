@@ -20,5 +20,6 @@ window.user = await window.api.user.getUserProfile();
 if (!window.user) {
   window.router.navigate('/login');
 } else {
-  await window.router.render();
+  window.router.navigate(window.location.pathname);
+  // await window.router.render();
 }
