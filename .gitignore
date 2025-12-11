@@ -5,12 +5,9 @@ dist
 .env
 .env.local
 .env.*.local
-pnpm-lock.yaml
 package-lock.json
 *secrets*
 *subject*
 AGENTS.md
 shared/
-packages/database/db.sqlite
-packages/database/db.sqlite
 packages/database/db.sqlite

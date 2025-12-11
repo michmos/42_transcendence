@@ -94,7 +94,7 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 # # Copy package files
-COPY --from=build-api /workspace/package.json /workspace/pnpm-workspace.yaml /workspace/./
+COPY --from=build-api /workspace/package.json /workspace/pnpm-workspace.yaml /workspace/pnpm-lock.yaml ./
 COPY --from=build-api /workspace/packages/ ./packages/
 COPY --from=build-api /workspace/apps/api/package.json ./apps/api/
 
