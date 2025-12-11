@@ -76,6 +76,10 @@ function isRoomMessage(msg: IncomingMessage): msg is RoomMessage {
   return 'event' in msg && 'uuid' in msg;
 }
 
+function isGenericMessage(msg: IncomingMessage): msg is GenericMessage {
+  return 'type' in msg && 'data' in msg;
+}
+
 function isRoleMessage(msg: IncomingMessage): msg is RoleMessage {
   return (
     'type' in msg &&
@@ -94,9 +98,14 @@ export const setupWebSocketHook = () => {
   unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
     const message = JSON.parse(event.data as string) as IncomingMessage;
 
+    if (isGenericMessage(message)) {
+      if (message.type == 'wait') {
+        console.log(message.data);
+      }
+    }
+
     // ---- ROOM MESSAGE ----
     if (isRoomMessage(message)) {
-      console.log('room message received');
       const message = JSON.parse(event.data as string) as RoomMessage;
       switch (message.event) {
         case 'room-created':
@@ -107,7 +116,6 @@ export const setupWebSocketHook = () => {
 
     // ---- ROLE MESSAGE ----
     if (isRoleMessage(message)) {
-      console.log('role message received');
       const data = message.data;
       setRole(data.role);
 
@@ -148,16 +156,11 @@ let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 let unloadHandler: (() => void) | null = null;
 
 function setupEventListeners() {
-  console.log('setup event listener being called');
-
   // handle key presses
   keydownHandler = (e) => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'p') {
       sendMessage({ action: 'pause' });
-    }
-    if (e.key === 'r') {
-      sendMessage({ action: 'reset' });
     }
     if (e.key === '.') {
       sendMessage({ action: 'ai' });
@@ -246,8 +249,6 @@ function cleanup() {
 
 // Initialize page structure and game
 export default async function initRoute() {
-  console.log('init route called');
-
   // Mark route as active
   isRouteActive = true;
   const pageRoot = document.querySelector('.game-page') as HTMLElement;
@@ -321,7 +322,7 @@ export default async function initRoute() {
     'px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium cursor-pointer';
   leaveButton.textContent = 'Leave Match';
   leaveButton.addEventListener('click', () => {
-    leaveMatch();
+    cleanup();
     navigateTo('/profile');
   });
   leaveButtonContainer.appendChild(leaveButton);
@@ -516,29 +517,39 @@ function setupControlsDisplay() {
   if (role === 'player1') {
     controlsContainer.innerHTML = `
       <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↑</div>
-        <div class="text-sm text-white/80">W</div>
-      </div>
-      <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↓</div>
-        <div class="text-sm text-white/80">S</div>
+        <div class="text-lg font-semibold">Left Paddle</div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↑</div>
+            <div class="text-xs text-white/80">W</div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↓</div>
+            <div class="text-xs text-white/80">S</div>
+          </div>
+        </div>
       </div>
     `;
   } else if (role === 'player2') {
     controlsContainer.innerHTML = `
       <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↑</div>
-        <div class="text-sm text-white/80">W</div>
-      </div>
-      <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↓</div>
-        <div class="text-sm text-white/80">S</div>
+        <div class="text-lg font-semibold">Right Paddle</div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↑</div>
+            <div class="text-xs text-white/80">W</div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↓</div>
+            <div class="text-xs text-white/80">S</div>
+          </div>
+        </div>
       </div>
     `;
   } else if (role === 'local') {
     controlsContainer.innerHTML = `
       <div class="flex flex-col items-center gap-2">
-        <div class="text-lg font-semibold">Left Player</div>
+        <div class="text-lg font-semibold">Left Paddle</div>
         <div class="flex gap-4">
           <div class="flex flex-col items-center gap-1">
             <div class="text-xl">↑</div>
@@ -552,7 +563,7 @@ function setupControlsDisplay() {
       </div>
       <div class="text-white/50">|</div>
       <div class="flex flex-col items-center gap-2">
-        <div class="text-lg font-semibold">Right Player</div>
+        <div class="text-lg font-semibold">Right Paddle</div>
         <div class="flex gap-4">
           <div class="flex flex-col items-center gap-1">
             <div class="text-xl">↑</div>

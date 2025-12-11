@@ -1099,8 +1099,12 @@ export default async function initRoute() {
     };
 
     const handleUserJoined = (data: unknown) => {
-      const eventData = data as { uuid: string; playerCount?: number };
+      const eventData = data as {
+        uuid: string;
+        playerCount?: number;
+      };
       if (eventData.uuid === tournamentUuid) {
+        // Refresh tournament to show updated player count and leaderboard with new participant
         void refreshTournamentData();
       }
     };

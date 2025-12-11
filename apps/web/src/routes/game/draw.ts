@@ -1,11 +1,5 @@
 import { drawScore, drawTime } from './score';
 
-const green = '#00ff00ff';
-const yellow = '#ffff00ff';
-const orange = '#ff5c00ff';
-const red = '#ff0000ff';
-const grey = '#9E9E9E';
-
 import {
   getCanvas,
   getCtx,
@@ -13,12 +7,8 @@ import {
   localPaddles,
   ballVelocity,
   lastServerUpdate,
-  connectionState,
-  reconnectAttempts,
-  maxReconnectAttempts,
   role,
   ballSize,
-  padding,
   getPlayerNickname,
   getPlayer1Nickname,
   getPlayer2Nickname,
@@ -57,21 +47,6 @@ export function predictBallPosition(deltaTimeMs: number) {
   }
 
   return { x: predictedX, y: predictedY };
-}
-
-function getConnectionColor(): string {
-  switch (connectionState) {
-    case 'connected':
-      return green;
-    case 'connecting':
-      return yellow;
-    case 'reconnecting':
-      return orange;
-    case 'disconnected':
-      return red;
-    default:
-      return grey;
-  }
 }
 
 export function draw() {
@@ -149,9 +124,9 @@ export function draw() {
     // Paused overlay
     if (serverState.gamePaused) {
       ctx.fillStyle = 'white';
-      ctx.font = '48px Arial';
+      ctx.font = '32px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+      ctx.fillText('PAUSED', canvas.width / 2, canvas.height - 15);
     }
 
     // Player nickname display
@@ -207,54 +182,16 @@ export function draw() {
       ctx.textAlign = 'center';
       ctx.fillText(playerWon ? 'YOU WON' : 'YOU LOST', x, canvas.height / 2);
       ctx.font = `${fontSize / 3}px Arial`;
-      ctx.fillText("Press 'R' to restart", x, canvas.height / 2 + fontSize / 2);
+      //   ctx.fillText("Press 'R' to restart", x, canvas.height / 2 + fontSize / 2);
     }
 
     // Time
-    drawTime(
-      serverState.timeRemaining,
-      canvas.width / 2 + 5,
-      canvas.height - canvas.height / 15,
-      canvas.height / 200
-    );
-
-    // Connection indicator
-    ctx.fillStyle = getConnectionColor();
-    ctx.beginPath();
-    ctx.arc(
-      canvas.width / 2 + canvas.height / 10,
-      canvas.height - 2.5 * padding,
-      5,
-      0,
-      2 * Math.PI
-    );
-    ctx.fill();
-
-    if (connectionState !== 'connected') {
-      ctx.fillStyle = 'white';
-      ctx.font = '14px Arial';
-      ctx.textAlign = 'left';
-      let statusText = '';
-
-      switch (connectionState) {
-        case 'connecting':
-          statusText = 'Connecting...';
-          break;
-        case 'reconnecting':
-          statusText = `Reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})`;
-          break;
-        case 'disconnected':
-          statusText =
-            reconnectAttempts >= maxReconnectAttempts
-              ? 'Connection Failed'
-              : 'Disconnected';
-          break;
-      }
-
-      ctx.fillText(
-        statusText,
-        canvas.width / 2 + canvas.height / 9,
-        canvas.height - 2 * padding
+    if (!serverState.gamePaused) {
+      drawTime(
+        serverState.timeRemaining,
+        canvas.width / 2 + 5,
+        canvas.height - canvas.height / 15,
+        canvas.height / 200
       );
     }
   } catch {
