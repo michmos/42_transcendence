@@ -12,10 +12,11 @@ RUN corepack enable pnpm
 WORKDIR /workspace
 
 # Copy workspace configuration files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json ./
 
 # Copy all packages (shared dependencies)
 COPY packages/database ./packages/database
+COPY packages/types ./packages/types
 
 # Copy Socket application
 COPY apps/socket/ ./apps/socket/
@@ -23,12 +24,14 @@ COPY apps/socket/ ./apps/socket/
 # Install all dependencies (including shared packages)
 RUN pnpm install
 
-# Build shared packages first
-RUN pnpm run --filter="db" build
-
-# Generate Prisma client for the Linux platform
+# Generate Prisma client for the Linux platform (must be done before building db package)
 WORKDIR /workspace/packages/database
 RUN pnpm exec prisma generate
+
+# Build shared packages
+WORKDIR /workspace
+RUN pnpm run --filter="db" build
+RUN pnpm run --filter="types" build
 
 # Set working directory to Socket app
 WORKDIR /workspace/apps/socket
@@ -55,16 +58,12 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 # # Copy package files
-COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml /workspace/pnpm-lock.yaml ./
+COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml ./
 COPY --from=build-socket /workspace/packages/ ./packages/
 COPY --from=build-socket /workspace/apps/socket/package.json ./apps/socket/
 
 # # Install production dependencies only  
-RUN pnpm install --prod
-
-# # Ensure Prisma client is generated for the correct platform
-WORKDIR /app/packages/database
-RUN pnpm exec prisma generate
+RUN pnpm install --prod --no-frozen-lockfile
 
 # # Set working directory to Socket app
 WORKDIR /app/apps/socket

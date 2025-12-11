@@ -15,7 +15,6 @@ export interface PageContainerProps {
 export class PageContainer {
   private container: HTMLElement;
   private props: PageContainerProps;
-  private rootElement: HTMLDivElement | null = null;
   private contentElement: HTMLDivElement | null = null;
 
   constructor(container: HTMLElement, props: PageContainerProps = {}) {
@@ -76,8 +75,6 @@ export class PageContainer {
 
     wrapper.appendChild(content);
     this.container.appendChild(wrapper);
-
-    this.rootElement = wrapper;
     this.contentElement = content;
   }
 }

@@ -5,8 +5,8 @@ import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: {
-      uuid: string | null;
+    user: {
+      uuid: string;
       role: string;
     };
   }
@@ -133,10 +133,10 @@ class OAuth {
       }
 
       // Populate request.user with a placeholder user object for API key authenticated requests
-      request.user = {
-        uuid: null, // Placeholder UUID for API key users
-        role: adminRole, // Placeholder role for API key users
-      };
+      // request.user = {
+      //   uuid: null, // Placeholder UUID for API key users
+      //   role: adminRole, // Placeholder role for API key users
+      // };
       return;
     } else {
       console.info(

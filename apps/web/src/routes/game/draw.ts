@@ -134,7 +134,7 @@ export function draw() {
     let ballX = serverState.ballX;
     let ballY = serverState.ballY;
 
-    if (shouldPredict && !serverState.ballPaused) {
+    if (shouldPredict && !serverState.ballPaused && !serverState.gamePaused) {
       const predicted = predictBallPosition(timeSinceLastUpdate);
       ballX = predicted.x;
       ballY = predicted.y;

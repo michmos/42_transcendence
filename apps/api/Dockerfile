@@ -4,6 +4,9 @@ FROM node:20-alpine AS build-api
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 
+ARG SOCKET_SERVER
+ENV SOCKET_SERVER=$SOCKET_SERVER
+
 ARG CDN_PATH
 ENV CDN_PATH=$CDN_PATH
 
@@ -14,7 +17,7 @@ RUN corepack enable pnpm
 WORKDIR /workspace
 
 # Copy workspace configuration files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json ./
 
 # Copy all packages (shared dependencies)
 COPY packages/ ./packages/
@@ -25,14 +28,15 @@ COPY apps/api/ ./apps/api/
 # Install all dependencies (including shared packages)
 RUN pnpm install
 
-# Build shared packages first
+# Generate Prisma client for the Linux platform (must be done before building db package)
+WORKDIR /workspace/packages/database
+RUN pnpm exec prisma generate
+
+# Build shared packages
+WORKDIR /workspace
 RUN pnpm run --filter="db" build
 RUN pnpm run --filter="fastify-oauth" build
 RUN pnpm run --filter="types" build
-
-# Generate Prisma client for the Linux platform
-WORKDIR /workspace/packages/database
-RUN pnpm exec prisma generate
 
 # Set working directory to API app
 WORKDIR /workspace/apps/api
@@ -90,20 +94,12 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 # # Copy package files
-COPY --from=build-api /workspace/package.json /workspace/pnpm-workspace.yaml /workspace/pnpm-lock.yaml ./
+COPY --from=build-api /workspace/package.json /workspace/pnpm-workspace.yaml ./
 COPY --from=build-api /workspace/packages/ ./packages/
 COPY --from=build-api /workspace/apps/api/package.json ./apps/api/
 
 # # Install production dependencies only  
-RUN pnpm install --prod
-
-# # Ensure Prisma client is generated for the correct platform
-WORKDIR /app/packages/database
-RUN pnpm exec prisma generate
-
-# # Copy schema.prisma and generated client from build stage
-COPY --from=build-api /workspace/packages/database/schema.prisma ./packages/database/
-COPY --from=build-api /workspace/packages/database/generated/ ./packages/database/generated/
+RUN pnpm install --prod --no-frozen-lockfile
 
 # # Set working directory to API app
 WORKDIR /app/apps/api

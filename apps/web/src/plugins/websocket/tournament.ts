@@ -87,7 +87,7 @@ class TournamentSocket {
         uuid: message.uuid,
         playerCount: message.playerCount,
         tournamentName: message.tournamentName,
-        ...message.data,
+        ...[message.data],
       };
       listeners.forEach((callback) => callback(eventData));
     }

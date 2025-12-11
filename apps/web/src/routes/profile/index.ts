@@ -13,15 +13,15 @@ import UserAPI, {
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
-import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
+// import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
+import { setupWebSocketHook } from '../game/index.js';
 
-// Extend Window interface for SPA navigation
-declare global {
-  interface Window {
-    navigateToRoute?: (href: string) => void;
-  }
+let isLocalGame = true;
+
+export function getIsLocalGame(): boolean {
+  return isLocalGame;
 }
 
 // Match data interface for MatchCard component
@@ -50,35 +50,10 @@ export default async function initRoute() {
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
 
-  // Check if we have a session in memory (from app.ts)
-  // app.ts already checked auth, so we should have a session
-  const currentSession = await getCurrentSession();
-  if (!currentSession || !currentSession.uuid) {
-    navigateTo('/login');
-    return;
-  }
-
   // Fetch profile data from API
   const profileData = await UserAPI.getUserProfile();
 
   if (!profileData) {
-    // Re-check session in memory (might have been cleared by logout)
-    const currentSession = await getCurrentSession();
-    if (!currentSession || !currentSession.uuid) {
-      // Session was cleared (e.g., during logout) - redirect immediately
-      navigateTo('/login');
-      return;
-    }
-
-    // Session exists in memory, verify with API
-    const user = await UserAPI.getMe();
-    if (!user || !user.uuid) {
-      // User is not actually authenticated - clear stale session and redirect
-      clearSession();
-      navigateTo('/login');
-      return;
-    }
-
     // User is authenticated but profile fetch failed - show error
     const errorMsg = document.createElement('div');
     errorMsg.className = 'text-center text-muted-foreground py-8';
@@ -104,10 +79,8 @@ export default async function initRoute() {
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [{ label: 'Tournaments', href: '/tournaments', active: false }],
-    ...(cleanedUserData.nickname && { userNickname: cleanedUserData.nickname }),
-    ...(cleanedUserData.avatar && {
-      userAvatar: getAvatarSrc(cleanedUserData.avatar) || null,
-    }),
+    userNickname: cleanedUserData?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(cleanedUserData.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -175,7 +148,11 @@ export default async function initRoute() {
   });
 
   // Recent Matches
-  renderRecentMatches(leftColumn, userMatches, cleanedUserData.nickname || '');
+  renderRecentMatches(
+    leftColumn,
+    userMatches,
+    cleanedUserData['nickname'] || ''
+  );
 
   // ===== RIGHT COLUMN (Quick Actions & Events) =====
   const rightColumn = document.createElement('div');
@@ -560,9 +537,9 @@ function renderFriendsTab(
 
       // Get current user's nickname from profile data
       const profileData = await UserAPI.getUserProfile();
-      const currentNickname = profileData?.cleanedUserData.nickname || '';
+      const currentNickname = profileData?.cleanedUserData['nickname'] || '';
       const isSelf =
-        user.nickname?.toLowerCase() === currentNickname.toLowerCase();
+        user['nickname']?.toLowerCase() === currentNickname.toLowerCase();
 
       // Render search result
       const resultItem = createSearchResultItem(user, friendship, isSelf);
@@ -766,7 +743,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
   acceptBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     void (async () => {
-      const nickname = acceptBtn.dataset.nickname || '';
+      const nickname = acceptBtn.dataset['nickname'] || '';
       acceptBtn.disabled = true;
       acceptBtn.textContent = 'Accepting...';
 
@@ -818,7 +795,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
   rejectBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     void (async () => {
-      const nickname = rejectBtn.dataset.nickname || '';
+      const nickname = rejectBtn.dataset['nickname'] || '';
       rejectBtn.disabled = true;
       rejectBtn.textContent = 'Rejecting...';
 
@@ -874,7 +851,7 @@ function createSearchResultItem(
   item.className =
     'flex items-center gap-3 p-4 rounded-lg bg-gradient-card backdrop-blur-glass border border-border';
 
-  const nickname = user.nickname || 'Unknown';
+  const nickname = user['nickname'] || 'Unknown';
   const avatar = user.avatar || null;
   const initials = nickname
     .split(' ')
@@ -965,7 +942,7 @@ function createSearchResultItem(
     addFriendBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       void (async () => {
-        const nickname = addFriendBtn.dataset.nickname || '';
+        const nickname = addFriendBtn.dataset['nickname'] || '';
         addFriendBtn.disabled = true;
         addFriendBtn.textContent = 'Sending...';
 
@@ -1034,7 +1011,7 @@ function createSearchResultItem(
   if (viewProfileBtn) {
     viewProfileBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const nickname = viewProfileBtn.dataset.nickname || '';
+      const nickname = viewProfileBtn.dataset['nickname'] || '';
       void navigateTo(`/user/${nickname}`);
     });
   }
@@ -1080,7 +1057,7 @@ function createBlockedUserItem(user: ProfileFriend): HTMLElement {
   unblockBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     void (async () => {
-      const nickname = unblockBtn.dataset.nickname || '';
+      const nickname = unblockBtn.dataset['nickname'] || '';
 
       if (!confirm(`Remove ${nickname} from blocked users?`)) {
         return;
@@ -1220,6 +1197,8 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🎮',
     label: 'Play Locally',
     onClick: () => {
+      isLocalGame = true;
+      setupWebSocketHook();
       joinLocalMatch();
       navigateTo('/game');
     },
@@ -1230,8 +1209,10 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🌐',
     label: 'Play Online',
     onClick: () => {
+      isLocalGame = false;
+      setupWebSocketHook();
       joinOnlineMatch();
-      // TODO:Backend will handle the game start logic - no navigation needed
+      navigateTo('/game');
     },
   });
 

@@ -14,8 +14,6 @@ export interface CardProps {
 export class Card {
   private container: HTMLElement;
   private props: CardProps;
-  private rootElement: HTMLDivElement | null = null;
-  private headerElement: HTMLDivElement | null = null;
   private actionsElement: HTMLDivElement | null = null;
   private bodyElement: HTMLDivElement | null = null;
 
@@ -83,7 +81,6 @@ export class Card {
       header.appendChild(actions);
 
       root.appendChild(header);
-      this.headerElement = header;
       this.actionsElement = actions;
     }
 
@@ -92,8 +89,6 @@ export class Card {
     root.appendChild(body);
 
     this.container.appendChild(root);
-
-    this.rootElement = root;
     this.bodyElement = body;
   }
 }

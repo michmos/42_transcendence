@@ -18,16 +18,6 @@ export function getAvatarSrc(
     return avatarPath;
   }
 
-  // If it already starts with /cdn, return as-is (avoid double-prefixing)
-  if (avatarPath.startsWith('/cdn')) {
-    return avatarPath;
-  }
-
-  // Avatar paths stored in database are relative paths like "/userAvatars/xxx.png"
-  // They need to be prefixed with /cdn to route through the Vite dev server proxy
-  // which forwards to the CDN server
-  const cleanPath = avatarPath.startsWith('/') ? avatarPath : `/${avatarPath}`;
-
   // Prepend /cdn to route through the CDN proxy
-  return `/cdn${cleanPath}`;
+  return `/cdn/${avatarPath}`;
 }
