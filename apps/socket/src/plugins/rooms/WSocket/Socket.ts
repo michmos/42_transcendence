@@ -14,7 +14,7 @@ export default class WSocket {
   private messageQueue: Buffer[] = [];
   private onMessageCallbacks: Array<(input: Buffer) => void | Promise<void>> =
     [];
-  private onCloseCallbacks: (() => void | Promise<void>)[] = [];
+  private onCloseCallbacks: Array<() => void | Promise<void>> = [];
   private isProcessingQueue: boolean = false;
 
   public uuid: string;

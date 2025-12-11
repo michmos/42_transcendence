@@ -155,9 +155,6 @@ function setupEventListeners() {
     if (e.key === 'p') {
       sendMessage({ action: 'pause' });
     }
-    if (e.key === 'r') {
-      sendMessage({ action: 'reset' });
-    }
     if (e.key === '.') {
       sendMessage({ action: 'ai' });
     }
@@ -320,7 +317,7 @@ export default async function initRoute() {
     'px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium cursor-pointer';
   leaveButton.textContent = 'Leave Match';
   leaveButton.addEventListener('click', () => {
-    leaveMatch();
+    cleanup();
     navigateTo('/profile');
   });
   leaveButtonContainer.appendChild(leaveButton);
@@ -514,29 +511,39 @@ function setupControlsDisplay() {
   if (role === 'player1') {
     controlsContainer.innerHTML = `
       <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↑</div>
-        <div class="text-sm text-white/80">W</div>
-      </div>
-      <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↓</div>
-        <div class="text-sm text-white/80">S</div>
+        <div class="text-lg font-semibold">Left Paddle</div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↑</div>
+            <div class="text-xs text-white/80">W</div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↓</div>
+            <div class="text-xs text-white/80">S</div>
+          </div>
+        </div>
       </div>
     `;
   } else if (role === 'player2') {
     controlsContainer.innerHTML = `
       <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↑</div>
-        <div class="text-sm text-white/80">W</div>
-      </div>
-      <div class="flex flex-col items-center gap-2">
-        <div class="text-2xl">↓</div>
-        <div class="text-sm text-white/80">S</div>
+        <div class="text-lg font-semibold">Right Paddle</div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↑</div>
+            <div class="text-xs text-white/80">W</div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↓</div>
+            <div class="text-xs text-white/80">S</div>
+          </div>
+        </div>
       </div>
     `;
   } else if (role === 'local') {
     controlsContainer.innerHTML = `
       <div class="flex flex-col items-center gap-2">
-        <div class="text-lg font-semibold">Left Player</div>
+        <div class="text-lg font-semibold">Left Paddle</div>
         <div class="flex gap-4">
           <div class="flex flex-col items-center gap-1">
             <div class="text-xl">↑</div>
@@ -550,7 +557,7 @@ function setupControlsDisplay() {
       </div>
       <div class="text-white/50">|</div>
       <div class="flex flex-col items-center gap-2">
-        <div class="text-lg font-semibold">Right Player</div>
+        <div class="text-lg font-semibold">Right Paddle</div>
         <div class="flex gap-4">
           <div class="flex flex-col items-center gap-1">
             <div class="text-xl">↑</div>
