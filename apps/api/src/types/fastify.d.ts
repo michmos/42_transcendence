@@ -1,10 +1,24 @@
-import Fastify from 'fastify';
+import 'fastify';
 
-declare namespace Fastify {
+// declare module 'fastify' {
+//   interface FastifyRequest {
+//     user: {
+//       uuid: string;
+//       email?: string;
+//       username?: string;
+//       avatar?: string;
+//       role?: string;
+//     };
+//   }
+// }
+
+declare module 'fastify' {
   interface FastifyRequest {
-    user?: {
+    user: {
       uuid: string;
-      role?: string;
+      role: string;
     };
   }
 }
+
+export {};

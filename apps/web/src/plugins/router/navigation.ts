@@ -3,7 +3,7 @@
  * Handles browser navigation events and link interception
  */
 
-export type NavigationHandler = (path: string) => void;
+export type NavigationHandler = (_path: string) => void;
 
 /**
  * Set up navigation event listeners
@@ -39,9 +39,7 @@ export function setupNavigation(
 
   // Provide a global navigation function for programmatic navigation
   // This replaces the need to override window.location.href
-  (window as unknown as Record<string, unknown>).navigateToRoute = (
-    path: string
-  ) => {
+  window.navigateToRoute = (path: string) => {
     console.log('🔄 Programmatic navigation to:', path);
     navigateCallback(path);
   };

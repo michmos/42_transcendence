@@ -3,9 +3,9 @@ import { z } from 'zod';
 
 export const env = createEnv({
   server: {
-    SOCKET_URL: z.string().default('wss://localhost'),
+    API_SERVER: z.string().default('http://localhost:3000'),
     SOCKET_PORT: z.coerce.number().default(3001),
-    DATABASE_URL: z.string().optional(),
+    ADMIN_API_KEY: z.string().nonempty('ADMIN_API_KEY is required'),
   },
 
   runtimeEnv: process.env,

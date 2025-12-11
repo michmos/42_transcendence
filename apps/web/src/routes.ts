@@ -1,29 +1,14 @@
 // Route definitions with static imports
 export const routes = {
   '/': {
-    html: () => import('./routes/index.html?raw'),
-    css: () => import('./routes/index.css?inline'),
+    html: () => import('./index.html?raw'),
+    css: () => import('./index.css?inline'),
     script: () => import('./routes/index.js'),
-  },
-  '/landing': {
-    html: () => import('./routes/landing/index.html?raw'),
-    css: () => import('./routes/landing/index.css?inline'),
-    script: () => import('./routes/landing/index.js'),
-  },
-  '/socket': {
-    html: () => import('./routes/socket/index.html?raw'),
-    css: () => import('./routes/socket/index.css?inline'),
-    script: () => import('./routes/socket/index.js'),
   },
   '/login': {
     html: () => import('./routes/login/index.html?raw'),
     css: () => import('./routes/login/index.css?inline'),
     script: () => import('./routes/login/index.js'),
-  },
-  '/dashboard': {
-    html: () => import('./routes/dashboard/index.html?raw'),
-    css: () => import('./routes/dashboard/index.css?inline'),
-    script: () => import('./routes/dashboard/index.js'),
   },
   '/game': {
     html: () => import('./routes/game/index.html?raw'),
@@ -45,25 +30,33 @@ export const routes = {
     css: () => import('./routes/settings/index.css?inline'),
     script: () => import('./routes/settings/index.js'),
   },
-  '/error': {
-    html: () => import('./routes/error/index.html?raw'),
-    css: () => import('./routes/error/index.css?inline'),
-    script: () => import('./routes/error/index.js'),
-  },
+  // TODO: Enable these routes when needed or remove them entirely
+  // '/waiting-room': {
+  //   html: () => import('./routes/waiting-room/index.html?raw'),
+  //   css: () => import('./routes/waiting-room/index.css?inline'),
+  //   script: () => import('./routes/waiting-room.notinuse/index.js'),
+  // },
+  // '/error': {
+  //   html: () => import('./routes/error/index.html?raw'),
+  //   css: () => import('./routes/error/index.css?inline'),
+  //   script: () => import('./routes/error.notinuse/index.js'),
+  // },
 };
 
 export const dynamicRoutes = [
-  {
-    pattern: /^\/info\/(?<id>[^/]+)$/,
-    html: () => import('./routes/info[id]/index.html?raw'),
-    css: () => import('./routes/info[id]/index.css?inline'),
-    script: () => import('./routes/info[id]/index.js'),
-  },
   {
     pattern: /^\/user\/(?<id>[^/]+)$/,
     html: () => import('./routes/user[id]/index.html?raw'),
     css: () => import('./routes/user[id]/index.css?inline'),
     script: () => import('./routes/user[id]/index.js'),
+  },
+  // Tournament round route MUST come before tournament detail route
+  // because /tournament/:tournamentId/round/:roundId is more specific
+  {
+    pattern: /^\/tournament\/(?<tournamentId>[^/]+)\/round\/(?<roundId>[^/]+)$/,
+    html: () => import('./routes/round[roundId]/index.html?raw'),
+    css: () => import('./routes/round[roundId]/index.css?inline'),
+    script: () => import('./routes/round[roundId]/index.js'),
   },
   {
     pattern: /^\/tournament\/(?<id>[^/]+)$/,

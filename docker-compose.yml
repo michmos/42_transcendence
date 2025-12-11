@@ -1,0 +1,141 @@
+services:
+  builder-frontend:
+    container_name: builder-frontend
+    labels:
+      description: "Frontend Application Builder"
+    volumes:
+      - ./shared/public-data/frontend:/www
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    restart: on-failure
+
+  database-creator:
+    container_name: database-creator
+    labels:
+      description: "Database Creator Service"
+    build:
+      context: .
+      dockerfile: services/database-creator/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - ./shared/private-data/db:/data/db:rw
+    networks:
+      - backend-network
+    restart: on-failure
+
+  frontend:
+    container_name: frontend
+    labels:
+      description: "Nginx Static File Server for Frontend Application"
+    build:
+      context: ./services/nginx-frontend
+    volumes:
+      - ./shared/public-data/frontend:/usr/share/nginx/html:ro
+    networks:
+      - backend-network
+    restart: unless-stopped
+    depends_on:
+      - builder-frontend
+      - database-creator
+      - cdn
+      - api
+      - socket
+
+  cdn:
+    container_name: cdn
+    labels:
+      description: "Nginx Static File Server for CDN"
+    build:
+      context: ./services/nginx-cdn
+    volumes:
+      - ./shared/public-data/cdn:/usr/share/nginx/html:ro
+    networks:
+      - backend-network
+    restart: unless-stopped
+
+  api:
+    container_name: api
+    labels:
+      description: "Fastify API Service"
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+      args:
+        CORS_URL: ${CORS_URL}
+        DATABASE_URL: ${DATABASE_URL}
+        SOCKET_SERVER: ${SOCKET_SERVER}
+        CDN_PATH: ${CDN_PATH}
+        ADMIN_API_KEY: ${ADMIN_API_KEY}
+        GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+        FORTYTWO_CLIENT_ID: ${FORTYTWO_CLIENT_ID}
+        FORTYTWO_CLIENT_SECRET: ${FORTYTWO_CLIENT_SECRET}
+        GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+        GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+        REDIRECT_URL: ${REDIRECT_URL}
+        JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - ./shared/private-data/db:/data/db:rw
+      - ./shared/public-data/cdn:/data/cdn:rw
+    networks:
+      - backend-network
+    restart: unless-stopped
+    depends_on:
+      - database-creator
+
+  socket:
+    container_name: socket
+    labels:
+      description: "Fastify Socket Service"
+    build:
+      context: .
+      dockerfile: ./apps/socket/Dockerfile
+      args:
+        DATABASE_URL: file:/data/db/sqlite-database.db
+        API_SERVER: ${API_SERVER}
+        ADMIN_API_KEY: ${ADMIN_API_KEY}
+    volumes:
+      - ./shared/private-data/db:/data/db:rw
+    networks:
+      - backend-network
+    restart: unless-stopped
+    depends_on:
+      - database-creator
+      - api
+
+  nginx-proxy:
+    container_name: nginx-proxy
+    labels:
+      description: "Nginx Proxy for Web Application"
+    ports:
+      - "8443:443"
+    networks:
+      - backend-network
+      - public-network
+    build:
+      context: ./services/nginx-proxy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - cdn
+      - api
+      - socket
+
+  cloudflare-tunnel:
+    container_name: cloudflare-tunnel
+    labels:
+      description: "Cloudflare Tunnel Service"
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - public-network
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+networks:
+  backend-network:
+    driver: bridge
+  public-network:
+    driver: bridge

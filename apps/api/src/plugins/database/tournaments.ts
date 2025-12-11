@@ -1,4 +1,6 @@
 import Database from 'db';
+import { type TournamentRoundResponse } from 'types';
+
 import type {
   Match,
   Tournament,
@@ -10,19 +12,9 @@ export async function createTournament(data: {
   tournamentName: string;
   minPlayers: number;
   maxPlayers: number;
-  userUuid: string;
-  lockTime?: number;
-  gameTime?: number;
 }): Promise<Tournament> {
-  const { userUuid, ...rest } = data;
-
   return Database.tournament.create({
-    data: {
-      ...rest,
-      participants: {
-        connect: { uuid: userUuid },
-      },
-    },
+    data,
   });
 }
 
@@ -37,26 +29,86 @@ export async function updateTournament(
 
 export async function addUserToTournament(
   userId: string,
-  tournamentId: string
+  tournamentId: string,
+  alias: string
 ): Promise<Tournament> {
   return Database.$transaction(async (tx) => {
     const user = await tx.user.findFirst({
       where: {
         uuid: userId,
-        tournaments: { some: { uuid: tournamentId } },
+        tournaments: { some: { tournamentId } },
       },
     });
-    const incrementValue = user ? 0 : 1;
-    return tx.tournament.update({
-      where: { uuid: tournamentId },
+    if (user) {
+      return tx.tournament.findFirstOrThrow({ where: { uuid: tournamentId } });
+    }
+    // create participation
+    await tx.tournamentParticipations.create({
       data: {
-        playerCount: { increment: incrementValue },
-        participants: {
+        alias,
+        tournament: {
+          connect: { uuid: tournamentId },
+        },
+        user: {
           connect: { uuid: userId },
         },
       },
     });
+    // update playerCount
+    return tx.tournament.update({
+      where: { uuid: tournamentId },
+      data: {
+        playerCount: { increment: 1 },
+      },
+    });
   });
+}
+
+export async function removeUserFromTournament(
+  userId: string,
+  tournamentId: string
+): Promise<Tournament> {
+  return Database.$transaction(async (tx) => {
+    const user = await tx.tournamentParticipations.findFirst({
+      where: {
+        userId,
+        tournamentId,
+      },
+    });
+    if (!user) {
+      return tx.tournament.findFirstOrThrow({ where: { uuid: tournamentId } });
+    }
+    await tx.tournamentParticipations.delete({
+      where: {
+        tournamentId_userId: {
+          tournamentId,
+          userId,
+        },
+      },
+    });
+    return tx.tournament.update({
+      where: { uuid: tournamentId },
+      data: {
+        playerCount: { decrement: 1 },
+      },
+    });
+  });
+}
+
+export async function getUserAlias(userId: string, tournamentId: string) {
+  return (
+    await Database.tournamentParticipations.findUniqueOrThrow({
+      where: {
+        tournamentId_userId: {
+          tournamentId,
+          userId,
+        },
+      },
+      select: {
+        alias: true,
+      },
+    })
+  ).alias;
 }
 
 export async function getAllTournaments(): Promise<Tournament[]> {
@@ -67,10 +119,37 @@ export async function getTournament(uuid: string): Promise<Tournament | null> {
   return Database.tournament.findUnique({ where: { uuid } });
 }
 
+export async function getTournamentByRound(
+  roundId: string
+): Promise<Tournament> {
+  const tournamentRound = await Database.tournamentRound.findUniqueOrThrow({
+    where: {
+      uuid: roundId,
+    },
+  });
+  return await Database.tournament.findUniqueOrThrow({
+    where: { uuid: tournamentRound.tournamentId },
+  });
+}
+
 export async function getTournamentsByStatus(
   status: status
 ): Promise<Tournament[]> {
   return Database.tournament.findMany({ where: { status } });
+}
+
+export async function getTournamentsByParticipant(
+  uuid: string,
+  status?: status
+): Promise<Tournament[]> {
+  return Database.tournament.findMany({
+    where: {
+      participants: {
+        some: { userId: uuid },
+      },
+      ...(status && { status }),
+    },
+  });
 }
 
 // delete a tournament including all tournament rounds (not including the matches)
@@ -92,7 +171,7 @@ export async function removeAllTournaments(): Promise<void> {
 export async function createTournamentRound(
   tournamentId: string,
   index: number,
-  matches: Partial<Match>[]
+  matches: Array<Partial<Match>>
 ): Promise<TournamentRound | null> {
   // needs to be transaction for operations to be atomic
   return await Database.$transaction(async (tx) => {
@@ -139,10 +218,40 @@ export async function updateTournamentRound(
     uuid: string;
   }
 ): Promise<TournamentRound> {
-  return Database.tournamentRound.update({
+  const response = await Database.tournamentRound.update({
     where: { uuid: round.uuid },
     data: round,
   });
+  if (round.status === 'finished') {
+    // check whether all rounds finished
+    const tournamentId = response.tournamentId;
+    const unfinishedRounds = await Database.tournamentRound.findFirst({
+      where: {
+        tournamentId,
+        status: {
+          not: 'finished',
+        },
+      },
+    });
+    if (!unfinishedRounds) {
+      //update status
+      await updateTournament({
+        uuid: tournamentId,
+        status: 'finished',
+      });
+    } else {
+      // update currentRound property
+      await Database.tournament.update({
+        where: { uuid: tournamentId },
+        data: {
+          currentRound: {
+            increment: 1,
+          },
+        },
+      });
+    }
+  }
+  return response;
 }
 
 export async function getTournamentRounds(
@@ -155,38 +264,33 @@ export async function getTournamentRounds(
 }
 
 export async function getTournamentRound(
-  uuid: string
-): Promise<TournamentRound | null>;
+  roundId: string
+): Promise<TournamentRoundResponse | null>;
 export async function getTournamentRound(
   tournamentId: string,
   index: number
-): Promise<TournamentRound | null>;
+): Promise<TournamentRoundResponse | null>;
 export async function getTournamentRound(
-  a: string,
-  b?: number
-): Promise<TournamentRound | null> {
-  if (b !== undefined) {
-    return Database.tournamentRound.findFirst({
-      where: {
-        tournamentId: a,
-        index: b,
+  arg1: string,
+  arg2?: number
+): Promise<TournamentRoundResponse | null> {
+  return Database.tournamentRound.findFirst({
+    where: {
+      ...(arg2 !== undefined && { tournamentId: arg1, index: arg2 }),
+      ...(arg2 === undefined && { uuid: arg1 }),
+    },
+    select: {
+      uuid: true,
+      index: true,
+      status: true,
+      matches: {
+        select: { uuid: true },
       },
-      include: {
-        matches: true,
-      },
-    });
-  }
-  return Database.tournamentRound.findUnique({
-    where: { uuid: a },
-    include: {
-      matches: true,
     },
   });
 }
 
-export async function getCurrentTournamentRound(
-  tournamentId: string
-): Promise<TournamentRound | null> {
+export async function getCurrentTournamentRound(tournamentId: string) {
   const tournament = await Database.tournament.findUnique({
     where: { uuid: tournamentId },
   });

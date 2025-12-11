@@ -1,11 +1,34 @@
 {
-  "extends": "../../tsconfig.json",
+  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
+    // File Layout
     "rootDir": "./src",
     "outDir": "./dist",
+
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "nodenext",
+    "target": "ES2020",
+    "types": [],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+
+    // Other Outputs
+    "sourceMap": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Recommended Options
+    "strict": true,
+    "jsx": "react-jsx",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "build", "out", "node_modules"]
 }

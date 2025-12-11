@@ -1,45 +1,21 @@
-import {
-  type Tournament,
-  status as statusEnum,
-} from 'db/generated/client/index.js';
-import { getUuid } from '../../plugins/auth/utils.js';
-import Fastify, { type FastifyInstance } from 'fastify';
-import * as schemas from './validationSchemas.js';
+import { env } from '../../env.js';
 
-export async function isOpenTournament(
-  uuid: string,
-  app: FastifyInstance,
-  reply: Fastify.FastifyReply
-) {
-  // is existing tournament
-  const tournament: Tournament | null = await app.db.getTournament(uuid);
-  if (!tournament) {
-    reply.status(404).send({
-      error: `Tournament with ${uuid} does not exist`,
+export async function messageSocketServer(endpoint: string, data: unknown) {
+  let response;
+  try {
+    response = await fetch(`${env.SOCKET_SERVER}/${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ADMIN_API_KEY,
+      },
+      body: JSON.stringify(data),
     });
-    return false;
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
+  } catch (error) {
+    console.error('Fetch to socket server failed:', (error as Error).message);
   }
-  // is open for joining
-  if (tournament.status !== statusEnum.outstanding) {
-    reply.status(422).send({
-      error: `Tournament cannot be accessed: status: ${tournament.status}`,
-    });
-    return false;
-  }
-  return true;
-}
-
-export async function isParticipant(
-  request: Fastify.FastifyRequest,
-  reply: Fastify.FastifyReply,
-  app: FastifyInstance
-) {
-  const uuid = (request.params as schemas.getTournamentRound).uuid;
-  if (!(await app.db.participatesInTournament(getUuid(request), uuid))) {
-    reply
-      .status(403)
-      .send({ error: `User is not participating in this tournament` });
-    return false;
-  }
-  return true;
+  return response ?? null;
 }

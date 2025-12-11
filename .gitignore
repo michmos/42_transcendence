@@ -10,4 +10,5 @@ package-lock.json
 *secrets*
 *subject*
 AGENTS.md
-packages/database/dev.db
+shared/
+packages/database/db.sqlite

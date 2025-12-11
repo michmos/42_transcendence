@@ -1,0 +1,1340 @@
+# OpenAPI Specification - Team Introduction
+#
+# What is OpenAPI?
+# OpenAPI (formerly Swagger) is a standard way to document REST APIs. It describes:
+# - What endpoints exist (/users, /status, etc.)
+# - What HTTP methods they support (GET, POST, PUT, DELETE)
+# - What data they expect and return
+# - Examples and validation rules
+#
+# Main building blocks:
+# 1. info: Basic API information (title, version, description)
+# 2. servers: Where the API runs (localhost, production, etc.)
+# 3. paths: Your API endpoints and their operations
+# 4. components/schemas: Reusable data structures (User, Game, etc.)
+# 5. parameters: Query params (?page=1) and path params (/users/{id})
+# 6. requestBody: JSON data sent to POST/PUT endpoints
+# 7. responses: What the API returns (success/error responses)
+#
+# Benefits:
+# - Interactive documentation (try endpoints in the browser)
+# - Code generation (client SDKs, server stubs)
+# - API testing and validation
+# - Team communication and onboarding
+#
+# View this spec at: http://localhost:3002/documentation
+
+openapi: 3.0.0
+info:
+  description: '42 Transcendence API'
+  version: '1.0.0'
+  title: '42 Transcendence API'
+servers:
+  - url: http://localhost:5173/api
+    description: Application Endpoint
+
+tags:
+  - name: Health
+    description: Server status endpoints
+  - name: Users
+    description: User management
+  - name: Tournament
+    description: Tournament management
+  - name: Match
+    description: Match management
+  - name: Authentication
+    description: OAuth authentication endpoints
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    x-api-key:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+
+  schemas:
+    Status:
+      type: string
+      enum: [outstanding, ongoing, finished, canceled]
+
+    FriendshipState:
+      type: string
+      enum: [REQUESTED, ACCEPTED, REJECTED]
+
+    User:
+      type: object
+      description: Full user data
+      required:
+        - nickname
+      properties:
+        uuid:
+          description: Unique encrypted user ID
+          type: string
+          example: 42
+        createdAt:
+          type: string
+          example: '2025-11-13T12:49:12.981Z'
+        updatedAt:
+          type: string
+          example: '2025-11-13T12:49:12.981Z'
+        email:
+          type: string
+          example: 'example@example.com'
+        email_verified:
+          type: boolean
+          example: true
+        avatar:
+          type: string
+          example: 'https://avatar.example.com/player42.png'
+        fullName:
+          type: string
+          example: 'Billy bibbob'
+        nickname:
+          type: string
+          example: 'Billzor'
+        role:
+          type: string
+          enum: [MEMBER, ADMIN]
+          example: 'MEMBER'
+        gamesPlayed:
+          type: integer
+          example: 10
+        gamesWon:
+          type: integer
+          example: 5
+        tournamentsPlayed:
+          type: integer
+          example: 2
+        tournamentsWon:
+          type: integer
+          example: 1
+
+    CleanedUser:
+      type: object
+      description: User's own data without unnecessary data
+      required:
+        - nickname
+      properties:
+        createdAt:
+          type: string
+          example: '2025-11-13T12:49:12.981Z'
+        email:
+          type: string
+          example: 'example@example.com'
+        email_verified:
+          type: boolean
+          example: true
+        avatar:
+          type: string
+          example: 'https://avatar.example.com/player42.png'
+        fullName:
+          type: string
+          example: 'Billy bibbob'
+        nickname:
+          type: string
+          example: 'Billzor'
+        role:
+          type: string
+          enum: [MEMBER, ADMIN]
+          example: 'MEMBER'
+        gamesPlayed:
+          type: integer
+          example: 10
+        gamesWon:
+          type: integer
+          example: 5
+        tournamentsPlayed:
+          type: integer
+          example: 2
+        tournamentsWon:
+          type: integer
+          example: 1
+
+    OtherUser:
+      type: object
+      description: Only contains the necessary information from another user
+      required:
+        - nickname
+      properties:
+        nickname:
+          type: string
+          example: 'Billy'
+        avatar:
+          type: string
+          example: 'https://avatar.example.com/player42.png'
+        gamesPlayed:
+          type: integer
+          example: 10
+        gamesWon:
+          type: integer
+          example: 5
+        tournamentsPlayed:
+          type: integer
+          example: 2
+        tournamentsWon:
+          type: integer
+          example: 1
+
+    Friend:
+      type: object
+      description: Schema used for looking up friends
+      properties:
+        nickname:
+          type: string
+          example: 'Bobby'
+        state:
+          type: string
+          enum: [ACCEPTED, REQUESTED]
+        avatarUrl:
+          type: string
+          format: uri
+          example: 'https://example.com/uploads/avatars/billy.png'
+      required:
+        - nickname
+        - state
+        - avatarUrl
+
+    Provider:
+      type: object
+      properties:
+        name:
+          type: string
+          example: '42'
+        buttonUri:
+          type: string
+          example: 'api/auth/login?provider=42'
+
+    Session:
+      type: object
+      properties:
+        provider:
+          type: string
+          example: '42'
+        user:
+          type: object
+        uuid:
+          type: string
+          example: 'user-uuid-123'
+        accessToken:
+          type: string
+          example: 'access-token-123'
+        expiresAt:
+          type: integer
+          example: 1696176635492
+
+    Tournament:
+      type: object
+      description: all times in minutes
+      required:
+        - uuid
+        - tournamentName
+        - maxPlayers
+        - minPlayers
+        - playerCount
+        - status
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        tournamentName:
+          type: string
+          example: 'SomeTournamentName'
+        maxPlayers:
+          type: integer
+          example: 8
+        minPlayers:
+          type: integer
+          example: 4
+        playerCount:
+          type: integer
+          example: 5
+        winner:
+          $ref: '#/components/schemas/User'
+        status:
+          $ref: '#/components/schemas/Status'
+        currentRound:
+          type: integer
+          example: 0
+        numberOfRounds:
+          type: integer
+          example: 4
+
+    TournamentRound:
+      type: object
+      required:
+        - index
+        - matches
+        - status
+      properties:
+        index:
+          type: integer
+          example: 0
+        status:
+          $ref: '#/components/schemas/Status'
+        matches:
+          type: array
+          items:
+            type: object
+            properties:
+              uuid:
+                type: string
+                format: uuid
+
+    CleanedMatch:
+      type: object
+      required:
+        - uuid
+        - status
+        - score1
+        - score2
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/Status'
+        player1Name:
+          type: string
+          example: 'someName'
+        player2Name:
+          type: string
+          example: 'someName'
+        score1:
+          type: integer
+          example: 4
+        score2:
+          type: integer
+          example: 5
+
+    Match:
+      type: object
+      required:
+        - uuid
+        - status
+        - score1
+        - score2
+        - player1Id
+        - player2Id
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/Status'
+        score1:
+          type: integer
+          example: 4
+        score2:
+          type: integer
+          example: 5
+        player1Id:
+          type: string
+          format: uuid
+        player2Id:
+          type: string
+          format: uuid
+        winnerId:
+          type: string
+          format: uuid
+        tournamentRoundId:
+          type: string
+          format: uuid
+
+    CreateTournamentInput:
+      type: object
+      required:
+        - tournamentName
+        - maxPlayers
+        - minPlayers
+      properties:
+        tournamentName:
+          type: string
+          example: 'SomeTournamentName'
+        maxPlayers:
+          type: integer
+          example: 8
+        minPlayers:
+          type: integer
+          example: 4
+
+    Error:
+      type: object
+      required:
+        - description
+      properties:
+        description:
+          type: string
+          example: 'some meaningful error message'
+
+  parameters:
+    uuid:
+      name: uuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+paths:
+  /tournaments:
+    get:
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: filter for status
+          schema:
+            $ref: '#/components/schemas/Status'
+
+      tags:
+        - Tournament
+      summary: Get tournaments (by status)
+      description: |
+        The tournament schema is public information, so we have a public endpoint
+        to get all tournaments with the possibility to filter by status
+      responses:
+        '200':
+          description: List of tournaments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+        '400':
+          description: Bad request - e.g. wrong status provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create new tournament
+      description: |
+        Create a new tournament
+
+        JWT used to identify user
+      security:
+        - bearerAuth: []
+        - x-api-key: []
+      tags:
+        - Tournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTournamentInput'
+
+      responses:
+        '201':
+          description: Tournament added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '400':
+          description: Bad request - tournament couldn't be created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    get:
+      tags:
+        - Tournament
+      summary: Get tournament by uuid
+      description: Retrieve a tournament by uuid
+      responses:
+        '200':
+          description: Tournament retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - Tournament
+      summary: Update tournament
+      description: Update a tournament as admin
+      responses:
+        '200':
+          description: Tournament updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}/start:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    patch:
+      tags:
+        - Tournament
+      summary: Start tournament
+      description: |
+        Start a tournament as participant
+
+        Tournament must have enough players to start
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tournament started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Not enough players to start tournament
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}/users:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    post:
+      tags:
+        - Tournament
+      summary: Add user to tournament
+      description: |
+        JWT required to authenticate and identify user
+
+        Admin users can put a uuid in the body to add this user instead
+      security:
+        - bearerAuth: []
+        - x-api-key: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - alias
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+                alias:
+                  type: string
+
+      responses:
+        '200':
+          description: User added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already in tournament or alias taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Tournament full, locked or canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Tournament
+      summary: Remove user from tournament
+      description: |
+        JWT required to authenticate and identify user - you can only rmv yourself
+
+        Admin users can also remove other users from a tournament
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+
+      responses:
+        '200':
+          description: User removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Tournament already locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tournaments/{uuid}/rounds/{roundIdx}:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+      - name: roundIdx
+        in: path
+        required: true
+        description: tournament round
+        schema:
+          type: integer
+    get:
+      tags:
+        - Tournament
+      summary: Get tournament round data
+      description: |
+        Get all the data about a specific tournament round including the match data.
+
+        This step requires auth and only succeeds for admins or participants of the tournament.
+      security:
+        - bearerAuth: []
+        - x-api-key: []
+      responses:
+        '200':
+          description: Tournament round data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentRound'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Tournament or round not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/providers:
+    get:
+      tags:
+        - Authentication
+      summary: Get available OAuth providers
+      description: Retrieve a list of all configured OAuth providers
+      responses:
+        '200':
+          description: List of available providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Provider'
+
+  /auth/login:
+    get:
+      tags:
+        - Authentication
+      summary: Initiate OAuth login
+      description: |
+        Redirect to OAuth provider for authentication.
+
+        **⚠️ This endpoint must be accessed directly in the browser, not via AJAX/fetch.**
+
+        **Do not use the "Try it out" button - it will fail due to CORS restrictions.**
+
+        Instead, navigate to: `${HOSTNAME}/api/auth/login?provider=42`
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+          example: '42'
+      responses:
+        '302':
+          description: Redirect to OAuth provider
+        '400':
+          description: Unknown provider or invalid request
+
+  /auth/callback:
+    get:
+      tags:
+        - Authentication
+      summary: OAuth callback endpoint
+      description: Handle OAuth provider callback and create session
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to success URL with session cookie set
+        '400':
+          description: Invalid or expired state/code
+
+  /auth/logout:
+    get:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Clear session cookie and logout user
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Logged out successfully'
+
+  /auth/session:
+    get:
+      tags:
+        - Authentication
+      summary: Get current session
+      description: Get current user session information, refreshing tokens if needed
+      responses:
+        '200':
+          description: Current session data or empty object if not logged in
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Session'
+                  - type: object
+                    additionalProperties: false
+                    description: Empty object returned
+
+  /user:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      description: |
+        Retrieve a list of all users.
+
+        **Requires authentication via JWT token in the Authorization header.**
+        **OR Requires API key in the X-API-KEY header.**
+
+        **Only users with the ADMIN role can access this endpoint.**
+      security:
+        - bearerAuth: []
+        - x-api-key: []
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden. User does not have ADMIN role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/me/tournaments:
+    get:
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: filter for status
+          schema:
+            $ref: '#/components/schemas/Status'
+      tags:
+        - Users
+        - Tournaments
+      summary: Get all tournaments of a user
+      security:
+        - bearerAuth: []
+        - x-api-key: []
+      responses:
+        '200':
+          description: List of tournaments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+        '401':
+          description: Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ----------------   PAGE: User profile
+  /user/me:
+    get:
+      summary: Endpoint for user's profile page
+      description: is for user's own data, as well as accepted friends and received friendship requests, for their profile page. This API endpoint is called on loading the profile page, when logged in.
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: a JSON object containing the user's data object, and the friends object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  CleanedUser:
+                    $ref: '#/components/schemas/CleanedUser'
+                  userFriends:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Friend'
+                required:
+                  - CleanedUser
+                  - userFriends
+
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/me/nickname:
+    patch:
+      summary: Set a different nickname
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+              required:
+                - nickname
+      responses:
+        '200':
+          description: When setting a different nickname
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nickname:
+                    type: string
+                    example: Bobby
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/me/avatar:
+    post:
+      summary: Set a different avatar
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: New avatar image
+      responses:
+        '200':
+          description: |
+            File was successfully uploaded and replaced
+
+            Or the payload was empty, and thus we replaced the old image with our base avatar image
+          content:
+            application/json:
+              schema:
+                type: string
+                example: https://example.com/uploads/avatars/user123.png
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ----------------   PAGE: Other user's profile
+  /user/:nickname:
+    get:
+      summary: get all relevant data of other user whose profile you're visiting, as well as your friendship state with them (NONE (no record found), REQUESTED, ACCEPTED, DENIED)
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: nickname
+          in: path
+          required: true
+          description: User's unique nickname
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
+      responses:
+        '200':
+          description: Successfully got user data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtherUser'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /friends/:nickname:
+    post: # Maybe make this a separate API link
+      summary: Add other user as a friend
+      description: If a logged-in user is on another user's profile, they need to be able to add that person as a friend if there is not already a friendship state between their accounts
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: nickname
+          required: true
+          description: The nickname of the other user whose request you're accepting or rejecting
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
+      responses:
+        '200':
+          description: User has been requested to be friends
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Friendship requested
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Friendship or pending request already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch: # Maybe make this a separate API link
+      summary: Accept or deny friendship request from user whose profile you're visiting
+      description: If you're going to the profile of a user that has sent you a friendship request. You can accept or deny their friendship request on their profile page through a (green) checkmark and a (red) cross.
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: nickname
+          required: true
+          description: The nickname of the other user whose request you're accepting or rejecting
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
+      requestBody:
+        description: Needs the nickname of the other user to modify the friendship state in the Friends table.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accept:
+                  type: boolean
+                  description: true = accept, false = deny
+                  example: true
+              required:
+                - nickname
+                - accept
+      responses:
+        '200':
+          description: Friendship successfully accepted or denied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Friendship request accepted
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete: # Maybe make this a separate API link
+      summary: Delete user from friends
+      description: If a logged-in user is on another user's profile, and they're friends, the user can delete their friendship state/record
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: nickname
+          required: true
+          description: The nickname of the other user whose request you're accepting or rejecting
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 30
+            pattern: '^[a-zA-Z0-9_-]+$'
+          example: Billy
+      responses:
+        '200':
+          description: Friendship record has been deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Friend delete
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /match:
+    post:
+      tags:
+        - Match
+      summary: Create a new match
+      description: |
+        only admins can post a new match
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/Status'
+                player1Id:
+                  type: string
+                  format: uuid
+                player2Id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Match created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          description: Bad request - e.g. wrong status provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Match doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /match/{uuid}:
+    parameters:
+      - $ref: '#/components/parameters/uuid'
+    get:
+      tags:
+        - Match
+      summary: Get match by uuid
+      description: |
+        Retrieve a match by uuid
+      responses:
+        '200':
+          description: Match retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanedMatch'
+        '404':
+          description: Match doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - Match
+      summary: update match data
+      description: |
+        only admins can patch a match
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/Status'
+                winnerId:
+                  type: string
+                  format: uuid
+                score1:
+                  type: number
+                score2:
+                  type: number
+      responses:
+        '200':
+          description: Match updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '400':
+          description: Bad request - e.g. wrong status provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Match doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

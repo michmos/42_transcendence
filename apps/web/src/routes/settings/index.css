@@ -1,11 +1,5 @@
-body {
-  background: linear-gradient(135deg, #0f766e 0%, #1f2937 100%) !important;
+/* Settings page - purple gradient background only */
+/* .settings-page {
   min-height: 100vh;
-}
-
-.settings-page {
-  min-height: 100vh;
-  padding: 24px;
   color: white;
-}
-
+} */

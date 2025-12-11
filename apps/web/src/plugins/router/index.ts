@@ -3,7 +3,9 @@ import { routes, dynamicRoutes } from '../../routes.js';
 interface RouteConfig {
   html: () => Promise<{ default: string } | string>;
   css: () => Promise<{ default: string } | string>;
-  script: () => Promise<{ default?: () => void }>;
+  script: () => Promise<
+    Record<string, unknown> & { default?: () => void | Promise<void> }
+  >;
   pattern?: RegExp;
 }
 
@@ -23,7 +25,9 @@ class SimpleRouter {
 
   private setupNavigation() {
     // Handle browser back/forward
-    window.addEventListener('popstate', () => this.render());
+    window.addEventListener('popstate', () => {
+      void this.render();
+    });
 
     // Handle link clicks
     document.addEventListener('click', (e) => {
@@ -39,7 +43,7 @@ class SimpleRouter {
 
   navigate(path: string) {
     window.history.pushState({}, '', path);
-    this.render();
+    void this.render();
   }
 
   private matchRoute(path: string): RouteMatch | null {
@@ -108,7 +112,7 @@ class SimpleRouter {
         (
           window as Window & { routeParams: Record<string, string> }
         ).routeParams = match.params;
-        scriptModule.default();
+        await scriptModule.default();
       }
     } catch (error) {
       console.error('Error loading route:', error);

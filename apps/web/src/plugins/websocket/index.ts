@@ -1,6 +1,8 @@
+import { type SocketMessage } from '../../types/SocketMessage.js';
+
 class Socket {
   private socket: WebSocket | null = null;
-  private hooks: ((event: MessageEvent) => void)[] = [];
+  private hooks: Array<(_event: MessageEvent) => void> = [];
 
   constructor(url?: string) {
     console.log('📦 Initializing WebSocket connection...');
@@ -10,8 +12,11 @@ class Socket {
     return this;
   }
 
-  public registerWebSocketHook(hook: (event: MessageEvent) => void) {
+  public registerWebSocketHook(hook: (_event: MessageEvent) => void) {
     this.hooks.push(hook);
+    return () => {
+      this.hooks = this.hooks.filter((h) => h !== hook);
+    };
   }
 
   private executeWebSocketCallbacks(event: MessageEvent) {
@@ -39,12 +44,39 @@ class Socket {
     };
   }
 
-  public sendMessage(message: string) {
+  public send(message: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(message);
     } else {
       console.error('WebSocket is not open. Unable to send message:', message);
     }
+  }
+
+  public joinRoom(room: string, data?: object) {
+    const message: SocketMessage = {
+      type: 'join-room',
+      room: room,
+      ...(data && { data: data }),
+    };
+    this.send(JSON.stringify(message));
+  }
+
+  public leaveRoom(room: string, data?: object) {
+    const message: SocketMessage = {
+      type: 'leave-room',
+      room: room,
+      ...(data && { data: data }),
+    };
+    this.send(JSON.stringify(message));
+  }
+
+  public sendMessage(room: string, data: object) {
+    const socketMessage: SocketMessage = {
+      type: 'message',
+      room: room,
+      ...(data && { data: data }),
+    };
+    this.send(JSON.stringify(socketMessage));
   }
 
   public isConnected(): boolean {
