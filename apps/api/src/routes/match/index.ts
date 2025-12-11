@@ -119,7 +119,7 @@ export default function (app: FastifyInstance): void {
       try {
         const match = await app.db.getMatch(request.params.uuid);
         if (!match) {
-          return reply.status(404).send('Match not found');
+          return reply.status(404).send({ error: 'Match not found' });
         }
 
         const updatedMatch = await updateMatch(app, match, request.body);
