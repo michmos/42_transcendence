@@ -26,6 +26,13 @@ export function getIsLocalGame(): boolean {
   return isLocalGame;
 }
 
+// Extend Window interface for SPA navigation
+declare global {
+  interface Window {
+    navigateToRoute?: (href: string) => void;
+  }
+}
+
 // Match data interface for MatchCard component
 interface MatchData {
   playerName: string;
