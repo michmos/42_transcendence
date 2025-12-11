@@ -24,13 +24,14 @@ COPY apps/socket/ ./apps/socket/
 # Install all dependencies (including shared packages)
 RUN pnpm install
 
-# Build shared packages first
-RUN pnpm run --filter="db" build
-RUN pnpm run --filter="types" build
-
-# Generate Prisma client for the Linux platform
+# Generate Prisma client for the Linux platform (must be done before building db package)
 WORKDIR /workspace/packages/database
 RUN pnpm exec prisma generate
+
+# Build shared packages
+WORKDIR /workspace
+RUN pnpm run --filter="db" build
+RUN pnpm run --filter="types" build
 
 # Set working directory to Socket app
 WORKDIR /workspace/apps/socket
@@ -60,10 +61,6 @@ WORKDIR /app
 COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml ./
 COPY --from=build-socket /workspace/packages/ ./packages/
 COPY --from=build-socket /workspace/apps/socket/package.json ./apps/socket/
-
-# # Copy schema.prisma and generated client from build stage (before installing deps)
-COPY --from=build-socket /workspace/packages/database/schema.prisma ./packages/database/
-COPY --from=build-socket /workspace/packages/database/generated/ ./packages/database/generated/
 
 # # Install production dependencies only  
 RUN pnpm install --prod --no-frozen-lockfile
