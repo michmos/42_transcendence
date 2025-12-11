@@ -98,16 +98,12 @@ COPY --from=build-api /workspace/package.json /workspace/pnpm-workspace.yaml ./
 COPY --from=build-api /workspace/packages/ ./packages/
 COPY --from=build-api /workspace/apps/api/package.json ./apps/api/
 
-# # Install production dependencies only  
-RUN pnpm install --prod --no-frozen-lockfile
-
-# # Ensure Prisma client is generated for the correct platform
-WORKDIR /app/packages/database
-RUN pnpm exec prisma generate
-
-# # Copy schema.prisma and generated client from build stage
+# # Copy schema.prisma and generated client from build stage (before installing deps)
 COPY --from=build-api /workspace/packages/database/schema.prisma ./packages/database/
 COPY --from=build-api /workspace/packages/database/generated/ ./packages/database/generated/
+
+# # Install production dependencies only  
+RUN pnpm install --prod --no-frozen-lockfile
 
 # # Set working directory to API app
 WORKDIR /app/apps/api

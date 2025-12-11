@@ -61,12 +61,12 @@ COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml 
 COPY --from=build-socket /workspace/packages/ ./packages/
 COPY --from=build-socket /workspace/apps/socket/package.json ./apps/socket/
 
+# # Copy schema.prisma and generated client from build stage (before installing deps)
+COPY --from=build-socket /workspace/packages/database/schema.prisma ./packages/database/
+COPY --from=build-socket /workspace/packages/database/generated/ ./packages/database/generated/
+
 # # Install production dependencies only  
 RUN pnpm install --prod --no-frozen-lockfile
-
-# # Ensure Prisma client is generated for the correct platform
-WORKDIR /app/packages/database
-RUN pnpm exec prisma generate
 
 # # Set working directory to Socket app
 WORKDIR /app/apps/socket
