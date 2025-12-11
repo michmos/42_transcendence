@@ -22,3 +22,21 @@ export async function getPlayerName(
   }
   return user.nickname;
 }
+
+export async function updateMatch(
+  app: FastifyInstance,
+  match: Match,
+  data: Partial<Match>
+) {
+  if (match.tournamentRoundId) {
+    return app.db.updateTournamentMatch({
+      ...data,
+      uuid: match.uuid,
+      tournamentRoundId: match.tournamentRoundId,
+    });
+  }
+  return app.db.updateMatch({
+    ...data,
+    uuid: match.uuid,
+  });
+}

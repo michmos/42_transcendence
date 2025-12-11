@@ -29,12 +29,6 @@ export type { EmptyStateProps } from './EmptyState.js';
 export { Alert } from './Alert.js';
 export type { AlertProps, AlertVariant } from './Alert.js';
 
-export { Table } from './Table.js';
-export type { TableProps, TableColumn } from './Table.js';
-
-export { UserTable } from './UserTable.js';
-export type { UserTableProps } from './UserTable.js';
-
 export { HeaderBar } from './HeaderBar.js';
 export type { HeaderBarProps, HeaderLink } from './HeaderBar.js';
 

@@ -7,18 +7,24 @@ import Fastify, {
 } from 'fastify';
 // import fastifyStatic from '@fastify/static';
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 const app = Fastify({
-  logger: {
-    level: 'error',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
+  logger: isDevelopment
+    ? {
+        level: 'error',
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'HH:MM:ss Z',
+            ignore: 'pid,hostname',
+          },
+        },
+      }
+    : {
+        level: 'error',
       },
-    },
-  },
 });
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);

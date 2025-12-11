@@ -29,5 +29,6 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["dist", "build", "out", "node_modules"]
 }

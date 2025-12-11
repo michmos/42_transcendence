@@ -2,8 +2,8 @@
   "name": "fastify-oauth",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,11 +15,11 @@
     }
   },
   "scripts": {
-    "dep:build": "tsc",
     "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "dep:build": "tsc",
+    "lint": "eslint . ",
+    "lint:fix": "eslint .  --fix",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

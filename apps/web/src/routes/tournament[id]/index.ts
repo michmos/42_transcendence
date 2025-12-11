@@ -9,10 +9,10 @@ import type {
   status,
 } from '../../types/api.js';
 import { showApiError } from '../../utils/api-helpers.js';
-import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { shouldShowNotification } from '../../utils/notification-dedup.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -314,13 +314,13 @@ function showJoinTournamentDialog(
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
-          const currentUser = await UserAPI.getUserBasicInfo();
+          const currentUser = await UserAPI.getMe();
           alias =
             currentUser?.nickname ||
-            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+            `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
         } catch (error) {
           console.error('Error fetching user info:', error);
-          alias = `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+          alias = `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
         }
       }
 
@@ -344,6 +344,7 @@ function showJoinTournamentDialog(
         ) as string[];
         if (!myTournaments.includes(tournamentUuid)) {
           myTournaments.push(tournamentUuid);
+          // TODO This is not working when loggin in on other machines/browsers!!!!
           sessionStorage.setItem(
             'myTournaments',
             JSON.stringify(myTournaments)
@@ -352,6 +353,7 @@ function showJoinTournamentDialog(
 
         // Success - close dialog and reload page to refresh tournament data
         closeDialog();
+        // TODO: Replace with SPA state update
         window.location.reload();
       } catch (error) {
         // Handle errors
@@ -407,7 +409,7 @@ function renderTournamentHeader(
   const hasMinPlayers = tournament.playerCount >= tournament.minPlayers;
 
   const buttonContainer = document.createElement('div');
-  const currentUserId = getCurrentUserId();
+  const currentUserId = window.user?.cleanedUserData.uuid;
 
   // Logic matched with tournaments/index.ts
   if (isParticipant) {
@@ -690,15 +692,16 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
-    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
+    userNickname: userInfo?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
+
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -863,7 +866,7 @@ export default async function initRoute() {
         );
 
         // Check if user is participant for button display
-        const currentUserId = getCurrentUserId();
+        const currentUserId = window.user?.cleanedUserData.uuid;
         let isParticipantRefresh = false;
         if (currentUserId) {
           try {
@@ -1007,7 +1010,7 @@ export default async function initRoute() {
     );
 
     // Check if user is participant for button display
-    const currentUserId = getCurrentUserId();
+    const currentUserId = window.user?.cleanedUserData.uuid;
     let isParticipant = false;
     if (currentUserId) {
       try {

@@ -48,6 +48,10 @@ export default defineConfig(
       '@typescript-eslint/no-invalid-void-type': 'error', // Disallow void in union types
       '@typescript-eslint/prefer-literal-enum-member': 'error', // Require literal values for enums
       '@typescript-eslint/no-extraneous-class': 'error', // Disallow classes with only static members
+      // Unsafe operations
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
 
       // Stylistic rules for consistency
       '@typescript-eslint/consistent-type-definitions': ['error', 'interface'], // Prefer interfaces over types

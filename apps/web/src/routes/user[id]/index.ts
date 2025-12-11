@@ -3,11 +3,12 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI, { type ProfileFriend } from '../../plugins/api/user.js';
 import FriendsAPI from '../../plugins/api/friends.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 export default function initRoute() {
   // Get the nickname from route parameters
   const routeParams = window.routeParams;
-  const nickname = routeParams?.id || '';
+  const nickname = routeParams?.['id'] || '';
 
   if (!nickname) {
     renderError('No user nickname provided');
@@ -43,15 +44,15 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch current user data for navbar
-  const currentUserInfo = await UserAPI.getUserBasicInfo();
+  const currentUserInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: currentUserInfo?.nickname,
-    userAvatar: currentUserInfo?.avatar || undefined,
+    userNickname: currentUserInfo?.nickname || '',
+    userAvatar: getAvatarSrc(currentUserInfo?.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -78,7 +79,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     // Fetch user data
     const userData = await UserAPI.getUserByNickname(nickname);
 
-    if (!userData || !userData.nickname) {
+    if (!userData || !userData['nickname']) {
       renderError('User not found', mainContent);
       return;
     }
@@ -86,7 +87,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     // Check if viewing own profile
     const currentUserProfile = await UserAPI.getUserProfile();
     const isSelf =
-      currentUserProfile?.cleanedUserData.nickname?.toLowerCase() ===
+      currentUserProfile?.cleanedUserData['nickname']?.toLowerCase() ===
       nickname.toLowerCase();
 
     if (isSelf) {
@@ -111,7 +112,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     pageHeader.className = 'mb-8 flex items-center gap-6';
 
     const avatar = userData.avatar || null;
-    const userNickname = userData.nickname || nickname;
+    const userNickname = userData['nickname'] || nickname;
 
     const avatarDisplay = document.createElement('div');
     avatarDisplay.className =
@@ -258,6 +259,7 @@ function createFriendshipActionButton(
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
           // Refresh page to update friendship status
           setTimeout(() => {
+            // TODO: Replace with SPA state update
             window.location.reload();
           }, 1000);
         } catch (error) {
@@ -290,6 +292,7 @@ function createFriendshipActionButton(
           button.className =
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
           setTimeout(() => {
+            // TODO: Replace with SPA state update
             window.location.reload();
           }, 1000);
         } catch (error) {
@@ -325,6 +328,7 @@ function createFriendshipActionButton(
           try {
             await FriendsAPI.acceptFriendRequest(nickname);
             setTimeout(() => {
+              // TODO: Replace with SPA state update
               window.location.reload();
             }, 1000);
           } catch (error) {
@@ -353,6 +357,7 @@ function createFriendshipActionButton(
           try {
             await FriendsAPI.rejectFriendRequest(nickname);
             setTimeout(() => {
+              // TODO: Replace with SPA state update
               window.location.reload();
             }, 1000);
           } catch (error) {

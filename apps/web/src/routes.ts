@@ -1,8 +1,8 @@
 // Route definitions with static imports
 export const routes = {
   '/': {
-    html: () => import('./routes/index.html?raw'),
-    css: () => import('./routes/index.css?inline'),
+    html: () => import('./index.html?raw'),
+    css: () => import('./index.css?inline'),
     script: () => import('./routes/index.js'),
   },
   '/login': {
@@ -30,25 +30,20 @@ export const routes = {
     css: () => import('./routes/settings/index.css?inline'),
     script: () => import('./routes/settings/index.js'),
   },
-  '/waiting-room': {
-    html: () => import('./routes/waiting-room/index.html?raw'),
-    css: () => import('./routes/waiting-room/index.css?inline'),
-    script: () => import('./routes/waiting-room/index.js'),
-  },
-  '/error': {
-    html: () => import('./routes/error/index.html?raw'),
-    css: () => import('./routes/error/index.css?inline'),
-    script: () => import('./routes/error/index.js'),
-  },
+  // TODO: Enable these routes when needed or remove them entirely
+  // '/waiting-room': {
+  //   html: () => import('./routes/waiting-room/index.html?raw'),
+  //   css: () => import('./routes/waiting-room/index.css?inline'),
+  //   script: () => import('./routes/waiting-room.notinuse/index.js'),
+  // },
+  // '/error': {
+  //   html: () => import('./routes/error/index.html?raw'),
+  //   css: () => import('./routes/error/index.css?inline'),
+  //   script: () => import('./routes/error.notinuse/index.js'),
+  // },
 };
 
 export const dynamicRoutes = [
-  {
-    pattern: /^\/info\/(?<id>[^/]+)$/,
-    html: () => import('./routes/info[id]/index.html?raw'),
-    css: () => import('./routes/info[id]/index.css?inline'),
-    script: () => import('./routes/info[id]/index.js'),
-  },
   {
     pattern: /^\/user\/(?<id>[^/]+)$/,
     html: () => import('./routes/user[id]/index.html?raw'),
