@@ -40,12 +40,25 @@ function generateRound(roundRobin: RoundRobin<User>): Array<Partial<Match>> {
     const player1Id = roundRobin.at(start)?.uuid ?? null;
     const player2Id = roundRobin.at(end)?.uuid ?? null;
 
+    if (!player1Id && !player2Id) {
+      continue;
+    }
+
+    let autoForfeit: Partial<Match> = {};
+    if (!player1Id || !player2Id) {
+      // one player is null, auto-forfeit
+      autoForfeit = {
+        score1: !player1Id ? 0 : 10,
+        score2: !player2Id ? 0 : 10,
+        winnerId: player1Id ?? player2Id,
+        status: 'finished' as const,
+      };
+    }
+
     matches.push({
       player1Id,
       player2Id,
-      ...(player1Id === undefined
-        ? { score1: 0, score2: 10, winnerId: player2Id, status: 'finished' }
-        : { score1: 10, score2: 0, winnerId: player1Id, status: 'finished' }),
+      ...autoForfeit,
     });
   }
   return matches;
