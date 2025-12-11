@@ -25,6 +25,7 @@ function initCanvas() {
 export function resetCanvas() {
   canvas = null;
   ctx = null;
+  serverState = { ...initServerState };
 }
 
 export let clientId = localStorage.getItem('transcendenceClientId');
@@ -41,7 +42,7 @@ export let lastServerUpdate = 0;
 export const ballVelocity = { x: 0, y: 0 };
 export const localPaddles = { leftY: 0, rightY: 0 };
 
-export let serverState = {
+const initServerState: ServerState = {
   paddleWidth: 0,
   paddleHeight: 0,
   ballX: 0,
@@ -59,6 +60,7 @@ export let serverState = {
   timeRemaining: 0,
   gameStartTime: 0,
 };
+export let serverState: ServerState = { ...initServerState };
 
 export interface ServerState {
   paddleWidth: number;
