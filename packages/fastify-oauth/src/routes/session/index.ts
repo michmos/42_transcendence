@@ -159,7 +159,7 @@ class SessionManager {
         }
 
         const newSession: SessionCookie = {
-          name: oAuthUser.fullName,
+          fullName: oAuthUser.fullName,
           uuid: oAuthUser.uuid,
           providerName: oAuthUser.providerName,
           refreshToken: accessToken.token.refresh_token as string,

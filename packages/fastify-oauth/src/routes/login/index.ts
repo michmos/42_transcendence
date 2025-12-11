@@ -21,7 +21,7 @@ function generateAuthUrl(
     state: Math.random().toString(36).substring(2, 15),
     ipNumber: ipNumber,
     provider: provider,
-    cli: cli === 'true',
+    cli: true,
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
   };

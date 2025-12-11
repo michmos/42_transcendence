@@ -26,9 +26,9 @@ class Socket {
   public connect(url: string): void {
     this.socket = new WebSocket(url);
 
-    // this.socket.on('message', (data: WebSocket.Data): void => {
-    //   console.log('Received message:', data.toString());
-    // });
+    this.socket.on('message', (data: WebSocket.Data): void => {
+      console.log('Received message:', data.toString());
+    });
 
     this.socket.on('close', (code: number, reason: Buffer): void => {
       console.log(
@@ -58,4 +58,4 @@ class Socket {
   }
 }
 
-export { Socket };
+export { Socket, WebSocket };

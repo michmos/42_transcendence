@@ -10,10 +10,11 @@
     "module": "nodenext",
     "target": "esnext",
     "types": [],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types",
+      "../../../../../packages/types/src/index.js"
+    ],
 
     // Other Outputs
     "sourceMap": true,
@@ -24,14 +25,6 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
 
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
-
     // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
@@ -41,5 +34,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src/types/**/*.d.ts"]
+  "exclude": ["dist", "build", "out", "node_modules"]
 }

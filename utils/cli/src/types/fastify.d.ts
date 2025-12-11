@@ -1,11 +1,12 @@
 import 'fastify';
+import { User } from 'db';
 
 declare module 'fastify' {
   interface FastifyInstance {
     socket: Socket;
-    providers: { name: string; buttonUri: string }[];
+    providers: Array<{ name: string; buttonUri: string }>;
     hostname: string;
-    jwtToken: string;
+    jwtToken: string | null;
     user: User;
     gameInProgress: boolean;
   }

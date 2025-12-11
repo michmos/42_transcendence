@@ -3,8 +3,10 @@ import { z } from 'zod';
 
 export const env = createEnv({
   server: {
-    HOST_NAME: z.string().default('localhost'),
-    HOST_PORT: z.string().default('3000'),
+    CORS_URL: z
+      .string()
+      .nonempty()
+      .describe('The URL allowed for CORS requests'),
   },
 
   runtimeEnv: process.env,
