@@ -13,6 +13,7 @@ import UserAPI, {
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
+import TournamentAPI from '../../plugins/api/tournaments.js';
 // import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
@@ -20,10 +21,31 @@ import toast from '../../utils/toast.js';
 import type { OnlineStatus } from 'types';
 import { setupWebSocketHook } from '../game/index.js';
 
-let isLocalGame = true;
+export let isLocalGame = true;
 
 export function getIsLocalGame(): boolean {
   return isLocalGame;
+}
+
+// Local interface to avoid import type issues
+interface OnlineStatusData {
+  event: 'status-update';
+  nickname: string;
+  isOnline: boolean;
+}
+
+// Type guard to safely validate parsed JSON
+function isValidOnlineStatus(value: unknown): value is OnlineStatusData {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'event' in value &&
+    value.event === 'status-update' &&
+    'nickname' in value &&
+    typeof value.nickname === 'string' &&
+    'isOnline' in value &&
+    typeof value.isOnline === 'boolean'
+  );
 }
 
 // Extend Window interface for SPA navigation
@@ -121,11 +143,26 @@ export default async function initRoute() {
   const statsGrid = document.createElement('div');
   statsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
   leftColumn.appendChild(statsGrid);
-  const totalMatches = cleanedUserData.gamesPlayed || 0;
-  const gamesWon = cleanedUserData.gamesWon || 0;
+
+  // Calculate stats from actual data
+  // Total Matches: count from userMatches array
+  const totalMatches = userMatches.length;
+
+  // Win Rate: calculate from userMatches by counting WON vs total matches
+  const gamesWon = userMatches.filter((match) => match.result === 'WON').length;
   const winRate =
     totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
-  const tournaments = cleanedUserData.tournamentsPlayed || 0;
+
+  // Tournaments: fetch tournaments where user is a participant
+  let tournaments = 0;
+  try {
+    const userTournaments = await TournamentAPI.getMyTournaments();
+    tournaments = userTournaments.length;
+  } catch (error) {
+    console.error('Failed to fetch user tournaments:', error);
+    tournaments = 0;
+  }
+
   const friends = cleanedUserFriends.filter(
     (f) => f.state === 'ACCEPTED'
   ).length;
@@ -1119,7 +1156,6 @@ function renderRecentMatches(
   const matches: MatchData[] = userMatches
     .slice()
     .reverse()
-    .slice(0, 10) // Show last 10 matches
     .map((match) => {
       // Determine which player is the current user
       const isPlayer1 = match.player1 === currentUserNickname;
@@ -1142,9 +1178,35 @@ function renderRecentMatches(
       };
     });
 
-  // Matches list
+  // Scrollable matches list container
   const matchesList = document.createElement('div');
-  matchesList.className = 'space-y-3';
+  matchesList.className =
+    'space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin';
+  matchesList.style.scrollbarWidth = 'thin';
+  matchesList.style.scrollbarColor = 'rgba(255, 255, 255, 0.3) transparent';
+
+  // Add custom scrollbar styling for webkit browsers (only if not already added)
+  if (!document.getElementById('profile-scrollbar-style')) {
+    const style = document.createElement('style');
+    style.id = 'profile-scrollbar-style';
+    style.textContent = `
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 8px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   body.appendChild(matchesList);
 
   if (matches.length === 0) {
@@ -1157,49 +1219,6 @@ function renderRecentMatches(
       new MatchCard(matchesList, match);
     });
   }
-
-  // TODO: Show pagination only if total matches > 10
-  // Pagination arrows
-  const paginationDiv = document.createElement('div');
-  paginationDiv.className =
-    'flex items-center justify-center gap-4 mt-4 pt-4 border-t border-border';
-
-  const prevButton = document.createElement('button');
-  prevButton.className =
-    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-  prevButton.disabled = true; // TODO: Enable based on current page
-  prevButton.innerHTML = `
-    <svg class="w-5 h-5 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-  `;
-  prevButton.addEventListener('click', () => {
-    // TODO: Load previous page of matches
-    console.log('Previous page');
-  });
-
-  const pageInfo = document.createElement('span');
-  pageInfo.className = 'text-sm text-muted-foreground';
-  pageInfo.textContent = 'Page 1 of 1'; // TODO: Update based on actual pagination data
-
-  const nextButton = document.createElement('button');
-  nextButton.className =
-    'p-2 rounded-lg border border-border bg-gradient-card hover:bg-muted/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-  nextButton.disabled = true; // TODO: Enable based on total pages
-  nextButton.innerHTML = `
-    <svg class="w-5 h-5 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-  `;
-  nextButton.addEventListener('click', () => {
-    // TODO: Load next page of matches
-    console.log('Next page');
-  });
-
-  paginationDiv.appendChild(prevButton);
-  paginationDiv.appendChild(pageInfo);
-  paginationDiv.appendChild(nextButton);
-  body.appendChild(paginationDiv);
 }
 
 function renderQuickActions(container: HTMLElement): void {
@@ -1482,20 +1501,21 @@ function setupOnlineStatusSocket() {
   // Listen for status updates
   window.socket.registerWebSocketHook((event: MessageEvent) => {
     try {
-      const parsed = JSON.parse(event.data as string) as
-        | OnlineStatus
-        | { event: string; uuid?: string };
+      const parsed: unknown = JSON.parse(event.data as string);
 
-      // Handle online status updates
+      // Validate and handle online status updates
       if (
-        'event' in parsed &&
-        parsed.event === 'status-update' &&
-        'nickname' in parsed &&
+        isValidOnlineStatus(parsed) &&
         parsed.nickname &&
         currentUserNickname &&
         parsed.nickname.toLowerCase() !== currentUserNickname.toLowerCase()
       ) {
-        handleOnlineStatusUpdate(parsed);
+        // Type guard ensures parsed is OnlineStatusData, which matches OnlineStatus structure
+        handleOnlineStatusUpdate({
+          event: parsed.event,
+          nickname: parsed.nickname,
+          isOnline: parsed.isOnline,
+        });
       }
 
       // Note: tournament-created events are handled by tournaments list page
