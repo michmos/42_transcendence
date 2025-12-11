@@ -50,13 +50,13 @@ async function handleJoinOnlineGame(socket: WSocket) {
   otherSocket!.join(newRoomName); // TODO: rmv !
 
   // send roles
-  sendRole(socket, newRoomName, 'player1');
-  sendRole(otherSocket, newRoomName, 'player2');
+  sendRole(otherSocket, newRoomName, 'player1');
+  sendRole(socket, newRoomName, 'player2');
 
   // update room data
   updateGameRoomData(newRoomName, {
-    player1Uuid: socket.uuid,
-    player2Uuid: otherSocket.uuid,
+    player1Uuid: otherSocket.uuid,
+    player2Uuid: socket.uuid,
     isLocalGame: false,
   });
 
