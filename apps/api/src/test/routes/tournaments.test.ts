@@ -13,6 +13,7 @@ import {
 } from 'db/generated/client/index.js';
 
 import { type TournamentRoundResponse } from 'types';
+import tournaments from '../../routes/tournaments/index.js';
 
 describe('POST /tournaments', () => {
   setUserTo('MEMBER');
@@ -381,6 +382,24 @@ describe('PATCH /tournaments/{uuid}/start', () => {
       body: {},
     });
     expect(response.statusCode).toBe(200);
+  });
+
+  test('valid: start tournament with uneven amount of players -> 200', async () => {
+    const tournament = await createValidTournament(app);
+    for (let i = 0; i < 3; ++i) {
+      const user = await app.db.addUser(`mail${i}`, `nickname${i}`);
+      await app.db.addUserToTournament(user.uuid, tournament.uuid, `alias${i}`);
+    }
+
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tournaments/${tournament.uuid}/start`,
+      body: {},
+    });
+    expect(response.statusCode).toBe(200);
+
+    // TODO: continue checking here
   });
 
   test('invalid: start non-outstanding tournament', async () => {
