@@ -27,27 +27,6 @@ export function getIsLocalGame(): boolean {
   return isLocalGame;
 }
 
-// Local interface to avoid import type issues
-interface OnlineStatusData {
-  event: 'status-update';
-  nickname: string;
-  isOnline: boolean;
-}
-
-// Type guard to safely validate parsed JSON
-function isValidOnlineStatus(value: unknown): value is OnlineStatusData {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'event' in value &&
-    value.event === 'status-update' &&
-    'nickname' in value &&
-    typeof value.nickname === 'string' &&
-    'isOnline' in value &&
-    typeof value.isOnline === 'boolean'
-  );
-}
-
 // Extend Window interface for SPA navigation
 declare global {
   interface Window {
@@ -1504,15 +1483,17 @@ function setupOnlineStatusSocket() {
       const parsed: unknown = JSON.parse(event.data as string);
 
       // Handle online status updates
-      if (typeof parsed === 'object' && parsed !== null &&
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
         'event' in parsed &&
         parsed.event === 'status-update' &&
         'nickname' in parsed &&
         parsed.nickname &&
+        typeof parsed.nickname === 'string' &&
         currentUserNickname &&
         parsed.nickname.toLowerCase() !== currentUserNickname.toLowerCase()
       ) {
-
         handleOnlineStatusUpdate(parsed as OnlineStatus);
       }
 
