@@ -200,8 +200,7 @@ function autoForfeit(
   roomName: string
 ) {
   // updat game state -> auto-forfeit
-  const isLeftPlayer: boolean =
-    gameData.player1Uuid === socket.uuid ? true : false;
+  const isLeftPlayer: boolean = gameData.player1Uuid === socket.uuid;
 
   updateGameRoomData(roomName, {
     currentGameState: {
