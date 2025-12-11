@@ -58,7 +58,7 @@ export type IncomingMessage =
   | GenericMessage
   | RoomMessage;
 
-let TEST_ROOM: string = 'game:placeholder';
+let current_game_room: string = 'game:placeholder';
 
 // --- Type guards ---
 function isStateMessage(msg: IncomingMessage): msg is StateMessage {
@@ -99,8 +99,8 @@ export const setupWebSocketHook = () => {
       const message = JSON.parse(event.data as string) as RoomMessage;
       switch (message.event) {
         case 'room-created':
-          TEST_ROOM = message.uuid;
-          console.log('room created', TEST_ROOM);
+          current_game_room = message.uuid;
+          console.log('room created', current_game_room);
       }
     }
 
@@ -571,7 +571,7 @@ function setupControlsDisplay() {
 }
 
 export function sendMessage(msg: object) {
-  window.socket.sendMessage(TEST_ROOM, msg);
+  window.socket.sendMessage(current_game_room, msg);
 }
 
 function gameLoop() {
