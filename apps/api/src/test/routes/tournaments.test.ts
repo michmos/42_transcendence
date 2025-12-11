@@ -10,6 +10,7 @@ import { app } from '../setup.js';
 import {
   status as statusEnum,
   type Tournament,
+  type Match,
 } from 'db/generated/client/index.js';
 
 import {
@@ -453,8 +454,29 @@ describe('PATCH /tournaments/{uuid}/start', () => {
       body: {},
     });
     expect(response.statusCode).toBe(200);
-
-    // TODO: continue checking here
+    const firstRound: TournamentRoundResponse | null =
+      await app.db.getTournamentRound(tournament.uuid, 0);
+    assert(firstRound !== null);
+    expect(firstRound.matches).toHaveLength(2);
+    // fetch full match data from db
+    let matches: Match[] = [];
+    for (const match of firstRound.matches) {
+      const fullMatch = await app.db.getMatch(match.uuid);
+      assert(fullMatch !== null);
+      matches.push(fullMatch);
+    }
+    // check that one match is auto-forfeit
+    const autoForfeitMatch = matches.find(
+      (match) => match.status === 'finished' && match.winnerId !== null
+    );
+    assert(autoForfeitMatch !== undefined);
+    if (autoForfeitMatch.winnerId === autoForfeitMatch.player1Id) {
+      expect(autoForfeitMatch.score1).toBe(10);
+      expect(autoForfeitMatch.score2).toBe(0);
+    } else {
+      expect(autoForfeitMatch?.score1).toBe(0);
+      expect(autoForfeitMatch?.score2).toBe(10);
+    }
   });
 
   test('invalid: start non-outstanding tournament', async () => {
