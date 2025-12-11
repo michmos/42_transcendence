@@ -14,7 +14,7 @@ COPY pnpm-workspace.yaml package.json ./
 COPY packages/ ./packages/
 
 # Copy API application
-COPY apps/web/ ./apps/web/
+COPY ./apps/web/ ./apps/web/
 
 # Install all dependencies (including shared packages)
 RUN pnpm install
