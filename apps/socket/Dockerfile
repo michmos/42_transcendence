@@ -57,12 +57,12 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 # # Copy package files
-COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml /workspace/./
+COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml ./
 COPY --from=build-socket /workspace/packages/ ./packages/
 COPY --from=build-socket /workspace/apps/socket/package.json ./apps/socket/
 
 # # Install production dependencies only  
-RUN pnpm install --prod
+RUN pnpm install --prod --no-frozen-lockfile
 
 # # Ensure Prisma client is generated for the correct platform
 WORKDIR /app/packages/database
