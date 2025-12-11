@@ -75,6 +75,10 @@ function isRoomMessage(msg: IncomingMessage): msg is RoomMessage {
   return 'event' in msg && 'uuid' in msg;
 }
 
+function isGenericMessage(msg: IncomingMessage): msg is GenericMessage {
+  return 'type' in msg && 'data' in msg;
+}
+
 function isRoleMessage(msg: IncomingMessage): msg is RoleMessage {
   return (
     'type' in msg &&
@@ -93,9 +97,14 @@ export const setupWebSocketHook = () => {
   unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
     const message = JSON.parse(event.data as string) as IncomingMessage;
 
+    if (isGenericMessage(message)) {
+      if (message.type == 'wait') {
+        console.log(message.data);
+      }
+    }
+
     // ---- ROOM MESSAGE ----
     if (isRoomMessage(message)) {
-      console.log('room message received');
       const message = JSON.parse(event.data as string) as RoomMessage;
       switch (message.event) {
         case 'room-created':
@@ -106,7 +115,6 @@ export const setupWebSocketHook = () => {
 
     // ---- ROLE MESSAGE ----
     if (isRoleMessage(message)) {
-      console.log('role message received');
       const data = message.data;
       setRole(data.role);
 
@@ -147,8 +155,6 @@ let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 let unloadHandler: (() => void) | null = null;
 
 function setupEventListeners() {
-  console.log('setup event listener being called');
-
   // handle key presses
   keydownHandler = (e) => {
     keys[e.key.toLowerCase()] = true;
@@ -242,7 +248,6 @@ function cleanup() {
 
 // Initialize page structure and game
 export default async function initRoute() {
-  console.log('init route called');
 
   // Mark route as active
   isRouteActive = true;
