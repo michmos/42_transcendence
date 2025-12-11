@@ -62,7 +62,7 @@ async function loadScriptWithDynamicImport(
       };
 
       // Make params available globally before adding script
-      (window as unknown as Record<string, unknown>).routeParams = params;
+      window.routeParams = params;
 
       document.head.appendChild(script);
       return;

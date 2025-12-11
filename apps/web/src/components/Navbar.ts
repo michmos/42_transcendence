@@ -1,5 +1,4 @@
 import { navigateTo } from '../utils/navigation.js';
-import { getAvatarSrc } from '../utils/avatar-helpers.js';
 
 export interface NavbarLink {
   label: string;
@@ -110,7 +109,7 @@ export class Navbar {
 
     if (avatar) {
       const avatarImg = document.createElement('img');
-      avatarImg.src = getAvatarSrc(avatar) || avatar;
+      avatarImg.src = avatar;
       avatarImg.alt = nickname;
       avatarImg.className =
         'w-10 h-10 rounded-full object-cover border-2 border-border';
@@ -196,7 +195,7 @@ export class Navbar {
       if (this.props.onLogoutClick) {
         this.props.onLogoutClick();
       } else {
-        navigateTo('/login');
+        navigateTo('/');
       }
       this.closeDropdown();
     });
@@ -212,14 +211,7 @@ export class Navbar {
     headerInner.appendChild(flexContainer);
     header.appendChild(headerInner);
     this.container.appendChild(header);
-
-    // Cleanup function - remove event listener when component is destroyed
-    this.cleanup = () => {
-      document.removeEventListener('click', outsideClickHandler);
-    };
   }
-
-  private cleanup?: () => void;
 
   private toggleDropdown(): void {
     this.isDropdownOpen = !this.isDropdownOpen;
@@ -254,15 +246,6 @@ export class Navbar {
         <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
         <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-      </svg>
-    `;
-  }
-
-  private getDefaultAvatarIcon(): string {
-    return `
-      <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
       </svg>
     `;
   }

@@ -50,11 +50,10 @@ export default function (app: FastifyInstance): void {
         })
       );
 
-      // TODO: handle tournament start here
       RoomManager.get(`tournament:${request.body.tournamentUuid}`)?.broadcast(
         JSON.stringify({
           event: 'notify',
-          message: `Join the first match of ${request.body.tournamentName} in the next 60 seconds!`,
+          message: `Join the first match of ${request.body.tournamentName}!`,
         })
       );
       return reply.status(200).send();
@@ -135,6 +134,40 @@ export default function (app: FastifyInstance): void {
           uuid: tournamentUuid,
           tournamentName,
           status,
+        })
+      );
+
+      if (status === 'finished') {
+        RoomManager.get(`tournament:${tournamentUuid}`)?.broadcast(
+          JSON.stringify({
+            event: 'notify',
+            message: `Tournament '${tournamentName}' finished`,
+          })
+        );
+      }
+      return reply.status(200).send();
+    }
+  );
+  app.post<{ Body: schemas.tournamentRoundStartedBody }>(
+    '/broadcast/round/started',
+    {
+      schema: schemas.tournamentRoundStarted,
+    },
+    async function (request, reply) {
+      // notify frontend about next round
+      RoomManager.get(`tournament:main`)?.broadcast(
+        JSON.stringify({
+          event: 'tournament-next-round',
+          uuid: request.body.tournamentUuid,
+          currentRound: request.body.tournamentRound,
+        })
+      );
+
+      // notify participants about playing next game
+      RoomManager.get(`tournament:${request.body.tournamentUuid}`)?.broadcast(
+        JSON.stringify({
+          event: 'notify',
+          message: `The next round opened in '${request.body.tournamentName}'. Play your next match now!`,
         })
       );
       return reply.status(200).send();

@@ -10,7 +10,7 @@
 // 3. import type you need
 //    import { SomeType } from 'types';
 
-import { User, Friendship } from 'db/generated/client/index.js';
+import { type User, type Friendship } from 'db/generated/client/index.js';
 
 // TODO: maybe align with MatchResponse
 export interface UserMatchRecord {

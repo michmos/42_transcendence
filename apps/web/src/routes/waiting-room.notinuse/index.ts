@@ -3,6 +3,7 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI from '../../plugins/api/user.js';
 import { setPlayerNickname, getPlayerNickname } from '../game/state.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 export default function initRoute() {
   const pageRoot = document.querySelector('.waiting-room-page');
@@ -17,7 +18,7 @@ export default function initRoute() {
   });
 }
 
-async function renderWaitingRoom(pageRoot: HTMLElement) {
+async function renderWaitingRoom(pageRoot: Element) {
   // Main wrapper with gradient background
   const mainWrapper = document.createElement('div');
   mainWrapper.className = 'min-h-screen bg-gradient-primary';
@@ -28,15 +29,15 @@ async function renderWaitingRoom(pageRoot: HTMLElement) {
   mainWrapper.appendChild(navbarContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(navbarContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Profile', href: '/profile', active: false },
       { label: 'Tournaments', href: '/tournaments', active: false },
     ],
-    userNickname: userInfo?.nickname,
-    userAvatar: userInfo?.avatar || undefined,
+    userNickname: userInfo?.nickname || 'Guest',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },

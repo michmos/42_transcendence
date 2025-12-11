@@ -49,28 +49,30 @@ export default class WSocket {
     });
   }
 
-  private async processMessageQueue() {
+  private processMessageQueue() {
     if (this.isProcessingQueue) {
+      console.log('early return');
       return;
     }
     this.isProcessingQueue = true;
 
-    // process all messages in order of arrival
-    while (this.messageQueue.length > 0) {
-      const oldestMessage = this.messageQueue.shift();
-      if (!oldestMessage) break;
+    try {
+      // process all messages in order of arrival
+      while (this.messageQueue.length > 0) {
+        const oldestMessage = this.messageQueue.shift();
+        if (!oldestMessage) break;
 
-      // apply all onMessage callbacks in order (of registration)
-      for (const callback of this.onMessageCallbacks) {
-        try {
-          await Promise.resolve(callback(oldestMessage));
-        } catch (error) {
-          this.consoleError(`error on message: ${(error as Error).message}`);
-          this.sendError('Internal error');
+        // apply all onMessage callbacks in order (of registration)
+        for (const callback of this.onMessageCallbacks) {
+          Promise.resolve(callback(oldestMessage)).catch((error) => {
+            this.consoleError(`error on message: ${(error as Error).message}`);
+            this.sendError('Internal error');
+          });
         }
       }
+    } finally {
+      this.isProcessingQueue = false;
     }
-    this.isProcessingQueue = false;
   }
 
   // add Hooks
@@ -131,18 +133,19 @@ export default class WSocket {
     this.socket.send(message);
   }
 
+  // TODO: maybe delete throw
   public sendError(message: string) {
     if (!this.connected) {
       throw new Error('Cannot send error: socket is not connected');
     }
-    this.send(JSON.stringify({ status: 'error', message }));
+    this.send(JSON.stringify({ event: 'error', message }));
   }
 
   public sendSuccess() {
     if (!this.connected) {
       throw new Error('Cannot send success: socket is not connected');
     }
-    this.send(JSON.stringify({ status: 'success' }));
+    this.send(JSON.stringify({ event: 'success' }));
   }
 
   // general

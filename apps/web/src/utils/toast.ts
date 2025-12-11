@@ -101,7 +101,7 @@ class ToastManager {
     toast.classList.add('animate-slide-out-right');
     setTimeout(() => {
       if (toast.parentNode === this.container) {
-        this.container.removeChild(toast);
+        this.container?.removeChild(toast);
       }
       this.toasts.delete(toast);
     }, 300);
