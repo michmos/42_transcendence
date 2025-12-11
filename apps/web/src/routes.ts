@@ -3,6 +3,7 @@ export const routes = {
   '/': {
     html: () => import('./index.html?raw'),
     css: () => import('./index.css?inline'),
+    script: () => import('./routes/index.js'),
   },
   '/login': {
     html: () => import('./routes/login/index.html?raw'),

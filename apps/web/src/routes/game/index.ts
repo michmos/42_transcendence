@@ -505,7 +505,7 @@ function initializeGame() {
   gameLoop();
 }
 
-function updateControls() {
+function setupControlsDisplay() {
   const controlsContainer = document.getElementById('gameControls');
   if (!controlsContainer) return;
   controlsContainer.innerHTML = '';

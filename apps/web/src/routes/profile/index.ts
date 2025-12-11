@@ -19,6 +19,7 @@ import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 import { setupWebSocketHook } from '../game/index.js';
 
 let isLocalGame = true;
+
 export function getIsLocalGame(): boolean {
   return isLocalGame;
 }
