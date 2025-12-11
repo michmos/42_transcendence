@@ -3,6 +3,13 @@ import { type GameRoomData } from '../../roomHandlers/game/index.js';
 import { type MatchParticipantsResponse } from 'types';
 
 export async function postFinishedOnlineMatch(game: GameRoomData) {
+  let winnerId;
+  if (game.currentGameState.leftScore != game.currentGameState.rightScore) {
+    winnerId =
+      game.currentGameState.leftScore > game.currentGameState.rightScore
+        ? game.player1Uuid
+        : game.player2Uuid;
+  }
   // fetch from API
   const response = await fetch(`http://localhost:5173/api/match/`, {
     // TODO: hardcoded localhost
@@ -17,10 +24,7 @@ export async function postFinishedOnlineMatch(game: GameRoomData) {
       player2Id: game.player2Uuid,
       score1: game.currentGameState.leftScore,
       score2: game.currentGameState.rightScore,
-      winnerId:
-        game.currentGameState.leftScore > game.currentGameState.rightScore
-          ? game.player1Uuid
-          : game.player2Uuid,
+      winnerId,
       status: 'finished',
     }),
   });
@@ -35,6 +39,14 @@ export async function patchFinishedTournamentMatch(
   game: GameRoomData,
   matchUuid: string
 ) {
+  let winnerId;
+  if (game.currentGameState.leftScore != game.currentGameState.rightScore) {
+    winnerId =
+      game.currentGameState.leftScore > game.currentGameState.rightScore
+        ? game.player1Uuid
+        : game.player2Uuid;
+  }
+
   const response = await fetch(`http://localhost:5173/api/match/${matchUuid}`, {
     // TODO: hardcoded localhost
     method: 'PATCH',
@@ -46,10 +58,7 @@ export async function patchFinishedTournamentMatch(
     body: JSON.stringify({
       score1: game.currentGameState.leftScore,
       score2: game.currentGameState.rightScore,
-      winnerId:
-        game.currentGameState.leftScore > game.currentGameState.rightScore
-          ? game.player1Uuid
-          : game.player2Uuid,
+      winnerId,
       status: 'finished',
     }),
   });
