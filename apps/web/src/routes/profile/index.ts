@@ -16,6 +16,7 @@ import FriendsAPI from '../../plugins/api/friends.js';
 import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
+import { setupWebSocketHook } from '../game/index.js';
 
 export let isLocalGame = true;
 
@@ -1223,6 +1224,7 @@ function renderQuickActions(container: HTMLElement): void {
     label: 'Play Locally',
     onClick: () => {
       isLocalGame = true;
+      setupWebSocketHook();
       joinLocalMatch();
       navigateTo('/game');
     },
@@ -1234,6 +1236,7 @@ function renderQuickActions(container: HTMLElement): void {
     label: 'Play Online',
     onClick: () => {
       isLocalGame = false;
+      setupWebSocketHook();
       joinOnlineMatch();
       navigateTo('/game');
     },

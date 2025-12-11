@@ -87,55 +87,59 @@ function isRoleMessage(msg: IncomingMessage): msg is RoleMessage {
 
 const keys: Record<string, boolean> = {};
 
-let unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
-  const message = JSON.parse(event.data as string) as IncomingMessage;
+let unregisterOnMessageHook: (() => void) | null = null;
 
-  // ---- ROOM MESSAGE ----
-  if (isRoomMessage(message)) {
-    console.log('room message received');
-    const message = JSON.parse(event.data) as RoomMessage;
-    switch (message.event) {
-      case 'room-created':
-        TEST_ROOM = message.uuid;
-        console.log('room created', TEST_ROOM);
-    }
-  }
+export let setupWebSocketHook = () => {
+  unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+    const message = JSON.parse(event.data as string) as IncomingMessage;
 
-  // ---- ROLE MESSAGE ----
-  if (isRoleMessage(message)) {
-    console.log('role message received');
-    const data = message.data;
-    setRole(data.role);
-
-    console.log(
-      `🎮 Received role "${data.role}" for client ID: ${data.clientId}`
-    );
-  }
-
-  // ---- STATE MESSAGE ----
-  if (isStateMessage(message)) {
-    const data = message.data;
-    const newState = data.serverState;
-
-    const now = performance.now();
-    const deltaTime = now - lastServerUpdate;
-
-    if (lastServerUpdate > 0 && deltaTime > 0) {
-      ballVelocity.x =
-        (newState.ballX - serverState.ballX) / (deltaTime / 1000);
-      ballVelocity.y =
-        (newState.ballY - serverState.ballY) / (deltaTime / 1000);
+    // ---- ROOM MESSAGE ----
+    if (isRoomMessage(message)) {
+      console.log('room message received');
+      const message = JSON.parse(event.data) as RoomMessage;
+      switch (message.event) {
+        case 'room-created':
+          TEST_ROOM = message.uuid;
+          console.log('room created', TEST_ROOM);
+      }
     }
 
-    setServerState(newState);
-    setLastServerUpdate(now);
+    // ---- ROLE MESSAGE ----
+    if (isRoleMessage(message)) {
+      console.log('role message received');
+      const data = message.data;
+      setRole(data.role);
 
-    if (window.socket.isConnected()) {
-      localPaddles.leftY = newState.leftY;
-      localPaddles.rightY = newState.rightY;
+      console.log(
+        `🎮 Received role "${data.role}" for client ID: ${data.clientId}`
+      );
     }
-  }
-});
+
+    // ---- STATE MESSAGE ----
+    if (isStateMessage(message)) {
+      const data = message.data;
+      const newState = data.serverState;
+
+      const now = performance.now();
+      const deltaTime = now - lastServerUpdate;
+
+      if (lastServerUpdate > 0 && deltaTime > 0) {
+        ballVelocity.x =
+          (newState.ballX - serverState.ballX) / (deltaTime / 1000);
+        ballVelocity.y =
+          (newState.ballY - serverState.ballY) / (deltaTime / 1000);
+      }
+
+      setServerState(newState);
+      setLastServerUpdate(now);
+
+      if (window.socket.isConnected()) {
+        localPaddles.leftY = newState.leftY;
+        localPaddles.rightY = newState.rightY;
+      }
+    }
+  });
+};
 
 // Store event listener functions so we can remove them
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -220,7 +224,9 @@ function cleanup() {
   }
 
   // remove on message socket hook
-  unregisterOnMessageHook();
+  if (unregisterOnMessageHook) {
+    unregisterOnMessageHook();
+  }
 
   // Clear keys state
   Object.keys(keys).forEach((key) => {

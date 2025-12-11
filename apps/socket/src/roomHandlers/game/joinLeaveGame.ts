@@ -49,9 +49,6 @@ async function handleJoinOnlineGame(socket: WSocket) {
   socket.join(newRoomName);
   otherSocket!.join(newRoomName); // TODO: rmv !
 
-  // wait for frontend to load socket listener
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
   // send roles
   sendRole(otherSocket, newRoomName, 'player1');
   sendRole(socket, newRoomName, 'player2');
@@ -92,9 +89,6 @@ async function handleJoinLocalGame(socket: WSocket) {
 
   // join room
   socket.join(newRoomName);
-
-  // delay to load event listiners on frontend
-  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   // send roles
   sendRole(socket, newRoomName, 'local');
