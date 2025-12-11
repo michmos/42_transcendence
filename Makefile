@@ -26,8 +26,10 @@ build: ## Build steps before production build
 	pnpm build
 
 
-lint: db:generate ## Run linting and type checking
+lint:  ## Run linting and type checking
+	pnpm db:generate
 	pnpm typecheck
 
-typecheck: db:generate ## Run type checking
+typecheck:  ## Run type checking
+	pnpm db:generate
 	pnpm typecheck
