@@ -43,5 +43,12 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
-  "exclude": ["dist", "generated", "schema.prisma"]
+  "exclude": [
+    "dist",
+    "generated",
+    "schema.prisma",
+    "build",
+    "out",
+    "node_modules"
+  ]
 }

@@ -1,12 +1,11 @@
 import { WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { type Tournament } from 'db/generated/client/index.js';
+import { env } from '../../env.js';
 
 export async function fetchTournaments(socket: WSocket, queryString: string) {
-  //TODO: api should be adapted to handle multiple statuses at once
   const response = await fetch(
-    `http://localhost:5173/api/user/me/tournaments?${queryString}`,
+    `${env.API_SERVER}/user/me/tournaments?${queryString}`,
     {
-      // TODO: hardcoded localhost
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

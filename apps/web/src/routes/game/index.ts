@@ -4,6 +4,7 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI from '../../plugins/api/user.js';
 import { leaveMatch } from './buttonLogic.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { getIsLocalGame } from '../profile/index.js';
 
 import {
@@ -268,15 +269,15 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo ? { userNickname: userInfo.nickname } : {}),
-    ...(userInfo ? { userAvatar: userInfo.avatar } : {}),
+    userNickname: userInfo?.nickname || 'Guest',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -507,6 +508,7 @@ function initializeGame() {
 function setupControlsDisplay() {
   const controlsContainer = document.getElementById('gameControls');
   if (!controlsContainer) return;
+  controlsContainer.innerHTML = '';
 
   // Update controls display based on role
   controlsContainer.innerHTML = '';

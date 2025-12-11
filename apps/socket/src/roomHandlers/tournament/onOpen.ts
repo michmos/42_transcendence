@@ -1,5 +1,6 @@
 import { WSocket } from '../../plugins/rooms/WSocket/index.js';
-import { API } from '../../plugins/api/index.js';
+
+import * as API from '../../plugins/api/tournament.js';
 
 // TODO: maybe implement cache to avoid fetching tournaments on every connection
 export async function onOpen(socket: WSocket) {

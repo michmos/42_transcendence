@@ -6,9 +6,9 @@ export const env = createEnv({
   server: {
     PORT: z.coerce.number().default(5173),
     API_SERVER: z.string().default('http://localhost:3000'),
-    SOCKET_SERVER: z.string().default('ws://localhost:3001'),
-    SWAGGER_SERVER: z.string().default('http://localhost:3000/documentation'),
-    CDN_SERVER: z.string().default('http://localhost:3008'),
+    SOCKET_SERVER: z.string().default('http://localhost:3001'),
+    SWAGGER_SERVER: z.string().default('http://localhost:3002'),
+    CDN_SERVER: z.coerce.string().default('http://localhost:3003'),
   },
   runtimeEnv: import.meta.env,
 });
