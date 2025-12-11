@@ -2,9 +2,23 @@ import { Navbar, Card, Badge } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import TournamentAPI from '../../plugins/api/tournaments.js';
+import MatchAPI from '../../plugins/api/match.js';
 import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
+import { getCurrentUserId } from '../../utils/auth-state.js';
+import tournamentSocket from '../../plugins/websocket/tournament.js';
+import toast from '../../utils/toast.js';
+import { joinTournamentMatch } from '../game/buttonLogic.js';
 
+// Extend Window interface for SPA navigation
+declare global {
+  interface Window {
+    navigateToRoute?: (href: string) => void;
+    routeParams?: Record<string, string>;
+  }
+}
+
+// UI Match interface (mapped from backend)
 interface Match {
   id: string;
   opponent1: string;
@@ -12,6 +26,7 @@ interface Match {
   score1: number;
   score2: number;
   status: 'completed' | 'live' | 'upcoming';
+  hasNullPlayer?: boolean;
 }
 
 /**
@@ -31,29 +46,6 @@ function mapMatchStatusToUI(
     default:
       return 'upcoming';
   }
-}
-
-/**
- * Get player nickname from match player data
- * Handles both cases: when player relation is loaded and when only ID is available
- */
-function getPlayerNickname(
-  player:
-    | { nickname?: string | null; email?: string | null }
-    | null
-    | undefined,
-  playerId?: string | null
-): string {
-  // If player object exists with nickname/email, use it
-  if (player) {
-    return player.nickname || player.email || 'Unknown';
-  }
-  // If only playerId is available, show placeholder
-  // TODO: Could fetch user data separately if needed
-  if (playerId) {
-    return 'Player'; // Placeholder - could fetch user data if needed
-  }
-  return 'TBD';
 }
 
 function renderRoundHeader(
@@ -94,7 +86,12 @@ function renderRoundHeader(
   container.appendChild(roundHeader);
 }
 
-function renderMatches(container: HTMLElement, matches: Match[]) {
+function renderMatches(
+  container: HTMLElement,
+  matches: Match[],
+  userNickname: string | null = null,
+  userAlias: string | null = null
+) {
   const matchesCardContainer = document.createElement('div');
   const matchesCard = new Card(matchesCardContainer, {
     title: 'Matches',
@@ -113,8 +110,35 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
   } else {
     matches.forEach((match) => {
       const matchItem = document.createElement('div');
-      matchItem.className =
-        'overflow-hidden rounded-lg border border-white/20 bg-white/5 transition-all hover:bg-white/10';
+
+      // Gray out matches with null players (automatic wins)
+      const baseClasses = 'overflow-hidden rounded-lg border transition-all';
+      let matchClasses = baseClasses;
+
+      if (match.hasNullPlayer) {
+        matchClasses = `${baseClasses} border-white/20 bg-white/5 opacity-50 grayscale`;
+      } else {
+        matchClasses = `${baseClasses} border-white/20 bg-white/5 hover:bg-white/10`;
+      }
+
+      matchItem.className = matchClasses;
+      matchItem.id = `match-${match.id}`; // Add ID for easier updates
+
+      // Check if user is a participant in this match
+      // Player names can be either aliases (for tournament matches) or nicknames (for regular matches)
+      const nicknameMatches =
+        userNickname &&
+        (match.opponent1 === userNickname || match.opponent2 === userNickname);
+      const aliasMatches =
+        userAlias &&
+        (match.opponent1 === userAlias || match.opponent2 === userAlias);
+
+      const isUserParticipant = nicknameMatches || aliasMatches;
+
+      const showStartButton =
+        isUserParticipant &&
+        match.status === 'upcoming' &&
+        !match.hasNullPlayer;
 
       matchItem.innerHTML = `
       <div class="flex items-center p-6">
@@ -126,50 +150,79 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
         <!-- Score - Always centered -->
         <div class="flex-shrink-0 mx-8">
           <div class="flex items-center gap-3">
-            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10">
-              <span class="text-2xl font-bold text-white">${match.score1}</span>
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 transition-colors ${match.status === 'live' ? 'bg-accent/20 animate-pulse' : ''}">
+              <span class="text-2xl font-bold text-white" id="score1-${match.id}">${match.score1}</span>
             </div>
             <span class="text-xl text-white/60">-</span>
-            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10">
-              <span class="text-2xl font-bold text-white">${match.score2}</span>
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 transition-colors ${match.status === 'live' ? 'bg-accent/20 animate-pulse' : ''}">
+              <span class="text-2xl font-bold text-white" id="score2-${match.id}">${match.score2}</span>
             </div>
           </div>
         </div>
 
-        <!-- Opponent 2 + Status Badge - Fixed width container -->
+        <!-- Opponent 2 + Status Badge/Button - Fixed width container -->
         <div class="flex-1 min-w-0 flex items-center justify-end gap-4">
           <!-- Opponent 2 -->
           <div class="text-right min-w-0">
             <p class="text-lg font-semibold text-white truncate">${match.opponent2}</p>
           </div>
 
-          <!-- Status Badge - Fixed width to ensure alignment -->
-          <div class="flex-shrink-0 w-24 flex justify-end" id="status-badge-${match.id}"></div>
+          <!-- Status Badge or Start Button - Fixed width to ensure alignment -->
+          <div class="flex-shrink-0 flex justify-end gap-2" id="match-actions-${match.id}">
+            ${
+              showStartButton
+                ? `
+              <button 
+                id="start-game-btn-${match.id}"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium cursor-pointer text-sm whitespace-nowrap"
+              >
+                Start Game
+              </button>
+            `
+                : `
+              <div class="w-24 flex justify-end" id="status-badge-${match.id}"></div>
+            `
+            }
+          </div>
         </div>
       </div>
     `;
 
-      // Append status badge
-      const badgeContainer = matchItem.querySelector<HTMLElement>(
-        `#status-badge-${match.id}`
-      );
-      if (badgeContainer) {
-        const statusText =
-          match.status === 'completed'
-            ? 'Final'
-            : match.status === 'live'
-              ? 'LIVE'
-              : 'Scheduled';
-        const variant =
-          match.status === 'completed'
-            ? 'success'
-            : match.status === 'live'
-              ? 'warning'
-              : 'default';
-        new Badge(badgeContainer, {
-          text: statusText,
-          variant: variant,
-        });
+      // Append status badge (if not showing start button)
+      if (!showStartButton) {
+        const badgeContainer = matchItem.querySelector<HTMLElement>(
+          `#status-badge-${match.id}`
+        );
+        if (badgeContainer) {
+          const statusText =
+            match.status === 'completed'
+              ? 'Final'
+              : match.status === 'live'
+                ? 'LIVE'
+                : 'Upcoming';
+          const variant =
+            match.status === 'completed'
+              ? 'success'
+              : match.status === 'live'
+                ? 'warning'
+                : 'default';
+          new Badge(badgeContainer, {
+            text: statusText,
+            variant: variant,
+          });
+        }
+      } else {
+        // Add click handler for Start Game button
+        const startButton = matchItem.querySelector<HTMLButtonElement>(
+          `#start-game-btn-${match.id}`
+        );
+        if (startButton) {
+          startButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            joinTournamentMatch(match.id);
+          });
+        }
       }
 
       matchesContainer.appendChild(matchItem);
@@ -186,21 +239,17 @@ function renderMatches(container: HTMLElement, matches: Match[]) {
 function renderInfoCard(container: HTMLElement) {
   const infoCardContainer = document.createElement('div');
   infoCardContainer.className = 'mt-6';
-  const infoCard = new Card(infoCardContainer, {
-    variant: 'default',
-  });
-
-  const cardBody = infoCard.getBodyElement();
-  if (cardBody) {
-    cardBody.innerHTML = `
-      <div class="pt-6">
-        <p class="text-center text-white/80">
-          This would need to be done with websocket for live updates.
-          All matches are updated in real-time as they progress.
-        </p>
+  // Removed "This would need to be done with websocket" text
+  // Replaced with live updates indicator
+  infoCardContainer.innerHTML = `
+    <div class="flex items-center justify-center gap-2 text-white/60 text-sm">
+      <span class="relative flex h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/50 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+      </span>
+      Live updates enabled
       </div>
     `;
-  }
 
   container.appendChild(infoCardContainer);
 }
@@ -250,10 +299,8 @@ export default async function initRoute() {
   const roundId = routeParams['roundId'] || '1';
   const roundIndex = parseInt(roundId, 10) - 1; // Convert to 0-based index
 
-  // Get tournamentId from sessionStorage (set when navigating from tournament page)
-  // This allows us to navigate back to the correct tournament
-  const tournamentId =
-    sessionStorage.getItem('lastTournamentId') || routeParams['tournamentId'];
+  // Get tournament ID from route parameters (from URL: /tournament/:tournamentId/round/:roundId)
+  const tournamentId = routeParams['tournamentId'];
 
   if (!tournamentId) {
     roundRoot.innerHTML =
@@ -278,12 +325,14 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userInfo?.nickname,
-    userAvatar: userInfo?.avatar || undefined,
+    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
+    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
     onSettingsClick: () => {
       navigateTo('/settings');
     },
-    onLogoutClick: handleLogout,
+    onLogoutClick: () => {
+      void handleLogout();
+    },
   });
 
   // Add back button
@@ -319,15 +368,90 @@ export default async function initRoute() {
   // Show loading state initially
   renderLoadingState(innerContainer);
 
+  // Function to refresh round data
+  const refreshRoundData = async () => {
+    try {
+      // Re-fetch tournament
+      const tournament = await TournamentAPI.getTournament(tournamentId);
+      if (!tournament) return;
+
+      // Re-fetch round
+      const round = await TournamentAPI.getTournamentRound(
+        tournamentId,
+        roundIndex
+      );
+      if (!round) return;
+
+      // Fetch full match details for each match UUID
+      const matchDetails = await Promise.all(
+        round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+      );
+
+      // Map matches using MatchResponse data
+      const uiMatches: Match[] = matchDetails
+        .filter((match): match is NonNullable<typeof match> => match !== null)
+        .map((match) => {
+          const opponent1 = match.player1Name || 'Nobody';
+          const opponent2 = match.player2Name || 'Nobody';
+          const hasNullPlayer =
+            opponent1 === 'Nobody' || opponent2 === 'Nobody';
+
+          return {
+            id: match.uuid,
+            opponent1,
+            opponent2,
+            score1: match.score1 || 0,
+            score2: match.score2 || 0,
+            status: mapMatchStatusToUI(match.status),
+            hasNullPlayer,
+          };
+        });
+
+      // Get user's tournament alias from tournament.participants
+      const currentUserId = getCurrentUserId();
+      let userAlias: string | null = null;
+
+      if (currentUserId && tournament.participants) {
+        const userParticipant = tournament.participants.find(
+          (p) => p.user.uuid === currentUserId
+        );
+        userAlias = userParticipant?.alias || null;
+      }
+
+      // Get alias from localStorage (stored when joining/creating tournament)
+      if (!userAlias) {
+        const storedAlias = localStorage.getItem(
+          `tournament-${tournamentId}-alias`
+        );
+        if (storedAlias) {
+          userAlias = storedAlias;
+        }
+      }
+
+      // Clear and re-render
+      innerContainer.innerHTML = '';
+      renderRoundHeader(innerContainer, roundIndex, tournament.tournamentName);
+      renderMatches(
+        innerContainer,
+        uiMatches,
+        userInfo?.nickname || null,
+        userAlias
+      );
+      renderInfoCard(innerContainer);
+    } catch (error) {
+      console.error('Error refreshing round data:', error);
+    }
+  };
+
   try {
-    // Fetch tournament to get name and participants
+    // Fetch tournament data
     const tournament = await TournamentAPI.getTournament(tournamentId);
     if (!tournament) {
       renderErrorState(innerContainer, 'Tournament not found');
       return;
     }
 
-    // Fetch round
+    // Fetch round data
     const round = await TournamentAPI.getTournamentRound(
       tournamentId,
       roundIndex
@@ -337,43 +461,94 @@ export default async function initRoute() {
       return;
     }
 
-    // Create player ID to nickname map from tournament participants
-    const playerMap = new Map<string, string>();
-    if (tournament.participants) {
-      tournament.participants.forEach((participant) => {
-        const nickname = participant.nickname || participant.email || 'Unknown';
-        playerMap.set(participant.uuid, nickname);
+    // Fetch full match details for each match UUID
+    const matchDetails = await Promise.all(
+      round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+    );
+
+    // Map matches using MatchResponse data
+    const uiMatches: Match[] = matchDetails
+      .filter((match): match is NonNullable<typeof match> => match !== null)
+      .map((match) => {
+        const opponent1 = match.player1Name || 'Nobody';
+        const opponent2 = match.player2Name || 'Nobody';
+        const hasNullPlayer = opponent1 === 'Nobody' || opponent2 === 'Nobody';
+
+        return {
+          id: match.uuid,
+          opponent1,
+          opponent2,
+          score1: match.score1 || 0,
+          score2: match.score2 || 0,
+          status: mapMatchStatusToUI(match.status),
+          hasNullPlayer,
+        };
       });
+
+    // Get user's tournament alias
+    const currentUserId = getCurrentUserId();
+    let userAlias: string | null = null;
+
+    // Strategy 1: Get alias from tournament.participants by matching user UUID
+    if (currentUserId && tournament.participants) {
+      const userParticipant = tournament.participants.find(
+        (p) => p.user.uuid === currentUserId
+      );
+      userAlias = userParticipant?.alias || null;
     }
 
-    // Map matches to UI format with player nicknames
-    const uiMatches: Match[] = round.matches.map((match) => {
-      const opponent1 =
-        match.player1Id && playerMap.has(match.player1Id)
-          ? (playerMap.get(match.player1Id) ?? 'Unknown')
-          : getPlayerNickname(match.player1, match.player1Id);
-      const opponent2 =
-        match.player2Id && playerMap.has(match.player2Id)
-          ? (playerMap.get(match.player2Id) ?? 'Unknown')
-          : getPlayerNickname(match.player2, match.player2Id);
+    // Strategy 2: Get alias from localStorage (stored when joining/creating tournament)
+    if (!userAlias) {
+      const storedAlias = localStorage.getItem(
+        `tournament-${tournamentId}-alias`
+      );
+      if (storedAlias) {
+        userAlias = storedAlias;
+      }
+    }
 
-      return {
-        id: match.uuid,
-        opponent1,
-        opponent2,
-        score1: match.Score1 || 0,
-        score2: match.Score2 || 0,
-        status: mapMatchStatusToUI(match.status),
-      };
-    });
-
-    // Clear loading state and render content
+    // Render content
     innerContainer.innerHTML = '';
-
-    // Render sections
     renderRoundHeader(innerContainer, roundIndex, tournament.tournamentName);
-    renderMatches(innerContainer, uiMatches);
+    renderMatches(
+      innerContainer,
+      uiMatches,
+      userInfo?.nickname || null,
+      userAlias
+    );
     renderInfoCard(innerContainer);
+
+    // ===== SOCKET INTEGRATION =====
+    tournamentSocket.initialize();
+    tournamentSocket.joinTournament(tournamentId);
+
+    const handleMatchUpdated = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        match: Match;
+      };
+      if (eventData.tournamentUuid === tournamentId) {
+        // We could optimize to update just one match, but refreshing is safer
+        void refreshRoundData();
+      }
+    };
+
+    const handleRoundCompleted = (data: unknown) => {
+      const eventData = data as {
+        tournamentUuid: string;
+        roundIndex: number;
+      };
+      if (
+        eventData.tournamentUuid === tournamentId &&
+        eventData.roundIndex === roundIndex
+      ) {
+        toast.show('Round completed!', { variant: 'success' });
+        void refreshRoundData();
+      }
+    };
+
+    tournamentSocket.on('match-updated', handleMatchUpdated);
+    tournamentSocket.on('round-completed', handleRoundCompleted);
   } catch (error) {
     innerContainer.innerHTML = '';
     const errorMessage =

@@ -20,3 +20,13 @@ export interface MatchResponse {
   score1: number;
   score2: number;
 }
+
+export interface MatchRecord {
+  updatedAt: Date;
+  score1: number;
+  score2: number;
+  player1: { nickname: string } | null;
+  player2: { nickname: string } | null;
+  tournamentRoundId: string | null;
+  winnerId: string | null;
+}

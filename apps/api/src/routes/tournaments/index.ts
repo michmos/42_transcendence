@@ -3,8 +3,11 @@ import * as schemas from './validationSchemas.js';
 import { isAdmin, getUuid } from '../../plugins/auth/utils.js';
 import generateTournamentPlan from './matchmaking.js';
 import { messageSocketServer } from './utils.js';
-import { status as statusEnum } from 'db/generated/client/index.js';
-import { type TournamentRoundResponse } from 'types';
+import { status as statusEnum, type User } from 'db/generated/client/index.js';
+import {
+  type TournamentRoundResponse,
+  type TournamentParticipantsResponse,
+} from 'types';
 import { Prisma } from 'db/generated/client';
 
 export default function (app: FastifyInstance): void {
@@ -318,6 +321,33 @@ export default function (app: FastifyInstance): void {
         });
       }
       return reply.status(200).send(tournament);
+    }
+  );
+
+  // get tournament participants
+  app.get<{ Params: schemas.singleUuidParam }>(
+    '/:uuid/participants',
+    { schema: schemas.getTournamentParticipants },
+    async function (request, reply) {
+      const tournamentId = request.params.uuid;
+      // check exists
+      const tournament = await app.db.getTournament(tournamentId);
+      if (!tournament) {
+        return reply.status(404).send({
+          error: `Tournament with uuid: ${request.params.uuid} not found`,
+        });
+      }
+
+      const participants: User[] =
+        await app.db.getTournamentParticipants(tournamentId);
+
+      const participantNames = await Promise.all(
+        participants.map((user) => app.db.getUserAlias(user.uuid, tournamentId))
+      );
+      const response: TournamentParticipantsResponse = {
+        participants: participantNames,
+      };
+      return reply.status(200).send(response);
     }
   );
 

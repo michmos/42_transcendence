@@ -32,6 +32,7 @@ describe('POST /friend/:nickname', () => {
         avatar: expect.any(String),
         state: 'REQUESTED',
         isRequester: true,
+        isOnline: false,
       },
       message: 'Friend request sent',
     });
@@ -64,6 +65,7 @@ describe('POST /friend/:nickname', () => {
         avatar: expect.any(String),
         state: 'ACCEPTED',
         isRequester: false,
+        isOnline: false,
       },
       message: 'Friend accepted',
     });
@@ -137,6 +139,7 @@ describe('PATCH /friends/:nickname', () => {
         avatar: expect.any(String),
         state: expect.stringMatching(/^(ACCEPTED|REJECTED)$/),
         isRequester: expect.any(Boolean),
+        isOnline: false,
       },
       message: 'Friendship request accepted',
     });

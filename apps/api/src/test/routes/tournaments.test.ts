@@ -12,8 +12,10 @@ import {
   type Tournament,
 } from 'db/generated/client/index.js';
 
-import { type TournamentRoundResponse } from 'types';
-import tournaments from '../../routes/tournaments/index.js';
+import {
+  type TournamentRoundResponse,
+  type TournamentParticipantsResponse,
+} from 'types';
 
 describe('POST /tournaments', () => {
   setUserTo('MEMBER');
@@ -286,6 +288,59 @@ describe('GET /tournaments/{uuid}', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/tournaments/12345678-1234-1234-1234-123456789012',
+    });
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('GET /tournaments/{uuid}/participants', () => {
+  test('valid: Get participants of a tournament -> 200', async () => {
+    const tournament = await createValidTournament(app);
+    await app.db.addUserToTournament(
+      normalUser.uuid,
+      tournament.uuid,
+      'someAlias'
+    );
+    await app.db.addUserToTournament(
+      adminUser.uuid,
+      tournament.uuid,
+      'anotherAlias'
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tournaments/${tournament.uuid}/participants`,
+    });
+    expect(response.statusCode).toBe(200);
+
+    const participants = JSON.parse(
+      response.payload
+    ) as TournamentParticipantsResponse;
+    const participantNames = participants.participants;
+    expect(participantNames).toHaveLength(2);
+    expect(participantNames).toContain('someAlias');
+    expect(participantNames).toContain('anotherAlias');
+  });
+  test('valid: Empty array -> 200', async () => {
+    const tournament = await createValidTournament(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tournaments/${tournament.uuid}/participants`,
+    });
+    expect(response.statusCode).toBe(200);
+
+    const participants = JSON.parse(
+      response.payload
+    ) as TournamentParticipantsResponse;
+    const participantNames = participants.participants;
+    expect(participantNames).toHaveLength(0);
+  });
+
+  test('invalid: non existent tournament -> 404', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tournaments/non-existent-uuid/participants`,
     });
     expect(response.statusCode).toBe(404);
   });

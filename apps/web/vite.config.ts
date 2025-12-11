@@ -27,9 +27,10 @@ export default defineConfig(() => {
           secure: false,
         },
         '/cdn': {
-          target: `http://localhost:${env.CDN_PORT}`,
+          target: env.CDN_SERVER,
           changeOrigin: true,
           secure: false,
+          rewrite: (path) => path.replace(/^\/cdn/, ''),
         },
       },
     },
@@ -39,6 +40,12 @@ export default defineConfig(() => {
     build: {
       outDir: '../dist',
       emptyOutDir: true,
+      cssCodeSplit: true,
     },
+    css: {
+      devSourcemap: true,
+      transformer: 'postcss',
+    },
+    logLevel: 'warn', // Reduce log verbosity
   };
 });

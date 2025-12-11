@@ -11,6 +11,12 @@ export interface SocketMetaData {
 export default class WSocket {
   private socket: WebSocket;
   private user: User | null;
+  private messageQueue: Buffer[] = [];
+  private onMessageCallbacks: Array<(input: Buffer) => void | Promise<void>> =
+    [];
+  private onCloseCallbacks: Array<() => void | Promise<void>> = [];
+  private isProcessingQueue: boolean = false;
+
   public uuid: string;
   public jwt: string;
   public lastSeen?: Date;
@@ -26,29 +32,54 @@ export default class WSocket {
     this.socket.on('close', () => {
       this.user?.removeSocket(this);
       this.user = null;
-      this.leaveAll();
       this.connected = false;
+      for (const callback of this.onCloseCallbacks) {
+        Promise.resolve(callback()).catch((error) =>
+          this.consoleError(`error on close: ${error}`)
+        );
+      }
+      this.leaveAll();
       this.consoleLog(`connection closed`);
     });
+
+    this.socket.on('message', (input: Buffer) => {
+      this.consoleLog(`new message`);
+      this.messageQueue.push(input);
+      void this.processMessageQueue();
+    });
+  }
+
+  private async processMessageQueue() {
+    if (this.isProcessingQueue) {
+      return;
+    }
+    this.isProcessingQueue = true;
+
+    // process all messages in order of arrival
+    while (this.messageQueue.length > 0) {
+      const oldestMessage = this.messageQueue.shift();
+      if (!oldestMessage) break;
+
+      // apply all onMessage callbacks in order (of registration)
+      for (const callback of this.onMessageCallbacks) {
+        try {
+          await Promise.resolve(callback(oldestMessage));
+        } catch (error) {
+          this.consoleError(`error on message: ${(error as Error).message}`);
+          this.sendError('Internal error');
+        }
+      }
+    }
+    this.isProcessingQueue = false;
   }
 
   // add Hooks
   public onClose(callback: () => void | Promise<void>) {
-    this.socket.on('close', () => {
-      Promise.resolve(callback()).catch((error) =>
-        this.consoleError(`error on close: ${error}`)
-      );
-    });
+    this.onCloseCallbacks.push(callback);
   }
 
   public onMessage(callback: (input: Buffer) => void | Promise<void>) {
-    this.socket.on('message', (input: Buffer) => {
-      this.consoleLog(`new message`);
-      Promise.resolve(callback(input)).catch((error) => {
-        this.consoleError(`error on message: ${error}`);
-        this.sendError('Internal error');
-      });
-    });
+    this.onMessageCallbacks.push(callback);
   }
 
   // User

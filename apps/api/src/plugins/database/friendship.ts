@@ -32,8 +32,8 @@ export async function addFriend(
       friendBId: uuidOther,
     },
     include: {
-      friendA: { select: { nickname: true, avatar: true } },
-      friendB: { select: { nickname: true, avatar: true } },
+      friendA: { select: { nickname: true, avatar: true, isOnline: true } },
+      friendB: { select: { nickname: true, avatar: true, isOnline: true } },
     },
   });
 }
@@ -46,8 +46,8 @@ export async function modifyFriendsState(
     where: { uuid },
     data: { state: newState },
     include: {
-      friendA: { select: { nickname: true, avatar: true } },
-      friendB: { select: { nickname: true, avatar: true } },
+      friendA: { select: { nickname: true, avatar: true, isOnline: true } },
+      friendB: { select: { nickname: true, avatar: true, isOnline: true } },
     },
   });
 }
@@ -72,8 +72,8 @@ export async function getFriendsMe(
       ],
     },
     include: {
-      friendA: { select: { nickname: true, avatar: true } },
-      friendB: { select: { nickname: true, avatar: true } },
+      friendA: { select: { nickname: true, avatar: true, isOnline: true } },
+      friendB: { select: { nickname: true, avatar: true, isOnline: true } },
     },
   });
 
@@ -105,8 +105,8 @@ export async function getUserFriendRecords(
   return Database.friendship.findMany({
     where: { OR: [{ friendAId: uuid }, { friendBId: uuid }] },
     include: {
-      friendA: { select: { nickname: true, avatar: true } },
-      friendB: { select: { nickname: true, avatar: true } },
+      friendA: { select: { nickname: true, avatar: true, isOnline: true } },
+      friendB: { select: { nickname: true, avatar: true, isOnline: true } },
     },
   });
 }

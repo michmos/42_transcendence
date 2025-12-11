@@ -35,6 +35,10 @@ export default class User {
     }
   }
 
+  public socketCount(): number {
+    return this.sockets.size;
+  }
+
   public join(name: string) {
     let room;
     for (const socket of this.sockets) {

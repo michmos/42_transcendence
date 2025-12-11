@@ -54,18 +54,53 @@ export async function loadRoomHandlers() {
 }
 
 export async function runOnStartupHooks() {
-  for (const [, handler] of Object.entries(roomHandlers)) {
-    if (handler.onStartup) await handler.onStartup();
+  const onStartupCallbacks = Object.values(roomHandlers).filter(
+    (handler) => handler.onStartup
+  );
+  const results = await Promise.allSettled(
+    onStartupCallbacks.map((handler) => {
+      if (!handler.onStartup) return;
+      return handler.onStartup();
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Error in onStartup hook:', result.reason);
+    }
   }
 }
+
 export async function runOnOpenHooks(socket: WSocket) {
-  for (const [, handler] of Object.entries(roomHandlers)) {
-    if (handler.onOpen) await handler.onOpen(socket);
+  const onOpenCallbacks = Object.values(roomHandlers).filter(
+    (handler) => handler.onOpen
+  );
+  const results = await Promise.allSettled(
+    onOpenCallbacks.map((handler) => {
+      if (!handler.onOpen) return;
+      return handler.onOpen(socket);
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Error in onOpen hook:', result.reason);
+    }
   }
 }
+
 export async function runOnCloseHooks(socket: WSocket) {
-  for (const [, handler] of Object.entries(roomHandlers)) {
-    if (handler.onClose) await handler.onClose(socket);
+  const onCloseCallbacks = Object.values(roomHandlers).filter(
+    (handler) => handler.onClose
+  );
+  const results = await Promise.allSettled(
+    onCloseCallbacks.map((handler) => {
+      if (!handler.onClose) return;
+      return handler.onClose(socket);
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Error in onClose hook:', result.reason);
+    }
   }
 }
 

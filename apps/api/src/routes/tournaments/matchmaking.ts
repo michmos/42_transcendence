@@ -39,6 +39,7 @@ function generateRound(roundRobin: RoundRobin<User>): Array<Partial<Match>> {
   for (let start = 0, end = playerCount - 1; start < end; ++start, --end) {
     const player1Id = roundRobin.at(start)?.uuid ?? null;
     const player2Id = roundRobin.at(end)?.uuid ?? null;
+
     matches.push({
       player1Id,
       player2Id,
