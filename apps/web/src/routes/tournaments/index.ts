@@ -8,7 +8,6 @@ import type {
   status,
 } from '../../types/api.js';
 import { showApiError } from '../../utils/api-helpers.js';
-import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { shouldShowNotification } from '../../utils/notification-dedup.js';
 
@@ -78,29 +77,13 @@ function mapTournamentToUI(tournament: BackendTournament): Tournament {
 
 interface WebSocketMessage {
   event: string;
-  data?: unknown;
+  uuid?: string;
+  tournamentUuid?: string;
+  playerCount?: number;
+  status?: status;
   message?: string;
+  data?: unknown;
 }
-
-// TODO: handle events
-window.socket.registerWebSocketHook((event: MessageEvent) => {
-  const data = JSON.parse(event.data as string) as WebSocketMessage;
-  if (data.event === 'tournament-updated') {
-    console.log('Tournament updated:', data);
-  } else if (data.event === 'tournament-joined') {
-    console.log('Tournament joined:', data);
-  } else if (data.event === 'tournament-left') {
-    console.log('Tournament left:', data);
-  } else if (data.event === 'tournament-created') {
-    console.log('Tournament created:', data);
-  } else if (data.event === 'tournament-started') {
-    console.log('Tournament started:', data);
-  } else if (data.event === 'notify') {
-    if (data.message && shouldShowNotification(data.message)) {
-      toast.show(data.message, { variant: 'info' });
-    }
-  }
-});
 
 function getStatusColor(status: string): string {
   switch (status) {
@@ -1070,102 +1053,124 @@ export default async function initRoute() {
   }
 
   // ===== TOURNAMENT SOCKET INTEGRATION =====
-  // Initialize tournament socket for real-time updates
-  tournamentSocket.initialize();
+  // Join tournament list room for real-time updates
+  if (window.socket?.isConnected()) {
+    window.socket.joinRoom('tournament:main');
+  } else {
+    // Wait for connection
+    setTimeout(() => {
+      if (window.socket?.isConnected()) {
+        window.socket.joinRoom('tournament:main');
+      }
+    }, 500);
+  }
 
-  // Set up socket listeners for real-time updates
-  // These will work once backend socket handler is implemented
-  const handleTournamentCreated = (data: unknown) => {
-    const eventData = data as { tournamentUuid?: string };
-    if (
-      eventData.tournamentUuid &&
-      !myTournaments.has(eventData.tournamentUuid)
-    ) {
-      void (async () => {
-        const tournamentUuid = eventData.tournamentUuid;
-        if (!tournamentUuid) return;
-        const tournament = await TournamentAPI.getTournament(tournamentUuid);
-        if (tournament && tournament.status === 'outstanding') {
-          openTournaments.add(tournament.uuid);
-          tournamentsMap.set(tournament.uuid, tournament);
-          updateTournamentInArrays(tournament);
-        }
-      })();
-    } else {
-      void loadTournaments();
-    }
-  };
+  // Handle all WebSocket events in one consolidated handler
+  window.socket.registerWebSocketHook((event: MessageEvent) => {
+    try {
+      const data = JSON.parse(event.data as string) as WebSocketMessage;
 
-  const handleTournamentStarted = (_data: unknown) => {
-    // Note: Toast notification is handled by the 'notify' event from the backend
-    // Update tournament list to show status change
-    void loadTournaments();
-  };
+      // Handle notify events (show toast)
+      if (
+        data.event === 'notify' &&
+        data.message &&
+        shouldShowNotification(data.message)
+      ) {
+        toast.show(data.message, { variant: 'info' });
+        return;
+      }
 
-  const handleTournamentJoined = (data: unknown) => {
-    const eventData = data as { uuid: string; playerCount: number };
-    const tournament = tournamentsMap.get(eventData.uuid);
-
-    if (tournament) {
-      // Tournament already in map, update playerCount
-      tournament.playerCount = eventData.playerCount;
-      updateTournamentInArrays(tournament);
-    } else {
-      // Tournament not in map yet - fetch it with correct playerCount
-      void (async () => {
-        try {
-          const fetchedTournament = await TournamentAPI.getTournament(
-            eventData.uuid
-          );
-          if (fetchedTournament) {
-            fetchedTournament.playerCount = eventData.playerCount;
-            tournamentsMap.set(eventData.uuid, fetchedTournament);
-            updateTournamentInArrays(fetchedTournament);
+      // Handle tournament events (update UI)
+      switch (data.event) {
+        case 'tournament-created': {
+          const tournamentUuid =
+            data.tournamentUuid ||
+            (data.data as { tournamentUuid?: string })?.tournamentUuid;
+          if (tournamentUuid && !myTournaments.has(tournamentUuid)) {
+            void (async () => {
+              const tournament =
+                await TournamentAPI.getTournament(tournamentUuid);
+              if (tournament && tournament.status === 'outstanding') {
+                openTournaments.add(tournament.uuid);
+                tournamentsMap.set(tournament.uuid, tournament);
+                updateTournamentInArrays(tournament);
+              }
+            })();
+          } else {
+            void loadTournaments();
           }
-        } catch {
-          // Tournament might not exist yet, ignore
+          break;
         }
-      })();
-    }
-  };
 
-  const handleTournamentLeft = (_data: unknown) => {
-    // Refresh full tournament list to get updated participants
-    void loadTournaments();
-  };
+        case 'tournament-started':
+          // Toast notification handled by 'notify' event
+          void loadTournaments();
+          break;
 
-  const handleTournamentUpdated = (data: unknown) => {
-    const eventData = data as {
-      uuid: string;
-      status?: status;
-      playerCount?: number;
-    };
-    const tournament = tournamentsMap.get(eventData.uuid);
-    if (tournament) {
-      if (eventData.status) {
-        tournament.status = eventData.status;
-        if (eventData.status !== 'outstanding') {
-          openTournaments.delete(eventData.uuid);
+        case 'tournament-joined': {
+          const uuid = data.uuid || (data.data as { uuid?: string })?.uuid;
+          const playerCount =
+            data.playerCount ??
+            (data.data as { playerCount?: number })?.playerCount;
+          if (!uuid || playerCount === undefined) break;
+
+          const tournament = tournamentsMap.get(uuid);
+          if (tournament) {
+            tournament.playerCount = playerCount;
+            updateTournamentInArrays(tournament);
+          } else {
+            // Fetch tournament if not in map
+            void (async () => {
+              try {
+                const fetchedTournament =
+                  await TournamentAPI.getTournament(uuid);
+                if (fetchedTournament) {
+                  fetchedTournament.playerCount = playerCount;
+                  tournamentsMap.set(uuid, fetchedTournament);
+                  updateTournamentInArrays(fetchedTournament);
+                }
+              } catch {
+                // Tournament might not exist yet, ignore
+              }
+            })();
+          }
+          break;
+        }
+
+        case 'tournament-left':
+          void loadTournaments();
+          break;
+
+        case 'tournament-updated': {
+          const uuid = data.uuid || (data.data as { uuid?: string })?.uuid;
+          if (!uuid) break;
+
+          const tournament = tournamentsMap.get(uuid);
+          if (tournament) {
+            const status =
+              data.status ?? (data.data as { status?: status })?.status;
+            const playerCount =
+              data.playerCount ??
+              (data.data as { playerCount?: number })?.playerCount;
+
+            if (status) {
+              tournament.status = status;
+              if (status !== 'outstanding') {
+                openTournaments.delete(uuid);
+              }
+            }
+            if (playerCount !== undefined) {
+              tournament.playerCount = playerCount;
+            }
+            updateTournamentInArrays(tournament);
+          }
+          break;
         }
       }
-      if (eventData.playerCount !== undefined) {
-        tournament.playerCount = eventData.playerCount;
-      }
-      updateTournamentInArrays(tournament);
+    } catch {
+      // Ignore non-JSON or non-matching messages
     }
-  };
-
-  // Register socket listeners
-  tournamentSocket.on('tournament-created', handleTournamentCreated);
-  // Note: tournament-started is handled on tournament detail page only (participants)
-  tournamentSocket.on('tournament-started', handleTournamentStarted);
-  // Note: tournament-joined is handled on tournament detail page only (participants)
-  tournamentSocket.on('tournament-joined', handleTournamentJoined);
-  tournamentSocket.on('tournament-left', handleTournamentLeft);
-  tournamentSocket.on('tournament-updated', handleTournamentUpdated);
-
-  // Join tournament list room (will fail gracefully if backend not ready)
-  tournamentSocket.joinTournamentList();
+  });
 
   // Initial load
   await loadTournaments();

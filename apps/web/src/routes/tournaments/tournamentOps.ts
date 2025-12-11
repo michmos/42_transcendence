@@ -1,4 +1,5 @@
 import type { Tournament } from '../../types/api.js';
+import { handleApiError, showApiError } from '../../utils/api-helpers.js';
 
 export async function createTournament(specs: {
   tournamentName: string;
@@ -16,7 +17,8 @@ export async function createTournament(specs: {
     }),
   });
   if (!response.ok) {
-    // TODO: handle error
+    const error = await handleApiError(response);
+    showApiError(error);
     return null;
   }
   const tournament = (await response.json()) as Tournament;
@@ -38,7 +40,8 @@ export async function joinTournament(
     }),
   });
   if (!response.ok) {
-    // TODO: handle error
+    const error = await handleApiError(response);
+    showApiError(error);
     return false;
   }
 
@@ -58,7 +61,8 @@ export async function leaveTournament(
     body: JSON.stringify({}),
   });
   if (!response.ok) {
-    // TODO: handle error
+    const error = await handleApiError(response);
+    showApiError(error);
     return false;
   }
   window.socket.leaveRoom(`tournament:${tournamentUuid}`);
@@ -73,7 +77,8 @@ export async function startTournament(
     credentials: 'include',
   });
   if (!response.ok) {
-    // TODO: handle error
+    const error = await handleApiError(response);
+    showApiError(error);
     return false;
   }
   return true;
