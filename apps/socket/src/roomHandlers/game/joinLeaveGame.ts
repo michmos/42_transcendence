@@ -49,6 +49,9 @@ async function handleJoinOnlineGame(socket: WSocket) {
   socket.join(newRoomName);
   otherSocket!.join(newRoomName); // TODO: rmv !
 
+  // wait for frontend to load socket listener
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   // send roles
   sendRole(otherSocket, newRoomName, 'player1');
   sendRole(socket, newRoomName, 'player2');
