@@ -39,9 +39,13 @@
     "db:studio": {
       "env": ["DATABASE_URL"]
     },
-
+    "dep:build": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["dist/**"],
+      "cache": false
+    },
     "app-base": {
-      "dependsOn": ["^db"],
+      "dependsOn": ["^db", "^dep:build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "./packages/**",

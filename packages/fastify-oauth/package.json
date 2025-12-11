@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "dep:build": "tsc",
     "lint": "eslint . ",
     "lint:fix": "eslint .  --fix",
     "typecheck": "tsc --noEmit"

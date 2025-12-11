@@ -16,6 +16,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Copy all packages (shared dependencies)
 COPY packages/database ./packages/database
+COPY packages/types ./packages/types
 
 # Copy Socket application
 COPY apps/socket/ ./apps/socket/
@@ -25,6 +26,7 @@ RUN pnpm install
 
 # Build shared packages first
 RUN pnpm run --filter="db" build
+RUN pnpm run --filter="types" build
 
 # Generate Prisma client for the Linux platform
 WORKDIR /workspace/packages/database
