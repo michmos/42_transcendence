@@ -28,14 +28,15 @@ COPY apps/api/ ./apps/api/
 # Install all dependencies (including shared packages)
 RUN pnpm install
 
-# Build shared packages first
+# Generate Prisma client for the Linux platform (must be done before building db package)
+WORKDIR /workspace/packages/database
+RUN pnpm exec prisma generate
+
+# Build shared packages
+WORKDIR /workspace
 RUN pnpm run --filter="db" build
 RUN pnpm run --filter="fastify-oauth" build
 RUN pnpm run --filter="types" build
-
-# Generate Prisma client for the Linux platform
-WORKDIR /workspace/packages/database
-RUN pnpm exec prisma generate
 
 # Set working directory to API app
 WORKDIR /workspace/apps/api
