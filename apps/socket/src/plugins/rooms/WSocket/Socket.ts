@@ -14,7 +14,7 @@ export default class WSocket {
   private messageQueue: Buffer[] = [];
   private onMessageCallbacks: Array<(input: Buffer) => void | Promise<void>> =
     [];
-  private onCloseCallbacks: Array<() => void | Promise<void>> = [];
+  private onCloseCallbacks: (() => void | Promise<void>)[] = [];
   private isProcessingQueue: boolean = false;
 
   public uuid: string;
@@ -62,19 +62,14 @@ export default class WSocket {
       if (!oldestMessage) break;
 
       // apply all onMessage callbacks in order (of registration)
-      const promises = this.onMessageCallbacks.map((callback) =>
-        Promise.resolve(callback(oldestMessage))
-      );
-
-      const results = await Promise.allSettled(promises);
-      results.forEach((result) => {
-        if (result.status === 'rejected') {
-          this.consoleError(
-            `error on message: ${(result.reason as Error).message}`
-          );
+      for (const callback of this.onMessageCallbacks) {
+        try {
+          Promise.resolve(callback(oldestMessage));
+        } catch (error) {
+          this.consoleError(`error on message: ${(error as Error).message}`);
           this.sendError('Internal error');
         }
-      });
+      }
     }
     this.isProcessingQueue = false;
   }
