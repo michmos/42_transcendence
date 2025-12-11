@@ -58,10 +58,11 @@ export default function (app: FastifyInstance): void {
           .status(404)
           .send({ error: `match ${request.params.uuid} not found` });
       }
-      return reply.status(200).send({
+      const response: MatchParticipantsResponse = {
         player1Id: match.player1Id,
         player2Id: match.player2Id,
-      } as MatchParticipantsResponse);
+      };
+      return reply.status(200).send(response);
     }
   );
 

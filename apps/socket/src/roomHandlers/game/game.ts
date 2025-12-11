@@ -336,7 +336,7 @@ export function asyncGameLoop(gameRoom: string) {
           `Error occurred in game loop: ${(error as Error).message}`
         );
         clearInterval(intervalId);
-        reject();
+        reject(new Error(`Game loop error: ${(error as Error).message}`));
       }
     }, 1000 / 60);
   });

@@ -17,10 +17,10 @@ export async function postFinishedOnlineMatch(game: GameRoomData) {
       player2Id: game.player2Uuid,
       score1: game.currentGameState.leftScore,
       score2: game.currentGameState.rightScore,
-      winnerId: (game.currentGameState.leftScore >
-      game.currentGameState.rightScore
-        ? game.player1Uuid
-        : game.player2Uuid) as string,
+      winnerId:
+        game.currentGameState.leftScore > game.currentGameState.rightScore
+          ? game.player1Uuid
+          : game.player2Uuid,
       status: 'finished',
     }),
   });
@@ -46,10 +46,10 @@ export async function patchFinishedTournamentMatch(
     body: JSON.stringify({
       score1: game.currentGameState.leftScore,
       score2: game.currentGameState.rightScore,
-      winnerId: (game.currentGameState.leftScore >
-      game.currentGameState.rightScore
-        ? game.player1Uuid
-        : game.player2Uuid) as string,
+      winnerId:
+        game.currentGameState.leftScore > game.currentGameState.rightScore
+          ? game.player1Uuid
+          : game.player2Uuid,
       status: 'finished',
     }),
   });

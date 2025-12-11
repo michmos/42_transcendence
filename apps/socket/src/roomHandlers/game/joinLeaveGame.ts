@@ -1,8 +1,7 @@
 import { type SocketMessageType } from '../../plugins/rooms/index.js';
 import { RoomManager, WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { updateGameRoomData, type GameRoomData } from './index.js';
-import { asyncGameLoop, type GameState } from './game.js';
-import { env } from '../../env.js';
+import { asyncGameLoop } from './game.js';
 import { type MatchParticipantsResponse } from 'types';
 import { API } from '../../plugins/api/index.js';
 
@@ -115,7 +114,7 @@ const matchParticipantsCache = new Map<string, MatchParticipantsResponse>();
 
 async function getMatchParticipants(matchUuid: string) {
   if (matchParticipantsCache.has(matchUuid)) {
-    const participants = matchParticipantsCache.get(matchUuid)!;
+    const participants = matchParticipantsCache.get(matchUuid);
     matchParticipantsCache.delete(matchUuid);
     return participants;
   }

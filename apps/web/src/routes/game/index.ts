@@ -89,14 +89,14 @@ const keys: Record<string, boolean> = {};
 
 let unregisterOnMessageHook: (() => void) | null = null;
 
-export let setupWebSocketHook = () => {
+export const setupWebSocketHook = () => {
   unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
     const message = JSON.parse(event.data as string) as IncomingMessage;
 
     // ---- ROOM MESSAGE ----
     if (isRoomMessage(message)) {
       console.log('room message received');
-      const message = JSON.parse(event.data) as RoomMessage;
+      const message = JSON.parse(event.data as string) as RoomMessage;
       switch (message.event) {
         case 'room-created':
           TEST_ROOM = message.uuid;
