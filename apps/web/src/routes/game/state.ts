@@ -52,7 +52,7 @@ const initServerState: ServerState = {
   ballPaused: false,
   leftY: 0,
   rightY: 0,
-  gamePaused: false,
+  gamePaused: true,
   leftScore: 0,
   rightScore: 0,
   gameOver: false,
