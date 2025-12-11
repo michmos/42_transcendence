@@ -36,21 +36,24 @@ menu
   .setTokenGetter(() => app.jwtToken)
   .registerMenuOption('exit', exitHandler)
   .registerMenuOption('logout', logoutHandler.bind(menu))
-  .registerMenuOption('game', gameHandler)
+  .registerMenuOption('game', () => void gameHandler())
   .registerLoginHandler(loginHandler.bind(menu));
 
 menu.showMenu();
 
 // Game handler
-function gameHandler() {
+async function gameHandler() {
   if (!app.jwtToken) {
     console.log('❌ You must be logged in to start a game');
+    menu.refreshMenu();
   } else {
-    game.startGameSession(app.jwtToken);
+    menu.pause();
+    await game.startGameSession(app.jwtToken);
+    // Give stdin a moment to settle
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    menu.resume();
+    menu.showMenu();
   }
-
-  menu.refreshMenu();
-  return;
 }
 
 // Exit handler

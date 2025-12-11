@@ -41,19 +41,19 @@ export default class game {
     this.gameState = {
       paddleWidth: 10,
       paddleHeight: 100,
-      ballX: 0,
-      ballY: 0,
+      ballX: this.CANVAS_WIDTH / 2,
+      ballY: this.CANVAS_HEIGHT / 2,
       ballSpeedX: 0,
       ballSpeedY: 0,
       ballPaused: false,
-      leftY: 0,
-      rightY: 0,
+      leftY: this.CANVAS_HEIGHT / 2 - 50,
+      rightY: this.CANVAS_HEIGHT / 2 - 50,
       gamePaused: false,
       leftScore: 0,
       rightScore: 0,
       gameOver: false,
       aiEnabled: false,
-      timeRemaining: 0,
+      timeRemaining: 180,
       gameStartTime: 0,
     };
   }
@@ -72,16 +72,37 @@ export default class game {
     // Start game session
     ws.send(JSON.stringify({ type: 'connect', jwtToken: this.jwtToken }));
 
-    const enableKeyboardInput = () => {
-      readline.emitKeypressEvents(process.stdin);
-      process.stdin.setRawMode(true);
-      process.stdin.on(
-        'keypress',
-        (_, key: { name?: string; ctrl?: boolean }) => {
+    return new Promise<void>((resolve) => {
+      const enableKeyboardInput = () => {
+        // Clean up any existing keypress listeners first
+        process.stdin.removeAllListeners('keypress');
+
+        // Set up raw mode for game input
+        readline.emitKeypressEvents(process.stdin);
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(true);
+        }
+        process.stdin.setEncoding('utf8');
+
+        // Hide cursor and disable echo
+        process.stdout.write('\x1B[?25l'); // Hide cursor
+
+        const keypressHandler = (
+          _: any,
+          key: { name?: string; ctrl?: boolean }
+        ) => {
           if (!key) return;
           if (key.name === 'x') {
             this.gameInProgress = false;
             ws.send(JSON.stringify({ type: 'game', action: 'exit' }));
+            // Clean up
+            if (process.stdin.isTTY) {
+              process.stdin.setRawMode(false);
+            }
+            process.stdin.removeListener('keypress', keypressHandler);
+            process.stdin.removeAllListeners('keypress');
+            process.stdout.write('\x1B[?25h'); // Show cursor
+            resolve();
             return;
           }
           if (key.name === 'w') {
@@ -93,85 +114,102 @@ export default class game {
           } else if (key.name === 'r') {
             ws.send(JSON.stringify({ type: 'game', action: 'reset' }));
           }
-        }
-      );
-    };
-    const displayBoard = () => {
-      // Game title
-      console.log(' '.repeat(this.WINDOW_HEIGHT), '🏓 PONG CLI CLIENT 🏓');
-      console.log('▁'.repeat(this.WINDOW_WIDTH));
-      // Game field (simplified ASCII representation)
-      // const width = 91;
-      // const height = 34;
-      // Calculate positions scaled to ASCII field
-      const ballX = Math.floor(
-        (this.gameState.ballX / this.CANVAS_WIDTH) * this.WINDOW_WIDTH
-      );
-      const ballY = Math.floor(
-        (this.gameState.ballY / this.CANVAS_HEIGHT) * this.WINDOW_HEIGHT
-      );
-      const leftPaddleY = Math.floor(
-        (this.gameState.leftY / this.CANVAS_HEIGHT) * this.WINDOW_HEIGHT
-      );
-      const rightPaddleY = Math.floor(
-        (this.gameState.rightY / this.CANVAS_HEIGHT) * this.WINDOW_HEIGHT
-      );
-      // Draw game field
-      for (let y = 0; y < this.WINDOW_HEIGHT; y++) {
-        let line = '';
-        for (let x = 0; x < this.WINDOW_WIDTH; x++) {
-          if (x === 0) {
-            // Left paddle
-            if (y >= leftPaddleY && y < leftPaddleY + 6) {
-              line += '█';
-            } else {
-              line += '🭰';
-            }
-          } else if (x === this.WINDOW_WIDTH - 1) {
-            // Right paddle
-            if (y >= rightPaddleY && y < rightPaddleY + 6) {
-              line += '█';
-            } else {
-              line += '🭵';
-            }
-          } else if (x === Math.floor(this.WINDOW_WIDTH / 2)) {
-            // Center line
-            line += y % 2 === 0 ? '|' : ' ';
-          } else if (x === ballX && y === ballY && !this.gameState.ballPaused) {
-            // Ball
-            line += '●';
-          } else {
-            line += ' ';
-          }
-        }
-        console.log(line);
-      }
-      console.log('▔'.repeat(this.WINDOW_WIDTH));
-    };
+        };
 
-    displayBoard();
-
-    // Handle incoming messages
-    ws.on('message', (msg: WebSocket.RawData) => {
-      if (this.gameInProgress === false) return;
-      const message = JSON.parse(msg.toString()) as ServerState & {
-        type: string;
+        process.stdin.on('keypress', keypressHandler);
       };
-      if (message.type === 'state') {
-        this.gameState = message;
-        console.clear();
-        console.log(
-          `Ball: (${message.ballX.toFixed(2)}, ${message.ballY.toFixed(2)})`
+      const displayBoard = () => {
+        // Game title
+        console.log(' '.repeat(this.WINDOW_HEIGHT), '🏓 PONG CLI CLIENT 🏓');
+        console.log('▁'.repeat(this.WINDOW_WIDTH));
+        // Game field (simplified ASCII representation)
+        // const width = 91;
+        // const height = 34;
+        // Calculate positions scaled to ASCII field
+        const ballX = Math.floor(
+          (this.gameState.ballX / this.CANVAS_WIDTH) * this.WINDOW_WIDTH
         );
-        console.log(`Paddles: left ${message.leftY}, right ${message.rightY}`);
-        displayBoard();
-        console.log(`Time: ${formatTime(this.gameState.timeRemaining)} ⏱`);
-        console.log(`Score: ${message.leftScore} - ${message.rightScore}`);
-      }
-    });
+        const ballY = Math.floor(
+          (this.gameState.ballY / this.CANVAS_HEIGHT) * this.WINDOW_HEIGHT
+        );
+        const leftPaddleY = Math.floor(
+          (this.gameState.leftY / this.CANVAS_HEIGHT) * this.WINDOW_HEIGHT
+        );
+        const rightPaddleY = Math.floor(
+          (this.gameState.rightY / this.CANVAS_HEIGHT) * this.WINDOW_HEIGHT
+        );
+        // Draw game field
+        for (let y = 0; y < this.WINDOW_HEIGHT; y++) {
+          let line = '';
+          for (let x = 0; x < this.WINDOW_WIDTH; x++) {
+            if (x === 0) {
+              // Left paddle
+              if (y >= leftPaddleY && y < leftPaddleY + 6) {
+                line += '█';
+              } else {
+                line += '🭰';
+              }
+            } else if (x === this.WINDOW_WIDTH - 1) {
+              // Right paddle
+              if (y >= rightPaddleY && y < rightPaddleY + 6) {
+                line += '█';
+              } else {
+                line += '🭵';
+              }
+            } else if (x === Math.floor(this.WINDOW_WIDTH / 2)) {
+              // Center line
+              line += y % 2 === 0 ? '|' : ' ';
+            } else if (
+              x === ballX &&
+              y === ballY &&
+              !this.gameState.ballPaused
+            ) {
+              // Ball
+              line += '●';
+            } else {
+              line += ' ';
+            }
+          }
+          console.log(line);
+        }
+        console.log('▔'.repeat(this.WINDOW_WIDTH));
+      };
 
-    // Handle incoming keypresses
-    enableKeyboardInput();
-    // Add pause 1 second to let user see the message
+      // Initial draw
+      console.clear();
+      console.log('🏓 Starting CLI Pong Game...');
+      console.log(`Time: ${formatTime(this.gameState.timeRemaining)} ⏱`);
+      console.log(
+        `Score: ${this.gameState.leftScore} - ${this.gameState.rightScore}`
+      );
+      displayBoard();
+      console.log(
+        '\nControls: W/S = Move paddle, P = Pause, R = Reset, X = Exit'
+      );
+
+      // Handle incoming messages
+      ws.on('message', (msg: WebSocket.RawData) => {
+        if (this.gameInProgress === false) return;
+        const message = JSON.parse(msg.toString()) as ServerState & {
+          type: string;
+        };
+        if (message.type === 'state') {
+          this.gameState = message;
+          console.clear();
+          console.log(
+            `Ball: (${message.ballX.toFixed(2)}, ${message.ballY.toFixed(2)})`
+          );
+          console.log(
+            `Paddles: left ${message.leftY}, right ${message.rightY}`
+          );
+          displayBoard();
+          console.log(`Time: ${formatTime(this.gameState.timeRemaining)} ⏱`);
+          console.log(`Score: ${message.leftScore} - ${message.rightScore}`);
+        }
+      });
+
+      // Handle incoming keypresses
+      enableKeyboardInput();
+    });
   }
 }

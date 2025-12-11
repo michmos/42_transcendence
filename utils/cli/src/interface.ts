@@ -6,6 +6,7 @@ export default class Interface {
   private loginHandler: ((line: string) => void) | null = null;
   private providers: Array<{ name: string; buttonUri: string }> = [];
   private tokenGetter: (() => string | null) | null = null;
+  private isPaused: boolean = false;
 
   constructor(providers: Array<{ name: string; buttonUri: string }> = []) {
     this.providers = providers;
@@ -15,10 +16,89 @@ export default class Interface {
       output: process.stdout,
       prompt: '> ',
     });
+
+    this.setupEventListeners();
   }
 
   close() {
     this.rl.close();
+  }
+
+  pause() {
+    this.isPaused = true;
+    // Clear the prompt line
+    if (process.stdout.isTTY) {
+      process.stdout.write('\r\x1b[K');
+    }
+    // Remove event listeners before closing to prevent triggering events
+    this.rl.removeAllListeners('line');
+    this.rl.removeAllListeners('close');
+    // Close readline to release stdin completely
+    this.rl.close();
+    // Ensure stdin is still available for the game
+    process.stdin.resume();
+  }
+
+  resume() {
+    this.isPaused = false;
+
+    // Ensure stdin is in proper state before recreating readline
+    if (process.stdin.isTTY && process.stdin.isRaw) {
+      process.stdin.setRawMode(false);
+    }
+
+    // Remove any leftover keypress listeners from game
+    process.stdin.removeAllListeners('keypress');
+
+    // Show cursor again
+    process.stdout.write('\x1B[?25h');
+
+    // Recreate the readline interface
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: '> ',
+    });
+
+    // Re-attach the event listeners
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners() {
+    // Handle user input
+    this.rl.on('line', (line: string) => {
+      // Ignore input if paused
+      if (this.isPaused) {
+        return;
+      }
+
+      const input = line.trim();
+
+      // Check if the input matches any registered menu option
+      if (this.menuOptions.has(input)) {
+        const handler = this.menuOptions.get(input);
+        if (handler) {
+          return handler(line);
+        }
+      }
+
+      // Handle special cases like login
+      if (input.startsWith('login ') && this.loginHandler) {
+        this.loginHandler(input.slice(5).trim());
+        return;
+      }
+
+      // Unknown command
+      this.refreshMenu();
+    });
+
+    this.rl.on('close', () => {
+      // Only exit if we're not paused (paused means we closed it intentionally for game)
+      if (!this.isPaused) {
+        console.log('Exiting CLI application. Goodbye!');
+        process.exit(0);
+      }
+    });
   }
 
   showMenu() {
@@ -42,32 +122,6 @@ export default class Interface {
 
     // Display the prompt
     this.rl.prompt();
-
-    // Handle user input
-    this.rl.on('line', (line: string) => {
-      const input = line.trim();
-
-      // Check if the input matches any registered menu option
-      if (this.menuOptions.has(input)) {
-        const handler = this.menuOptions.get(input);
-        if (handler) {
-          return handler(line);
-        }
-      }
-
-      // Handle special cases like login
-      if (input.startsWith('login ') && this.loginHandler) {
-        this.loginHandler(input.slice(5).trim());
-        return;
-      }
-
-      // Unknown command
-      this.refreshMenu();
-    });
-
-    this.rl.on('close', () => {
-      console.log('Exiting CLI application. Goodbye!');
-    });
   }
 
   clearMenu() {
