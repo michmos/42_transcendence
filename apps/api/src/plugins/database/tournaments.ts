@@ -163,7 +163,7 @@ export async function getTournamentParticipationsByUserAndStatus(
     },
     select: {
       tournamentId: true,
-      userId: true,
+      alias: true,
     },
   });
 }
