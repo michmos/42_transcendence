@@ -135,8 +135,8 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   // check participants
   const participants = await getMatchParticipants(matchUuid);
   if (
-    socket.uuid !== participants.player1Id &&
-    socket.uuid !== participants.player2Id
+    socket.uuid !== participants?.player1Id &&
+    socket.uuid !== participants?.player2Id
   ) {
     socket.consoleLog('tried to join a tournament match they are not in');
     socket.sendError('You are not a participant in this tournament match');
