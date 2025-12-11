@@ -459,7 +459,7 @@ describe('PATCH /tournaments/{uuid}/start', () => {
     assert(firstRound !== null);
     expect(firstRound.matches).toHaveLength(2);
     // fetch full match data from db
-    let matches: Match[] = [];
+    const matches: Match[] = [];
     for (const match of firstRound.matches) {
       const fullMatch = await app.db.getMatch(match.uuid);
       assert(fullMatch !== null);
