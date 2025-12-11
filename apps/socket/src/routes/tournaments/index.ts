@@ -126,7 +126,7 @@ export default function (app: FastifyInstance): void {
         RoomManager.get(`tournament:${tournamentUuid}`)?.broadcast(
           JSON.stringify({
             event: 'notify',
-            message: `Tournament '${tournamentName} finished`,
+            message: `Tournament '${tournamentName}' finished`,
           })
         );
       }
