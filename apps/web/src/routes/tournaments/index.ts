@@ -10,6 +10,7 @@ import type {
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
+import { shouldShowNotification } from '../../utils/notification-dedup.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -27,7 +28,6 @@ interface Tournament {
   maxPlayers: number;
   registeredPlayers: number;
   startDate: string;
-  prizePool?: number;
 }
 
 /**
@@ -73,7 +73,6 @@ function mapTournamentToUI(tournament: BackendTournament): Tournament {
     maxPlayers: tournament.maxPlayers,
     registeredPlayers: tournament.playerCount,
     startDate: formatDate(tournament.createdAt),
-    // prizePool is not in backend schema, so we'll leave it undefined
   };
 }
 
@@ -97,7 +96,9 @@ window.socket.registerWebSocketHook((event: MessageEvent) => {
   } else if (data.event === 'tournament-started') {
     console.log('Tournament started:', data);
   } else if (data.event === 'notify') {
-    console.log('Notification:', data.message);
+    if (data.message && shouldShowNotification(data.message)) {
+      toast.show(data.message, { variant: 'info' });
+    }
   }
 });
 
@@ -1025,6 +1026,49 @@ export default async function initRoute() {
   // Make loadTournaments available globally for dialog callback
   windowWithTournaments.loadTournaments = loadTournaments;
 
+  // ===== HELPER FUNCTIONS FOR TOURNAMENT UPDATES =====
+  /**
+   * Update filtered arrays based on current search query
+   */
+  function updateFilteredArrays(): void {
+    if (searchQuery) {
+      const filtered = allTournaments.filter((t) =>
+        t.name.toLowerCase().includes(searchQuery)
+      );
+      filteredTournaments = filtered;
+      filteredBackendTournaments = filtered
+        .map((uiTournament) => {
+          return allBackendTournaments.find(
+            (bt) => bt.uuid === uiTournament.id
+          );
+        })
+        .filter((bt): bt is BackendTournament => bt !== undefined);
+    } else {
+      filteredTournaments = [...allTournaments];
+      filteredBackendTournaments = [...allBackendTournaments];
+    }
+  }
+
+  /**
+   * Update or add a tournament to display arrays
+   */
+  function updateTournamentInArrays(tournament: BackendTournament): void {
+    const index = allBackendTournaments.findIndex(
+      (t) => t.uuid === tournament.uuid
+    );
+    if (index !== -1) {
+      // Tournament already in arrays, update it
+      allBackendTournaments[index] = tournament;
+      allTournaments[index] = mapTournamentToUI(tournament);
+    } else if (tournament.status === 'outstanding') {
+      // Tournament not in arrays yet, add it
+      allBackendTournaments.push(tournament);
+      allTournaments.push(mapTournamentToUI(tournament));
+    }
+    updateFilteredArrays();
+    updateTournamentGrid();
+  }
+
   // ===== TOURNAMENT SOCKET INTEGRATION =====
   // Initialize tournament socket for real-time updates
   tournamentSocket.initialize();
@@ -1033,9 +1077,8 @@ export default async function initRoute() {
   // These will work once backend socket handler is implemented
   const handleTournamentCreated = (data: unknown) => {
     const eventData = data as { tournamentUuid?: string };
-    // Show toast notification
     toast.show('A new tournament has been created!', { variant: 'info' });
-    // If tournament is not in myTournaments, fetch it and add to openTournaments
+
     if (
       eventData.tournamentUuid &&
       !myTournaments.has(eventData.tournamentUuid)
@@ -1047,70 +1090,45 @@ export default async function initRoute() {
         if (tournament && tournament.status === 'outstanding') {
           openTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
-          // Update display
-          allBackendTournaments = Array.from(tournamentsMap.values());
-          allTournaments = allBackendTournaments.map(mapTournamentToUI);
-          filteredTournaments = [...allTournaments];
-          filteredBackendTournaments = [...allBackendTournaments];
-          updateTournamentGrid();
+          updateTournamentInArrays(tournament);
         }
       })();
     } else {
-      // Refresh the list
       void loadTournaments();
     }
   };
 
   const handleTournamentStarted = (data: unknown) => {
-    const eventData = data as { uuid?: string; tournamentName?: string };
-
-    // Show toast if user is a participant in this tournament
-    if (eventData.uuid && myTournaments.has(eventData.uuid)) {
-      const tournamentName = eventData.tournamentName || 'Tournament';
-      toast.show(`${tournamentName} is about to start!`, {
-        variant: 'success',
-      });
-    }
-
+    // Note: Toast notification is handled by the 'notify' event from the backend
     // Update tournament list to show status change
     void loadTournaments();
   };
 
   const handleTournamentJoined = (data: unknown) => {
     const eventData = data as { uuid: string; playerCount: number };
-    // Update tournament in Map
     const tournament = tournamentsMap.get(eventData.uuid);
+
     if (tournament) {
+      // Tournament already in map, update playerCount
       tournament.playerCount = eventData.playerCount;
-      // Update display arrays
-      const index = allBackendTournaments.findIndex(
-        (t) => t.uuid === eventData.uuid
-      );
-      if (index !== -1) {
-        allBackendTournaments[index] = tournament;
-        allTournaments[index] = mapTournamentToUI(tournament);
-        // Re-filter if search is active
-        if (searchQuery) {
-          const filtered = allTournaments.filter((t) =>
-            t.name.toLowerCase().includes(searchQuery)
+      updateTournamentInArrays(tournament);
+    } else {
+      // Tournament not in map yet - fetch it with correct playerCount
+      void (async () => {
+        try {
+          const fetchedTournament = await TournamentAPI.getTournament(
+            eventData.uuid
           );
-          filteredTournaments = filtered;
-          filteredBackendTournaments = filtered
-            .map((uiTournament) => {
-              return allBackendTournaments.find(
-                (bt) => bt.uuid === uiTournament.id
-              );
-            })
-            .filter((bt): bt is BackendTournament => bt !== undefined);
-        } else {
-          filteredTournaments = [...allTournaments];
-          filteredBackendTournaments = [...allBackendTournaments];
+          if (fetchedTournament) {
+            fetchedTournament.playerCount = eventData.playerCount;
+            tournamentsMap.set(eventData.uuid, fetchedTournament);
+            updateTournamentInArrays(fetchedTournament);
+          }
+        } catch {
+          // Tournament might not exist yet, ignore
         }
-        updateTournamentGrid();
-      }
+      })();
     }
-    // Don't show toast on tournaments list page - only update the list
-    // Participants will see the toast on the specific tournament page
   };
 
   const handleTournamentLeft = (data: unknown) => {
@@ -1137,13 +1155,10 @@ export default async function initRoute() {
       status?: status;
       playerCount?: number;
     };
-    // Update tournament in Map
     const tournament = tournamentsMap.get(eventData.uuid);
     if (tournament) {
-      // Update tournament data
       if (eventData.status) {
         tournament.status = eventData.status;
-        // If tournament is no longer outstanding, remove from openTournaments
         if (eventData.status !== 'outstanding') {
           openTournaments.delete(eventData.uuid);
         }
@@ -1151,32 +1166,7 @@ export default async function initRoute() {
       if (eventData.playerCount !== undefined) {
         tournament.playerCount = eventData.playerCount;
       }
-      // Update display arrays
-      const index = allBackendTournaments.findIndex(
-        (t) => t.uuid === eventData.uuid
-      );
-      if (index !== -1) {
-        allBackendTournaments[index] = tournament;
-        allTournaments[index] = mapTournamentToUI(tournament);
-        // Re-filter if search is active
-        if (searchQuery) {
-          const filtered = allTournaments.filter((t) =>
-            t.name.toLowerCase().includes(searchQuery)
-          );
-          filteredTournaments = filtered;
-          filteredBackendTournaments = filtered
-            .map((uiTournament) => {
-              return allBackendTournaments.find(
-                (bt) => bt.uuid === uiTournament.id
-              );
-            })
-            .filter((bt): bt is BackendTournament => bt !== undefined);
-        } else {
-          filteredTournaments = [...allTournaments];
-          filteredBackendTournaments = [...allBackendTournaments];
-        }
-        updateTournamentGrid();
-      }
+      updateTournamentInArrays(tournament);
     }
   };
 

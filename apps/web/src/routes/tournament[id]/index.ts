@@ -13,6 +13,7 @@ import { showApiError } from '../../utils/api-helpers.js';
 import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
+import { shouldShowNotification } from '../../utils/notification-dedup.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -1090,81 +1091,48 @@ export default async function initRoute() {
         playerCount?: number;
       };
       if (eventData.uuid === tournamentUuid && currentTournament) {
-        // Update tournament data
-        if (eventData.status) {
-          currentTournament.status = eventData.status;
-        }
-        if (eventData.playerCount !== undefined) {
+        if (eventData.status) currentTournament.status = eventData.status;
+        if (eventData.playerCount !== undefined)
           currentTournament.playerCount = eventData.playerCount;
-        }
-        // Refresh the page to show updates (including leaderboard with new participants)
         void refreshTournamentData();
       }
     };
 
     const handleUserJoined = (data: unknown) => {
-      const eventData = data as {
-        uuid: string;
-        playerCount?: number;
-      };
+      const eventData = data as { uuid: string; playerCount?: number };
       if (eventData.uuid === tournamentUuid) {
-        // Show toast notification for participants
-        const playerCount = eventData.playerCount || 0;
-        toast.show(`Someone joined this tournament (${playerCount} players)`, {
-          variant: 'info',
-        });
-        // Refresh tournament to show updated player count and leaderboard with new participant
+        toast.show(
+          `Someone joined this tournament (${eventData.playerCount || 0} players)`,
+          { variant: 'info' }
+        );
         void refreshTournamentData();
       }
     };
 
     const handleUserLeft = (data: unknown) => {
-      const eventData = data as {
-        tournamentUuid: string;
-        userUuid: string;
-      };
+      const eventData = data as { tournamentUuid: string };
       if (eventData.tournamentUuid === tournamentUuid) {
-        // Refresh tournament to show updated player count and leaderboard
         void refreshTournamentData();
       }
     };
 
     const handleTournamentStarted = (data: unknown) => {
-      const eventData = data as {
-        uuid: string;
-        rounds?: TournamentRound[];
-        tournamentName?: string;
-      };
+      const eventData = data as { uuid: string };
       if (eventData.uuid === tournamentUuid) {
-        // Show toast notification (only for participants on this page)
-        const tournamentName = eventData.tournamentName || 'Tournament';
-        toast.show(`${tournamentName} is about to start!`, {
-          variant: 'success',
-        });
-        // Tournament started - refresh to show rounds
         void refreshTournamentData();
       }
     };
 
     const handleMatchUpdated = (data: unknown) => {
-      const eventData = data as {
-        tournamentUuid: string;
-        roundIndex: number;
-        match: Match;
-      };
+      const eventData = data as { tournamentUuid: string };
       if (eventData.tournamentUuid === tournamentUuid) {
-        // Match updated - refresh to show updated scores and leaderboard
         void refreshTournamentData();
       }
     };
 
     const handleRoundCompleted = (data: unknown) => {
-      const eventData = data as {
-        tournamentUuid: string;
-        roundIndex: number;
-      };
+      const eventData = data as { tournamentUuid: string };
       if (eventData.tournamentUuid === tournamentUuid) {
-        // Round completed - refresh to show updated status and leaderboard
         void refreshTournamentData();
       }
     };
@@ -1176,6 +1144,27 @@ export default async function initRoute() {
     tournamentSocket.on('tournament-started', handleTournamentStarted);
     tournamentSocket.on('match-updated', handleMatchUpdated);
     tournamentSocket.on('round-completed', handleRoundCompleted);
+
+    // Handle "notify" events (not supported by tournamentSocket plugin)
+    if (window.socket) {
+      window.socket.registerWebSocketHook((event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data as string) as {
+            event?: string;
+            message?: string;
+          };
+          if (
+            data.event === 'notify' &&
+            data.message &&
+            shouldShowNotification(data.message)
+          ) {
+            toast.show(data.message, { variant: 'info' });
+          }
+        } catch {
+          // Ignore non-JSON or non-matching messages
+        }
+      });
+    }
 
     // Join specific tournament room (will fail gracefully if backend not ready)
     tournamentSocket.joinTournament(tournamentUuid);
