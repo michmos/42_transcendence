@@ -1077,8 +1077,6 @@ export default async function initRoute() {
   // These will work once backend socket handler is implemented
   const handleTournamentCreated = (data: unknown) => {
     const eventData = data as { tournamentUuid?: string };
-    toast.show('A new tournament has been created!', { variant: 'info' });
-
     if (
       eventData.tournamentUuid &&
       !myTournaments.has(eventData.tournamentUuid)
@@ -1098,7 +1096,7 @@ export default async function initRoute() {
     }
   };
 
-  const handleTournamentStarted = (data: unknown) => {
+  const handleTournamentStarted = (_data: unknown) => {
     // Note: Toast notification is handled by the 'notify' event from the backend
     // Update tournament list to show status change
     void loadTournaments();
@@ -1131,20 +1129,7 @@ export default async function initRoute() {
     }
   };
 
-  const handleTournamentLeft = (data: unknown) => {
-    const eventData = data as { uuid: string; playerCount: number };
-    // Find tournament name for toast
-    const tournament = allBackendTournaments.find(
-      (t) => t.uuid === eventData.uuid
-    );
-    const tournamentName = tournament?.tournamentName || 'Tournament';
-    // Show toast notification
-    toast.show(
-      `Someone left ${tournamentName} (${eventData.playerCount} players)`,
-      {
-        variant: 'warning',
-      }
-    );
+  const handleTournamentLeft = (_data: unknown) => {
     // Refresh full tournament list to get updated participants
     void loadTournaments();
   };

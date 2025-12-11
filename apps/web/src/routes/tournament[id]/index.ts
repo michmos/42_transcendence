@@ -6,7 +6,6 @@ import UserAPI from '../../plugins/api/user.js';
 import type {
   Tournament as BackendTournament,
   TournamentRound,
-  Match,
   status,
 } from '../../types/api.js';
 import { showApiError } from '../../utils/api-helpers.js';
@@ -1101,10 +1100,6 @@ export default async function initRoute() {
     const handleUserJoined = (data: unknown) => {
       const eventData = data as { uuid: string; playerCount?: number };
       if (eventData.uuid === tournamentUuid) {
-        toast.show(
-          `Someone joined this tournament (${eventData.playerCount || 0} players)`,
-          { variant: 'info' }
-        );
         void refreshTournamentData();
       }
     };
