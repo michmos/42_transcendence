@@ -21,6 +21,11 @@ export interface MatchResponse {
   score2: number;
 }
 
+export interface MatchParticipantsResponse {
+  player1Id: string | null;
+  player2Id: string | null;
+}
+
 export interface MatchRecord {
   updatedAt: Date;
   score1: number;

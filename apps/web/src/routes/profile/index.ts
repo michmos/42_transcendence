@@ -18,6 +18,12 @@ import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 import toast from '../../utils/toast.js';
 import type { OnlineStatus } from 'types';
+import { setupWebSocketHook } from '../game/index.js';
+
+let isLocalGame = true;
+export function getIsLocalGame(): boolean {
+  return isLocalGame;
+}
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -1234,6 +1240,8 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🎮',
     label: 'Play Locally',
     onClick: () => {
+      isLocalGame = true;
+      setupWebSocketHook();
       joinLocalMatch();
       navigateTo('/game');
     },
@@ -1244,8 +1252,10 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🌐',
     label: 'Play Online',
     onClick: () => {
+      isLocalGame = false;
+      setupWebSocketHook();
       joinOnlineMatch();
-      // TODO:Backend will handle the game start logic - no navigation needed
+      navigateTo('/game');
     },
   });
 
