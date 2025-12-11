@@ -235,7 +235,7 @@ export async function updateTournamentRound(
     });
     if (!unfinishedRounds) {
       //update status
-      updateTournament({
+      await updateTournament({
         uuid: tournamentId,
         status: 'finished',
       });
