@@ -454,18 +454,22 @@ describe('PATCH /tournaments/{uuid}/start', () => {
       body: {},
     });
     expect(response.statusCode).toBe(200);
+
+    // get round
     const firstRound: TournamentRoundResponse | null =
       await app.db.getTournamentRound(tournament.uuid, 0);
     assert(firstRound !== null);
     expect(firstRound.matches).toHaveLength(2);
-    // fetch full match data from db
+
+    // fetch full match data for that round from db
     const matches: Match[] = [];
     for (const match of firstRound.matches) {
       const fullMatch = await app.db.getMatch(match.uuid);
       assert(fullMatch !== null);
       matches.push(fullMatch);
     }
-    // check that one match is auto-forfeit
+
+    // check that exactly one match is auto-forfeit
     const autoForfeitMatch = matches.find(
       (match) => match.status === 'finished' && match.winnerId !== null
     );
@@ -476,6 +480,11 @@ describe('PATCH /tournaments/{uuid}/start', () => {
     } else {
       expect(autoForfeitMatch?.score1).toBe(0);
       expect(autoForfeitMatch?.score2).toBe(10);
+    }
+    if (autoForfeitMatch.uuid === matches[0]?.uuid) {
+      expect(matches[1]?.status).toBe('outstanding');
+    } else {
+      expect(matches[0]?.status).toBe('outstanding');
     }
   });
 
