@@ -14,7 +14,7 @@ import UserAPI, {
 import type { User } from 'db/generated/client/index.js';
 import FriendsAPI from '../../plugins/api/friends.js';
 import TournamentAPI from '../../plugins/api/tournaments.js';
-import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
+// import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 import toast from '../../utils/toast.js';
@@ -22,6 +22,10 @@ import type { OnlineStatus } from 'types';
 import { setupWebSocketHook } from '../game/index.js';
 
 export let isLocalGame = true;
+
+export function getIsLocalGame(): boolean {
+  return isLocalGame;
+}
 
 // Local interface to avoid import type issues
 interface OnlineStatusData {
@@ -77,35 +81,10 @@ export default async function initRoute() {
   const headerContainer = document.createElement('div');
   mainWrapper.appendChild(headerContainer);
 
-  // Check if we have a session in memory (from app.ts)
-  // app.ts already checked auth, so we should have a session
-  const currentSession = await getCurrentSession();
-  if (!currentSession || !currentSession.uuid) {
-    navigateTo('/login');
-    return;
-  }
-
   // Fetch profile data from API
   const profileData = await UserAPI.getUserProfile();
 
   if (!profileData) {
-    // Re-check session in memory (might have been cleared by logout)
-    const currentSession = await getCurrentSession();
-    if (!currentSession || !currentSession.uuid) {
-      // Session was cleared (e.g., during logout) - redirect immediately
-      navigateTo('/login');
-      return;
-    }
-
-    // Session exists in memory, verify with API
-    const user = await UserAPI.getMe();
-    if (!user || !user.uuid) {
-      // User is not actually authenticated - clear stale session and redirect
-      clearSession();
-      navigateTo('/login');
-      return;
-    }
-
     // User is authenticated but profile fetch failed - show error
     const errorMsg = document.createElement('div');
     errorMsg.className = 'text-center text-muted-foreground py-8';
@@ -134,10 +113,8 @@ export default async function initRoute() {
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [{ label: 'Tournaments', href: '/tournaments', active: false }],
-    ...(cleanedUserData.nickname && { userNickname: cleanedUserData.nickname }),
-    ...(cleanedUserData.avatar && {
-      userAvatar: getAvatarSrc(cleanedUserData.avatar) || null,
-    }),
+    userNickname: cleanedUserData?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(cleanedUserData.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -222,7 +199,11 @@ export default async function initRoute() {
   });
 
   // Recent Matches
-  renderRecentMatches(leftColumn, userMatches, cleanedUserData.nickname || '');
+  renderRecentMatches(
+    leftColumn,
+    userMatches,
+    cleanedUserData['nickname'] || ''
+  );
 
   // ===== RIGHT COLUMN (Quick Actions & Events) =====
   const rightColumn = document.createElement('div');
@@ -611,9 +592,9 @@ function renderFriendsTab(
 
       // Get current user's nickname from profile data
       const profileData = await UserAPI.getUserProfile();
-      const currentNickname = profileData?.cleanedUserData.nickname || '';
+      const currentNickname = profileData?.cleanedUserData['nickname'] || '';
       const isSelf =
-        user.nickname?.toLowerCase() === currentNickname.toLowerCase();
+        user['nickname']?.toLowerCase() === currentNickname.toLowerCase();
 
       // Render search result
       const resultItem = createSearchResultItem(user, friendship, isSelf);
@@ -928,7 +909,7 @@ function createSearchResultItem(
   item.className =
     'flex items-center gap-3 p-4 rounded-lg bg-gradient-card backdrop-blur-glass border border-border';
 
-  const nickname = user.nickname || 'Unknown';
+  const nickname = user['nickname'] || 'Unknown';
   const avatar = user.avatar || null;
   const initials = nickname
     .split(' ')

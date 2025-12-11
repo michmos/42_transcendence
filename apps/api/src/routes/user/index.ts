@@ -162,13 +162,10 @@ export default function (app: FastifyInstance): void {
 
       const avatarUuid = crypto.randomUUID();
       const newFilename = `${avatarUuid}.png`;
-      const savePath = path.join(
-        `${env.CDN_PATH}`,
-        'public/userAvatars',
-        newFilename
-      );
-      const relPath = `/userAvatars/${newFilename}`;
+      const filePath = path.join('avatars', newFilename);
+      const savePath = path.join(`${env.CDN_PATH}`, filePath);
 
+      // ensure that directory exists
       await fs.promises.mkdir(path.dirname(savePath), { recursive: true });
       try {
         await sharp(buffer)
@@ -180,8 +177,8 @@ export default function (app: FastifyInstance): void {
           Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
         });
       }
-
-      const userData = await app.db.setUserMeAvatar(uuidSelf, relPath);
+      // Setting/replacing image file path in user's record database
+      const userData = await app.db.setUserMeAvatar(uuidSelf, filePath);
       return reply.code(200).send(cleanSelfUserData(userData));
     } catch (error) {
       app.log.error(error);

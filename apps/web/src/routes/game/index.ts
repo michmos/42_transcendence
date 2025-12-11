@@ -4,7 +4,8 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI from '../../plugins/api/user.js';
 import { leaveMatch } from './buttonLogic.js';
-import { isLocalGame } from '../profile/index.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
+import { getIsLocalGame } from '../profile/index.js';
 
 import {
   getCanvas,
@@ -58,7 +59,7 @@ export type IncomingMessage =
   | GenericMessage
   | RoomMessage;
 
-let TEST_ROOM: string = 'game:placeholder';
+let current_game_room: string = 'game:placeholder';
 
 // --- Type guards ---
 function isStateMessage(msg: IncomingMessage): msg is StateMessage {
@@ -108,8 +109,8 @@ export const setupWebSocketHook = () => {
       const message = JSON.parse(event.data as string) as RoomMessage;
       switch (message.event) {
         case 'room-created':
-          TEST_ROOM = message.uuid;
-          console.log('room created', TEST_ROOM);
+          current_game_room = message.uuid;
+          console.log('room created', current_game_room);
       }
     }
 
@@ -248,7 +249,6 @@ function cleanup() {
 
 // Initialize page structure and game
 export default async function initRoute() {
-
   // Mark route as active
   isRouteActive = true;
   const pageRoot = document.querySelector('.game-page') as HTMLElement;
@@ -270,15 +270,15 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo ? { userNickname: userInfo.nickname } : {}),
-    ...(userInfo ? { userAvatar: userInfo.avatar } : {}),
+    userNickname: userInfo?.nickname || 'Guest',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -329,7 +329,7 @@ export default async function initRoute() {
   canvasContainer.appendChild(leaveButtonContainer);
 
   // Show nickname input dialog before starting game (local = 2 players)
-  if (isLocalGame) {
+  if (getIsLocalGame()) {
     showLocalGameNicknameDialog(() => {
       // Callback after nicknames are set - initialize game
       console.log('init game called');
@@ -509,6 +509,7 @@ function initializeGame() {
 function setupControlsDisplay() {
   const controlsContainer = document.getElementById('gameControls');
   if (!controlsContainer) return;
+  controlsContainer.innerHTML = '';
 
   // Update controls display based on role
   controlsContainer.innerHTML = '';
@@ -583,7 +584,7 @@ function setupControlsDisplay() {
 }
 
 export function sendMessage(msg: object) {
-  window.socket.sendMessage(TEST_ROOM, msg);
+  window.socket.sendMessage(current_game_room, msg);
 }
 
 function gameLoop() {

@@ -1,92 +1,29 @@
 import { SimpleRouter } from './plugins/router/index.js';
 import { Socket } from './plugins/websocket/index.js';
-import { getSession } from './plugins/api/auth.js';
-import { setSession } from './utils/auth-state.js';
+import API from './plugins/api/index.js';
 
-declare global {
-  interface Window {
-    routeParams?: Record<string, string>;
-    router: SimpleRouter;
-    socket: Socket;
-  }
-}
-
-const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`;
-
-// Connect to WebSocket
+// Connect to WebSocket server
+const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket/`;
 window.socket = new Socket(socketUrl);
 
 // Initialize router
 const router = new SimpleRouter(document.getElementById('app') as HTMLElement);
 window.router = router;
 
-// Check session on app load
-async function checkSessionAndRedirect() {
-  // Check if we're coming from OAuth callback
-  // The OAuth callback sets a cookie and redirects to /, so we need to wait for the cookie
-  const oauthFlag = sessionStorage.getItem('oauth_redirect');
-  const isOAuthCallback = oauthFlag === 'true';
+// Add API to global window for easy access
+window.api = API;
 
-  // Clear the flag if it exists
-  if (isOAuthCallback) {
-    sessionStorage.removeItem('oauth_redirect');
-  }
+// Fetch current user profile
+window.user = await window.api.user.getUserProfile();
 
-  // Cookie should be available immediately after OAuth callback redirect
-  // Check immediately, with short retries if needed for browser processing
-  let session = null;
-  const maxRetries = isOAuthCallback ? 3 : 2; // Fewer retries since cookie should be ready
-  const retryDelay = 200; // Shorter delay between retries
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    if (attempt > 0) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
-    }
-
-    try {
-      session = await getSession();
-      if (session) {
-        break;
-      }
-    } catch (error) {
-      // Only log errors on final attempt
-      if (attempt === maxRetries - 1) {
-        console.error('[app.ts] Session check failed:', error);
-      }
-    }
-  }
-
-  setSession(session);
-
-  // Re-read currentPath in case it changed during the wait
-  const finalPath = window.location.pathname;
-  const isLoginPage = finalPath === '/login';
-  const isHomePage = finalPath === '/';
-  const isErrorPage = finalPath === '/error';
-
-  // Handle redirects based on session and current path
-  if (session) {
-    // User is logged in
-    if (isLoginPage || isHomePage) {
-      // Redirect from login/home to profile
-      window.router.navigate('/profile');
-      return;
-    }
-    // On any other page, just render it
-    await router.render();
-    return;
-  } else {
-    // User is not logged in
-    if (isLoginPage || isHomePage || isErrorPage) {
-      // Allow access to login/home/error pages
-      await router.render();
-      return;
-    }
-    // Redirect protected routes to login
-    window.router.navigate('/login');
-    return;
-  }
+// Render initial route based on authentication state
+if (window.user == null) {
+  window.router.navigate('/login');
+} else if (
+  window.location.pathname === '/' ||
+  window.location.pathname === '/login'
+) {
+  window.router.navigate('/profile');
+} else {
+  window.router.navigate(window.location.pathname);
 }
-
-// Check session and render
-await checkSessionAndRedirect();

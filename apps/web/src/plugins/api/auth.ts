@@ -50,12 +50,8 @@ export async function logout(): Promise<void> {
     if (!response.ok) {
       throw new Error(`Failed to logout: ${response.status}`);
     }
-
-    // Session cookie is cleared by backend
-    // Frontend just needs to handle redirect
   } catch (error) {
     console.error('Error during logout:', error);
-    // Even if logout fails, we should still redirect to login
     throw error;
   }
 }

@@ -6,13 +6,13 @@ import UserAPI from '../../plugins/api/user.js';
 import type {
   Tournament as BackendTournament,
   TournamentRound,
-  Match,
   status,
 } from '../../types/api.js';
 import { showApiError } from '../../utils/api-helpers.js';
-import { getCurrentUserId } from '../../utils/auth-state.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
+import { shouldShowNotification } from '../../utils/notification-dedup.js';
+import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -314,13 +314,13 @@ function showJoinTournamentDialog(
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
-          const currentUser = await UserAPI.getUserBasicInfo();
+          const currentUser = await UserAPI.getMe();
           alias =
             currentUser?.nickname ||
-            `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+            `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
         } catch (error) {
           console.error('Error fetching user info:', error);
-          alias = `Player-${getCurrentUserId()?.slice(0, 8) || 'Unknown'}`;
+          alias = `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
         }
       }
 
@@ -344,6 +344,7 @@ function showJoinTournamentDialog(
         ) as string[];
         if (!myTournaments.includes(tournamentUuid)) {
           myTournaments.push(tournamentUuid);
+          // TODO This is not working when loggin in on other machines/browsers!!!!
           sessionStorage.setItem(
             'myTournaments',
             JSON.stringify(myTournaments)
@@ -352,6 +353,7 @@ function showJoinTournamentDialog(
 
         // Success - close dialog and reload page to refresh tournament data
         closeDialog();
+        // TODO: Replace with SPA state update
         window.location.reload();
       } catch (error) {
         // Handle errors
@@ -407,7 +409,7 @@ function renderTournamentHeader(
   const hasMinPlayers = tournament.playerCount >= tournament.minPlayers;
 
   const buttonContainer = document.createElement('div');
-  const currentUserId = getCurrentUserId();
+  const currentUserId = window.user?.cleanedUserData.uuid;
 
   // Logic matched with tournaments/index.ts
   if (isParticipant) {
@@ -690,15 +692,16 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getUserBasicInfo();
+  const userInfo = await UserAPI.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    ...(userInfo?.nickname && { userNickname: userInfo.nickname }),
-    ...(userInfo?.avatar && { userAvatar: userInfo.avatar }),
+    userNickname: userInfo?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(userInfo?.avatar),
+
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -863,7 +866,7 @@ export default async function initRoute() {
         );
 
         // Check if user is participant for button display
-        const currentUserId = getCurrentUserId();
+        const currentUserId = window.user?.cleanedUserData.uuid;
         let isParticipantRefresh = false;
         if (currentUserId) {
           try {
@@ -1007,7 +1010,7 @@ export default async function initRoute() {
     );
 
     // Check if user is participant for button display
-    const currentUserId = getCurrentUserId();
+    const currentUserId = window.user?.cleanedUserData.uuid;
     let isParticipant = false;
     if (currentUserId) {
       try {
@@ -1090,76 +1093,44 @@ export default async function initRoute() {
         playerCount?: number;
       };
       if (eventData.uuid === tournamentUuid && currentTournament) {
-        // Update tournament data
-        if (eventData.status) {
-          currentTournament.status = eventData.status;
-        }
-        if (eventData.playerCount !== undefined) {
+        if (eventData.status) currentTournament.status = eventData.status;
+        if (eventData.playerCount !== undefined)
           currentTournament.playerCount = eventData.playerCount;
-        }
-        // Refresh the page to show updates (including leaderboard with new participants)
         void refreshTournamentData();
       }
     };
 
     const handleUserJoined = (data: unknown) => {
-      const eventData = data as {
-        tournamentUuid: string;
-        user: unknown;
-      };
-      if (eventData.tournamentUuid === tournamentUuid) {
-        // Refresh tournament to show updated player count and leaderboard with new participant
+      const eventData = data as { uuid: string; playerCount?: number };
+      if (eventData.uuid === tournamentUuid) {
         void refreshTournamentData();
       }
     };
 
     const handleUserLeft = (data: unknown) => {
-      const eventData = data as {
-        tournamentUuid: string;
-        userUuid: string;
-      };
+      const eventData = data as { tournamentUuid: string };
       if (eventData.tournamentUuid === tournamentUuid) {
-        // Refresh tournament to show updated player count and leaderboard
         void refreshTournamentData();
       }
     };
 
     const handleTournamentStarted = (data: unknown) => {
-      const eventData = data as {
-        uuid: string;
-        rounds: TournamentRound[];
-        tournamentName?: string;
-      };
+      const eventData = data as { uuid: string };
       if (eventData.uuid === tournamentUuid) {
-        // Show toast notification
-        const tournamentName = eventData.tournamentName || 'Tournament';
-        toast.show(`${tournamentName} is about to start!`, {
-          variant: 'success',
-        });
-        // Tournament started - refresh to show rounds
         void refreshTournamentData();
       }
     };
 
     const handleMatchUpdated = (data: unknown) => {
-      const eventData = data as {
-        tournamentUuid: string;
-        roundIndex: number;
-        match: Match;
-      };
+      const eventData = data as { tournamentUuid: string };
       if (eventData.tournamentUuid === tournamentUuid) {
-        // Match updated - refresh to show updated scores and leaderboard
         void refreshTournamentData();
       }
     };
 
     const handleRoundCompleted = (data: unknown) => {
-      const eventData = data as {
-        tournamentUuid: string;
-        roundIndex: number;
-      };
+      const eventData = data as { tournamentUuid: string };
       if (eventData.tournamentUuid === tournamentUuid) {
-        // Round completed - refresh to show updated status and leaderboard
         void refreshTournamentData();
       }
     };
@@ -1171,6 +1142,27 @@ export default async function initRoute() {
     tournamentSocket.on('tournament-started', handleTournamentStarted);
     tournamentSocket.on('match-updated', handleMatchUpdated);
     tournamentSocket.on('round-completed', handleRoundCompleted);
+
+    // Handle "notify" events (not supported by tournamentSocket plugin)
+    if (window.socket) {
+      window.socket.registerWebSocketHook((event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data as string) as {
+            event?: string;
+            message?: string;
+          };
+          if (
+            data.event === 'notify' &&
+            data.message &&
+            shouldShowNotification(data.message)
+          ) {
+            toast.show(data.message, { variant: 'info' });
+          }
+        } catch {
+          // Ignore non-JSON or non-matching messages
+        }
+      });
+    }
 
     // Join specific tournament room (will fail gracefully if backend not ready)
     tournamentSocket.joinTournament(tournamentUuid);

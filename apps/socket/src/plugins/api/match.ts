@@ -11,8 +11,7 @@ export async function postFinishedOnlineMatch(game: GameRoomData) {
         : game.player2Uuid;
   }
   // fetch from API
-  const response = await fetch(`http://localhost:5173/api/match/`, {
-    // TODO: hardcoded localhost
+  const response = await fetch(`${env.API_SERVER}/match/`, {
     method: 'POST',
     headers: {
       'x-api-key': env.ADMIN_API_KEY,
@@ -47,8 +46,7 @@ export async function patchFinishedTournamentMatch(
         : game.player2Uuid;
   }
 
-  const response = await fetch(`http://localhost:5173/api/match/${matchUuid}`, {
-    // TODO: hardcoded localhost
+  const response = await fetch(`${env.API_SERVER}/match/${matchUuid}`, {
     method: 'PATCH',
     headers: {
       'x-api-key': env.ADMIN_API_KEY,
@@ -72,9 +70,8 @@ export async function patchFinishedTournamentMatch(
 export async function fetchMatchParticipants(matchUuid: string) {
   // fetch from API
   const response = await fetch(
-    `http://localhost:5173/api/match/${matchUuid}/participants`,
+    `${env.API_SERVER}/match/${matchUuid}/participants`,
     {
-      // TODO: hardcoded localhost
       method: 'GET',
       headers: {
         'x-api-key': env.ADMIN_API_KEY,
