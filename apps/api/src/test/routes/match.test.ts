@@ -1,7 +1,7 @@
 import { describe, test, expect, assert } from 'vitest';
 import { setUserTo, normalUser, adminUser } from '../utils.js';
 import { app } from '../setup.js';
-import { type MatchResponse } from 'types';
+import { type MatchResponse, type MatchParticipantsResponse } from 'types';
 import { type TournamentRoundResponse } from 'types';
 
 describe('GET /match/:uuid', () => {
@@ -78,6 +78,43 @@ describe('GET /match/:uuid', () => {
   });
 });
 
+describe('GET /match/:uuid/participants', () => {
+  test('valid: get participants -> 200', async () => {
+    const match = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'GET',
+      url: `/match/${match.uuid}/participants`,
+    });
+    expect(response.statusCode).toBe(200);
+    const participants = JSON.parse(response.body) as MatchParticipantsResponse;
+    expect(participants.player1Id).toBe(normalUser.uuid);
+    expect(participants.player2Id).toBe(adminUser.uuid);
+  });
+  test('invalid: match not found -> 404', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'GET',
+      url: `/match/invalid-match-uuid/participants`,
+    });
+    expect(response.statusCode).toBe(404);
+  });
+  test('invalid: non admin request -> 403', async () => {
+    const match = await app.db.addMatch({
+      player1Id: normalUser.uuid,
+      player2Id: adminUser.uuid,
+    });
+    const response = await app.inject({
+      method: 'GET',
+      url: `/match/${match.uuid}/participants`,
+    });
+    expect(response.statusCode).toBe(403);
+  });
+});
+
 describe('POST /match', () => {
   test('valid: post -> 201', async () => {
     setUserTo('ADMIN');
@@ -106,14 +143,26 @@ describe('POST /match', () => {
     });
     expect(response.statusCode).toBe(201);
   });
-  test('invalid: missing body properties -> 400', async () => {
+  test('invalid: missing both player ids -> 400', async () => {
     setUserTo('ADMIN');
     const response = await app.inject({
       method: 'POST',
       url: '/match',
       body: {
         status: 'ongoing',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+  test('invalid: same player ids -> 400', async () => {
+    setUserTo('ADMIN');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/match',
+      body: {
         player1Id: normalUser.uuid,
+        player2Id: normalUser.uuid,
+        status: 'ongoing',
       },
     });
     expect(response.statusCode).toBe(400);

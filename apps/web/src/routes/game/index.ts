@@ -5,29 +5,18 @@ import { handleLogout } from '../../utils/logout-handler.js';
 import UserAPI from '../../plugins/api/user.js';
 import { leaveMatch } from './buttonLogic.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
+import { getIsLocalGame } from '../profile/index.js';
 
 import {
   getCanvas,
-  clientId,
   lastServerUpdate,
   ballVelocity,
   localPaddles,
   serverState,
   role,
-  connectionState,
-  reconnectAttempts,
-  maxReconnectAttempts,
-  reconnectTimeout,
-  ws,
-  networkBlocked,
   setServerState,
   setLastServerUpdate,
   setRole,
-  setConnectionState,
-  setReconnectAttempts,
-  setWebSocket,
-  setReconnectTimeout,
-  setNetworkBlocked,
   resetCanvas,
   setPlayerNickname,
   setPlayer1Nickname,
@@ -37,9 +26,159 @@ import {
   type ServerState,
 } from './state';
 
-type ServerMessage =
-  | (ServerState & { type: 'state' })
-  | { type: 'role'; role: string; clientId: string };
+export interface StateMessage {
+  type: 'message';
+  data: {
+    subtype: 'state';
+    serverState: ServerState;
+  };
+}
+
+export interface RoleMessage {
+  type: 'message';
+  data: {
+    subtype: 'role';
+    role: string;
+    clientId: string;
+  };
+}
+
+export interface GenericMessage {
+  type: string;
+  data: unknown;
+}
+
+export interface RoomMessage {
+  event: string;
+  uuid: string;
+}
+
+export type IncomingMessage =
+  | StateMessage
+  | RoleMessage
+  | GenericMessage
+  | RoomMessage;
+
+let current_game_room: string = 'game:placeholder';
+
+// --- Type guards ---
+function isStateMessage(msg: IncomingMessage): msg is StateMessage {
+  return (
+    'type' in msg &&
+    msg.type === 'message' &&
+    typeof msg.data === 'object' &&
+    msg.data !== null &&
+    (msg.data as { subtype?: string }).subtype === 'state'
+  );
+}
+
+function isRoomMessage(msg: IncomingMessage): msg is RoomMessage {
+  return 'event' in msg && 'uuid' in msg;
+}
+
+function isRoleMessage(msg: IncomingMessage): msg is RoleMessage {
+  return (
+    'type' in msg &&
+    msg.type === 'message' &&
+    typeof msg.data === 'object' &&
+    msg.data !== null &&
+    (msg.data as { subtype?: string }).subtype === 'role'
+  );
+}
+
+const keys: Record<string, boolean> = {};
+
+let unregisterOnMessageHook: (() => void) | null = null;
+
+export const setupWebSocketHook = () => {
+  unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+    const message = JSON.parse(event.data as string) as IncomingMessage;
+
+    // ---- ROOM MESSAGE ----
+    if (isRoomMessage(message)) {
+      console.log('room message received');
+      const message = JSON.parse(event.data as string) as RoomMessage;
+      switch (message.event) {
+        case 'room-created':
+          current_game_room = message.uuid;
+          console.log('room created', current_game_room);
+      }
+    }
+
+    // ---- ROLE MESSAGE ----
+    if (isRoleMessage(message)) {
+      console.log('role message received');
+      const data = message.data;
+      setRole(data.role);
+
+      console.log(
+        `🎮 Received role "${data.role}" for client ID: ${data.clientId}`
+      );
+    }
+
+    // ---- STATE MESSAGE ----
+    if (isStateMessage(message)) {
+      const data = message.data;
+      const newState = data.serverState;
+
+      const now = performance.now();
+      const deltaTime = now - lastServerUpdate;
+
+      if (lastServerUpdate > 0 && deltaTime > 0) {
+        ballVelocity.x =
+          (newState.ballX - serverState.ballX) / (deltaTime / 1000);
+        ballVelocity.y =
+          (newState.ballY - serverState.ballY) / (deltaTime / 1000);
+      }
+
+      setServerState(newState);
+      setLastServerUpdate(now);
+
+      if (window.socket.isConnected()) {
+        localPaddles.leftY = newState.leftY;
+        localPaddles.rightY = newState.rightY;
+      }
+    }
+  });
+};
+
+// Store event listener functions so we can remove them
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
+let unloadHandler: (() => void) | null = null;
+
+function setupEventListeners() {
+  console.log('setup event listener being called');
+
+  // handle key presses
+  keydownHandler = (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'p') {
+      sendMessage({ action: 'pause' });
+    }
+    if (e.key === 'r') {
+      sendMessage({ action: 'reset' });
+    }
+    if (e.key === '.') {
+      sendMessage({ action: 'ai' });
+    }
+  };
+  document.addEventListener('keydown', keydownHandler);
+
+  // handle key release
+  keyupHandler = (e: KeyboardEvent) => {
+    keys[e.key.toLowerCase()] = false;
+  };
+  document.addEventListener('keyup', keyupHandler);
+
+  // handle page leave
+  unloadHandler = () => {
+    if (isRouteActive) {
+      cleanup();
+    }
+  };
+  window.addEventListener('popstate', unloadHandler);
+}
 
 // Cleanup function to close WebSocket when leaving route
 let controlsUpdateInterval: ReturnType<typeof setInterval> | null = null;
@@ -47,13 +186,11 @@ let gameLoopAnimationFrame: number | null = null;
 let inputInterval: ReturnType<typeof setInterval> | null = null;
 let isRouteActive = false;
 
-// Store event listener functions so we can remove them
-let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
-let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
-let visibilityChangeHandler: (() => void) | null = null;
-
 function cleanup() {
   isRouteActive = false;
+
+  // leave match if still inside one
+  leaveMatch();
 
   // Stop game loop
   if (gameLoopAnimationFrame !== null) {
@@ -65,22 +202,6 @@ function cleanup() {
   if (inputInterval) {
     clearInterval(inputInterval);
     inputInterval = null;
-  }
-
-  // Close WebSocket connection
-  if (ws) {
-    try {
-      ws.close(1000, 'Route cleanup');
-    } catch {
-      // Ignore errors when closing
-    }
-    setWebSocket(undefined as unknown as WebSocket);
-  }
-
-  // Clear any reconnection timeouts
-  if (reconnectTimeout) {
-    clearTimeout(reconnectTimeout);
-    setReconnectTimeout(undefined as unknown as NodeJS.Timeout);
   }
 
   // Clear intervals
@@ -98,13 +219,15 @@ function cleanup() {
     document.removeEventListener('keyup', keyupHandler);
     keyupHandler = null;
   }
-  if (visibilityChangeHandler) {
-    document.removeEventListener('visibilitychange', visibilityChangeHandler);
-    visibilityChangeHandler = null;
+  if (unloadHandler) {
+    window.removeEventListener('beforeunload', unloadHandler);
+    unloadHandler = null;
   }
 
-  // Reset reconnection attempts
-  setReconnectAttempts(0);
+  // remove on message socket hook
+  if (unregisterOnMessageHook) {
+    unregisterOnMessageHook();
+  }
 
   // Clear keys state
   Object.keys(keys).forEach((key) => {
@@ -123,8 +246,7 @@ function cleanup() {
 
 // Initialize page structure and game
 export default async function initRoute() {
-  // Cleanup any existing connections first
-  cleanup();
+  console.log('init route called');
 
   // Mark route as active
   isRouteActive = true;
@@ -206,10 +328,15 @@ export default async function initRoute() {
   canvasContainer.appendChild(leaveButtonContainer);
 
   // Show nickname input dialog before starting game (local = 2 players)
-  showLocalGameNicknameDialog(() => {
-    // Callback after nicknames are set - initialize game
+  if (getIsLocalGame()) {
+    showLocalGameNicknameDialog(() => {
+      // Callback after nicknames are set - initialize game
+      console.log('init game called');
+      initializeGame();
+    });
+  } else {
     initializeGame();
-  });
+  }
 }
 
 /**
@@ -374,13 +501,6 @@ function initializeGame() {
   // Setup game input handling
   setupGameInput();
 
-  // Initialize WebSocket connection
-  if (document.readyState === 'loading') {
-    window.addEventListener('DOMContentLoaded', createWebSocket);
-  } else {
-    createWebSocket();
-  }
-
   // Start game loop
   gameLoop();
 }
@@ -390,306 +510,70 @@ function updateControls() {
   if (!controlsContainer) return;
   controlsContainer.innerHTML = '';
 
+  // Update controls display based on role
+  controlsContainer.innerHTML = '';
+
   if (role === 'player1') {
     controlsContainer.innerHTML = `
-        <div class="flex flex-col items-center gap-2">
-          <div class="text-2xl">↑</div>
-          <div class="text-sm text-white/80">W</div>
-        </div>
-        <div class="flex flex-col items-center gap-2">
-          <div class="text-2xl">↓</div>
-          <div class="text-sm text-white/80">S</div>
-        </div>
-      `;
+      <div class="flex flex-col items-center gap-2">
+        <div class="text-2xl">↑</div>
+        <div class="text-sm text-white/80">W</div>
+      </div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="text-2xl">↓</div>
+        <div class="text-sm text-white/80">S</div>
+      </div>
+    `;
   } else if (role === 'player2') {
     controlsContainer.innerHTML = `
-        <div class="flex flex-col items-center gap-2">
-          <div class="text-2xl">↑</div>
-          <div class="text-sm text-white/80">W</div>
-        </div>
-        <div class="flex flex-col items-center gap-2">
-          <div class="text-2xl">↓</div>
-          <div class="text-sm text-white/80">S</div>
-        </div>
-      `;
+      <div class="flex flex-col items-center gap-2">
+        <div class="text-2xl">↑</div>
+        <div class="text-sm text-white/80">W</div>
+      </div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="text-2xl">↓</div>
+        <div class="text-sm text-white/80">S</div>
+      </div>
+    `;
   } else if (role === 'local') {
     controlsContainer.innerHTML = `
-        <div class="flex flex-col items-center gap-2">
-          <div class="text-lg font-semibold">Left Player</div>
-          <div class="flex gap-4">
-            <div class="flex flex-col items-center gap-1">
-              <div class="text-xl">↑</div>
-              <div class="text-xs text-white/80">W</div>
-            </div>
-            <div class="flex flex-col items-center gap-1">
-              <div class="text-xl">↓</div>
-              <div class="text-xs text-white/80">S</div>
-            </div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="text-lg font-semibold">Left Player</div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↑</div>
+            <div class="text-xs text-white/80">W</div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↓</div>
+            <div class="text-xs text-white/80">S</div>
           </div>
         </div>
-        <div class="text-white/50">|</div>
-        <div class="flex flex-col items-center gap-2">
-          <div class="text-lg font-semibold">Right Player</div>
-          <div class="flex gap-4">
-            <div class="flex flex-col items-center gap-1">
-              <div class="text-xl">↑</div>
-              <div class="text-xs text-white/80">O</div>
-            </div>
-            <div class="flex flex-col items-center gap-1">
-              <div class="text-xl">↓</div>
-              <div class="text-xs text-white/80">L</div>
-            </div>
+      </div>
+      <div class="text-white/50">|</div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="text-lg font-semibold">Right Player</div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↑</div>
+            <div class="text-xs text-white/80">O</div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-xl">↓</div>
+            <div class="text-xs text-white/80">L</div>
           </div>
         </div>
-      `;
+      </div>
+    `;
   } else {
     controlsContainer.innerHTML = `
-        <div class="text-white/60 text-sm">Spectating - No controls</div>
-      `;
+      <div class="text-white/60 text-sm">Spectating - No controls</div>
+    `;
   }
 }
 
-function setupControlsDisplay() {
-  // Update controls display based on role
-
-  // Update initially
-  updateControls();
-
-  // Watch for role changes and update controls
-  let lastRole = role;
-  controlsUpdateInterval = setInterval(() => {
-    if (role !== lastRole) {
-      lastRole = role;
-      updateControls();
-    }
-  }, 100);
-}
-
-function createWebSocket() {
-  // Don't create WebSocket if route is no longer active
-  if (!isRouteActive) {
-    console.log('🚫 Skipping WebSocket creation - route no longer active');
-    return;
-  }
-
-  // Close existing connection if any
-  if (ws) {
-    try {
-      ws.close();
-    } catch {
-      // Ignore errors when closing
-    }
-    setWebSocket(undefined as unknown as WebSocket);
-  }
-
-  // If network is blocked, immediately fail
-  if (networkBlocked) {
-    console.log('🧪 Network blocked - connection attempt failed');
-    setConnectionState('disconnected');
-    attemptReconnection();
-    return;
-  }
-
-  setConnectionState('connecting');
-  // TODO: Double Websocket connection!? Already established in app.ts and loaded into window.socket
-
-  const socket = new WebSocket(
-    `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`
-  );
-
-  socket.onopen = () => {
-    // Check if route is still active before proceeding
-    if (!isRouteActive) {
-      socket.close();
-      return;
-    }
-
-    setConnectionState('connected');
-    setReconnectAttempts(0);
-    console.log('🏓 Connected to game server');
-    sendMessage({ type: 'connect', clientId });
-  };
-
-  socket.onclose = (event) => {
-    setConnectionState('disconnected');
-    console.log('🔌 Disconnected from server:', event.code, event.reason);
-
-    // Only attempt reconnection if route is still active
-    if (isRouteActive) {
-      attemptReconnection();
-    }
-  };
-
-  socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
-
-  socket.onmessage = (event) => {
-    const message = JSON.parse(event.data as string) as ServerMessage;
-
-    // Only update serverState
-    if (message.type === 'state') {
-      const now = performance.now();
-      const deltaTime = now - lastServerUpdate;
-
-      if (lastServerUpdate > 0 && deltaTime > 0) {
-        ballVelocity.x =
-          (message.ballX - serverState.ballX) / (deltaTime / 1000);
-        ballVelocity.y =
-          (message.ballY - serverState.ballY) / (deltaTime / 1000);
-      }
-
-      setServerState(message);
-      setLastServerUpdate(now);
-
-      if (connectionState === 'connected') {
-        localPaddles.leftY = serverState.leftY;
-        localPaddles.rightY = serverState.rightY;
-      }
-    }
-
-    // Handle other message types if needed
-    if (message.type === 'role') {
-      setRole(message.role);
-      console.log(
-        `🎮 Received role "${message.role}" for client ID: ${message.clientId}`
-      );
-    }
-  };
-  setWebSocket(socket);
-}
-
-function attemptReconnection() {
-  // Don't reconnect if we're not on the game page anymore
-  if (!isRouteActive) {
-    console.log('🚫 Skipping reconnection - route no longer active');
-    return;
-  }
-
-  if (reconnectAttempts >= maxReconnectAttempts) {
-    setConnectionState('disconnected');
-    console.log(
-      '⛔ Max reconnection attempts reached. Please refresh the page.'
-    );
-    return;
-  }
-
-  setConnectionState('reconnecting');
-  setReconnectAttempts(reconnectAttempts + 1);
-
-  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 16000);
-  console.log(`🔁 Reconnection attempt ${reconnectAttempts} in ${delay}ms`);
-
-  setReconnectTimeout(
-    setTimeout(() => {
-      // Check again before reconnecting
-      if (isRouteActive) {
-        createWebSocket(); // Create entirely new connection
-      }
-    }, delay)
-  );
-}
-
-type GameMessage =
-  | { type: 'connect'; clientId: string | null }
-  | {
-      type: 'game';
-      action:
-        | 'up'
-        | 'down'
-        | 'up_r'
-        | 'down_r'
-        | 'pause'
-        | 'reset'
-        | 'ai'
-        | 'hidden';
-    };
-
-const inputBuffer: GameMessage[] = [];
-
-export function sendMessage(data: GameMessage) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(data));
-
-    // Send any buffered messages
-    while (inputBuffer.length > 0) {
-      const bufferedMessage = inputBuffer.shift();
-      ws.send(JSON.stringify(bufferedMessage));
-    }
-  } else if (connectionState === 'reconnecting') {
-    // Buffer the message for when connection is restored
-    inputBuffer.push(data);
-    console.log('Buffering message during reconnection:', data);
-  } else {
-    console.warn('WebSocket not connected, message not sent:', data);
-  }
-}
-
-const keys: Record<string, boolean> = {};
-
-function setupEventListeners() {
-  // Create handler functions so we can remove them later
-  keydownHandler = (e: KeyboardEvent) => {
-    keys[e.key.toLowerCase()] = true;
-    if (e.key === 'p') {
-      sendMessage({ type: 'game', action: 'pause' });
-    }
-    if (e.key === 'r') {
-      sendMessage({ type: 'game', action: 'reset' });
-    }
-    if (e.key === '.') {
-      sendMessage({ type: 'game', action: 'ai' });
-    }
-    if (e.key === 'x') {
-      if (!networkBlocked) {
-        // Simulate network outage
-        console.log('🧪 Simulating connection loss');
-        setNetworkBlocked(true);
-
-        if (reconnectTimeout) {
-          clearTimeout(reconnectTimeout);
-        }
-
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.close(3000, 'Simulated network error'); // 3000 = custom application-specific close code
-        }
-
-        setConnectionState('disconnected');
-      } else {
-        // Restore network
-        console.log('🧪 Network connection restored');
-        setNetworkBlocked(false);
-
-        if (reconnectTimeout) {
-          clearTimeout(reconnectTimeout);
-        }
-
-        // Reset reconnection attempts
-        setReconnectAttempts(0);
-        createWebSocket();
-      }
-    }
-  };
-
-  keyupHandler = (e: KeyboardEvent) => {
-    keys[e.key.toLowerCase()] = false;
-  };
-
-  visibilityChangeHandler = () => {
-    if (!isRouteActive) return; // Don't handle if route is not active
-
-    if (document.hidden) {
-      console.log('🕶️ Page hidden');
-      sendMessage({ type: 'game', action: 'hidden' });
-    } else {
-      console.log('👓 Page visible');
-      sendMessage({ type: 'connect', clientId });
-    }
-  };
-
-  document.addEventListener('keydown', keydownHandler);
-  document.addEventListener('keyup', keyupHandler);
-  document.addEventListener('visibilitychange', visibilityChangeHandler);
+export function sendMessage(msg: object) {
+  window.socket.sendMessage(current_game_room, msg);
 }
 
 function gameLoop() {
@@ -710,6 +594,7 @@ function setupGameInput() {
     clearInterval(inputInterval);
   }
 
+  // TODO: stop interval on game over
   inputInterval = setInterval(() => {
     if (!isRouteActive) {
       // Stop if route is no longer active
@@ -722,41 +607,32 @@ function setupGameInput() {
       !serverState.gameOver
     ) {
       if (keys['w']) {
-        if (role === 'player2' && localPaddles.rightY > 0) {
+        if (role === 'player2' && localPaddles.rightY > 0)
           localPaddles.rightY -= 5;
-        } else if (localPaddles.leftY > 0) {
-          localPaddles.leftY -= 5;
-        }
-        sendMessage({ type: 'game', action: 'up' });
+        else if (localPaddles.leftY > 0) localPaddles.leftY -= 5;
+        sendMessage({ action: 'up' });
       }
       if (keys['s']) {
         if (
           role === 'player2' &&
           localPaddles.rightY < canvas.height - serverState.paddleHeight
-        ) {
+        )
           localPaddles.rightY += 5;
-        } else if (
-          localPaddles.leftY <
-          canvas.height - serverState.paddleHeight
-        ) {
+        else if (localPaddles.leftY < canvas.height - serverState.paddleHeight)
           localPaddles.leftY += 5;
-        }
-        sendMessage({ type: 'game', action: 'down' });
+        sendMessage({ action: 'down' });
       }
-      if (keys['o']) {
-        if (role === 'local' && localPaddles.rightY > 0) {
-          localPaddles.rightY -= 5;
-        }
-        sendMessage({ type: 'game', action: 'up_r' });
+      if (keys['o'] && role === 'local' && localPaddles.rightY > 0) {
+        localPaddles.rightY -= 5;
+        sendMessage({ action: 'up_r' });
       }
-      if (keys['l']) {
-        if (
-          role === 'local' &&
-          localPaddles.rightY < canvas.height - serverState.paddleHeight
-        ) {
-          localPaddles.rightY += 5;
-        }
-        sendMessage({ type: 'game', action: 'down_r' });
+      if (
+        keys['l'] &&
+        role === 'local' &&
+        localPaddles.rightY < canvas.height - serverState.paddleHeight
+      ) {
+        localPaddles.rightY += 5;
+        sendMessage({ action: 'down_r' });
       }
     }
   }, 1000 / 60);

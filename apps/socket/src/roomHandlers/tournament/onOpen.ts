@@ -1,6 +1,7 @@
 import { WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { type Tournament } from 'db/generated/client/index.js';
 import { env } from '../../env.js';
+
 async function fetchTournaments(socket: WSocket, queryString: string) {
   //TODO: api should be adapted to handle multiple statuses at once
   const response = await fetch(
@@ -55,7 +56,7 @@ export async function onOpen(socket: WSocket) {
 
   // join current tournament rooms where user is participating
   socket.consoleLog('Fetching current tournaments');
-  const currentTournaments = await fetchCurrentTournaments(socket);
+  const currentTournaments = await API.fetchCurrentTournaments(socket);
   for (const uuid of currentTournaments) {
     socket.join(`tournament:${uuid}`);
     socket.consoleLog(`Joined tournament room: tournament:${uuid}`);
