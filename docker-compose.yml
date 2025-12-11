@@ -65,7 +65,7 @@ services:
       - ./shared/public-data/cdn:/usr/share/nginx/html:ro
     networks:
       - backend-network
-    restart: on-failure
+    restart: unless-stopped
 
   api:
     container_name: api

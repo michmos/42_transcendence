@@ -1,7 +1,7 @@
 import { type FastifyInstance } from 'fastify';
 import { isAdmin, getUuid, isSameUUID } from '../../plugins/auth/utils.js';
 import { cleanSelfUserData, cleanOtherUserData } from './utils.js';
-import * as fs from 'fs';
+import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import sharp from 'sharp';
@@ -178,21 +178,26 @@ export default function (app: FastifyInstance): void {
         });
       }
 
-      // Deleting old image
       const userOwnData = await app.db.getUserMe(uuidSelf);
+      let oldImagePath: string | null = null;
       if (userOwnData.avatar !== null) {
-        const oldImagePath: string = path.join(
-          `${env.CDN_PATH}`,
-          userOwnData.avatar
-        );
-        console.log('OldImagePath:', oldImagePath);
+        oldImagePath = path.join(`${env.CDN_PATH}`, userOwnData.avatar);
+      }
+
+      // Setting/replacing image file path in user's record database
+      const userData = await app.db.setUserMeAvatar(uuidSelf, filePath);
+
+      // Deleting old image
+      if (
+        oldImagePath &&
+        userOwnData.avatar &&
+        userOwnData.avatar !== 'avatars/base_avatar.png'
+      ) {
         fs.unlink(oldImagePath, (error) => {
           if (error) app.log.error(error);
         });
       }
 
-      // Setting/replacing image file path in user's record database
-      const userData = await app.db.setUserMeAvatar(uuidSelf, filePath);
       return reply.code(200).send(cleanSelfUserData(userData));
     } catch (error) {
       app.log.error(error);
