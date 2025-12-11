@@ -177,6 +177,8 @@ export default function (app: FastifyInstance): void {
           Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
         });
       }
+
+      // Deleting old image
       const userOwnData = await app.db.getUserMe(uuidSelf);
       if (userOwnData.avatar !== null) {
         const oldImagePath: string = path.join(

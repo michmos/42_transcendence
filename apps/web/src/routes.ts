@@ -1,8 +1,8 @@
 // Route definitions with static imports
 export const routes = {
   '/': {
-    html: () => import('./routes/index.html?raw'),
-    css: () => import('./routes/index.css?inline'),
+    html: () => import('./index.html?raw'),
+    css: () => import('./index.css?inline'),
     script: () => import('./routes/index.js'),
   },
   '/login': {

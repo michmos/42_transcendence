@@ -16,6 +16,15 @@ import FriendsAPI from '../../plugins/api/friends.js';
 // import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
+import toast from '../../utils/toast.js';
+import type { OnlineStatus } from 'types';
+import { setupWebSocketHook } from '../game/index.js';
+
+let isLocalGame = true;
+
+export function getIsLocalGame(): boolean {
+  return isLocalGame;
+}
 
 // Match data interface for MatchCard component
 interface MatchData {
@@ -68,6 +77,9 @@ export default async function initRoute() {
   // Calculate stats from API data
   const { cleanedUserData, cleanedUserFriends, userMatches } = profileData;
 
+  // Store current user nickname for filtering status updates
+  currentUserNickname = cleanedUserData.nickname || '';
+
   // Update Navbar with user data
   new Navbar(headerContainer, {
     title: 'The Pong Game',
@@ -78,6 +90,8 @@ export default async function initRoute() {
       void navigateTo('/settings');
     },
     onLogoutClick: () => {
+      // Leave the 'online' room before logout so backend broadcasts offline status
+      cleanupOnlineStatusSocket();
       void handleLogout();
     },
   });
@@ -157,6 +171,9 @@ export default async function initRoute() {
 
   // Friends Management Section (with tabs)
   renderFriendsSection(rightColumn, cleanedUserFriends);
+
+  // ===== ONLINE STATUS SOCKET INTEGRATION =====
+  setupOnlineStatusSocket();
 }
 
 // Friends data state for refresh
@@ -164,6 +181,7 @@ let currentFriendsData: ProfileFriend[] = [];
 let friendsCardBody: HTMLElement | null = null;
 let friendsCardHeader: HTMLElement | null = null;
 let activeTabName: 'Friends' | 'Pending' | 'Blocked' = 'Friends';
+let currentUserNickname: string = '';
 
 async function refreshFriendsData() {
   const profileData = await UserAPI.getUserProfile();
@@ -657,6 +675,9 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
   item.className =
     'flex items-center gap-3 p-3 rounded-lg bg-gradient-card backdrop-blur-glass border border-border hover:bg-muted/30 transition-all cursor-pointer';
 
+  // Add data attribute for easy lookup when updating status
+  item.setAttribute('data-friend-nickname', friend.otherUser);
+
   const initials = friend.otherUser
     .split(' ')
     .map((n) => n[0])
@@ -664,7 +685,7 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
     .toUpperCase()
     .slice(0, 2);
 
-  const isOnline = false; // TODO: Implement actual online status tracking
+  const isOnline = friend.isOnline ?? false;
 
   const avatarSrc = getAvatarSrc(friend.avatar);
   item.innerHTML = `
@@ -676,12 +697,12 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
               ${initials}
             </div>`
       }
-      <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}"></div>
+      <div class="status-indicator absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline ? 'bg-green-500' : 'bg-red-500'}"></div>
     </div>
     <div class="flex-1">
       <p class="font-semibold text-foreground">${friend.otherUser}</p>
     </div>
-    <div class="text-xs text-muted-foreground">
+    <div class="status-text text-xs text-muted-foreground">
       ${isOnline ? '<span class="text-green-500">Online</span>' : '<span class="text-red-500">Offline</span>'}
     </div>
   `;
@@ -1190,6 +1211,8 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🎮',
     label: 'Play Locally',
     onClick: () => {
+      isLocalGame = true;
+      setupWebSocketHook();
       joinLocalMatch();
       navigateTo('/game');
     },
@@ -1200,8 +1223,10 @@ function renderQuickActions(container: HTMLElement): void {
     icon: '🌐',
     label: 'Play Online',
     onClick: () => {
+      isLocalGame = false;
+      setupWebSocketHook();
       joinOnlineMatch();
-      // TODO:Backend will handle the game start logic - no navigation needed
+      navigateTo('/game');
     },
   });
 
@@ -1414,5 +1439,125 @@ function showNewTournamentDialog() {
         createBtn.textContent = 'Save';
       }
     })();
+  });
+}
+
+// ===== ONLINE STATUS SOCKET HANDLING =====
+
+/**
+ * Setup socket connection for online status updates
+ * Joins the 'online' room and listens for status-update events
+ */
+function setupOnlineStatusSocket() {
+  if (!window.socket) return;
+
+  // Join the 'online' room when socket connects (for friend status updates)
+  const joinRooms = () => {
+    if (window.socket?.isConnected()) {
+      window.socket.joinRoom('online');
+    } else {
+      setTimeout(joinRooms, 500);
+    }
+  };
+
+  if (window.socket.isConnected()) {
+    joinRooms();
+  } else {
+    const checkConnection = setInterval(() => {
+      if (window.socket?.isConnected()) {
+        clearInterval(checkConnection);
+        joinRooms();
+      }
+    }, 100);
+    setTimeout(() => clearInterval(checkConnection), 5000);
+  }
+
+  // Listen for status updates
+  window.socket.registerWebSocketHook((event: MessageEvent) => {
+    try {
+      const parsed = JSON.parse(event.data as string) as
+        | OnlineStatus
+        | { event: string; uuid?: string };
+
+      // Handle online status updates
+      if (
+        'event' in parsed &&
+        parsed.event === 'status-update' &&
+        'nickname' in parsed &&
+        parsed.nickname &&
+        currentUserNickname &&
+        parsed.nickname.toLowerCase() !== currentUserNickname.toLowerCase()
+      ) {
+        handleOnlineStatusUpdate(parsed);
+      }
+
+      // Note: tournament-created events are handled by tournaments list page
+      // to avoid duplicate toasts. Profile page only handles online status updates.
+    } catch {
+      // Ignore non-JSON or non-matching messages
+    }
+  });
+}
+
+function cleanupOnlineStatusSocket(): void {
+  // Leave rooms and close socket so backend broadcasts offline status
+  if (window.socket?.isConnected()) {
+    window.socket.leaveRoom('online');
+    window.socket.leaveRoom('tournament:main');
+    // Close socket to trigger backend's onClose handler which broadcasts offline status
+    const ws = window.socket.getSocket();
+    ws.close();
+  }
+  currentUserNickname = '';
+  // Note: Rooms will be rejoined automatically when socket reconnects (via app.ts)
+}
+
+function handleOnlineStatusUpdate(status: OnlineStatus) {
+  const friend = currentFriendsData.find(
+    (f) => f.otherUser.toLowerCase() === status.nickname.toLowerCase()
+  );
+
+  if (!friend) return;
+
+  const wasOnline = friend.isOnline;
+  friend.isOnline = status.isOnline;
+
+  // Show toast if status changed
+  if (wasOnline !== status.isOnline) {
+    const message = status.isOnline
+      ? `${status.nickname} is now online`
+      : `${status.nickname} went offline`;
+    toast.show(message, { variant: status.isOnline ? 'info' : 'warning' });
+  }
+
+  // Update UI if on Friends tab
+  if (activeTabName === 'Friends' && friendsCardBody) {
+    updateFriendItemStatus(status.nickname, status.isOnline);
+  }
+}
+
+function updateFriendItemStatus(nickname: string, isOnline: boolean) {
+  if (!friendsCardBody) return;
+
+  const items = friendsCardBody.querySelectorAll('[data-friend-nickname]');
+  items.forEach((item) => {
+    const itemNickname = (item as HTMLElement).getAttribute(
+      'data-friend-nickname'
+    );
+    if (itemNickname?.toLowerCase() === nickname.toLowerCase()) {
+      const dot = item.querySelector('.status-indicator') as HTMLElement;
+      if (dot) {
+        dot.className = `status-indicator absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+          isOnline ? 'bg-green-500' : 'bg-red-500'
+        }`;
+      }
+
+      const text = item.querySelector('.status-text') as HTMLElement;
+      if (text) {
+        text.innerHTML = isOnline
+          ? '<span class="text-green-500">Online</span>'
+          : '<span class="text-red-500">Offline</span>';
+      }
+    }
   });
 }

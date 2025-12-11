@@ -6,4 +6,6 @@ RUN set -eux; \
 	apk update && apk upgrade --no-cache && \
 	rm -rf /var/cache/apk/*
 
+RUN mkdir -p /data/cdn/avatars
+
 EXPOSE 80

@@ -11,13 +11,17 @@ export type singleUuidParam = Static<typeof getMatch.params>;
 export const createMatch = {
   body: Type.Object(
     {
-      player1Id: Type.String(),
-      player2Id: Type.String(),
       status: Type.Optional(
         Type.Union(
           Object.values(statusEnum).map((value) => Type.Literal(value))
         )
       ),
+      score1: Type.Optional(Type.Number()),
+      score2: Type.Optional(Type.Number()),
+      player1Id: Type.Optional(Type.String()),
+      player2Id: Type.Optional(Type.String()),
+      winnerId: Type.Optional(Type.String()),
+      tournamentId: Type.Optional(Type.String()),
     },
     { additionalProperties: false }
   ),
