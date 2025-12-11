@@ -27,7 +27,12 @@ async function handleJoinOnlineGame(socket: WSocket) {
     socket.consoleLog('added to waiting list for online game');
     // add to waiting list
     waitingList.push(socket);
-    socket.send('waiting for opponent');
+    socket.send(
+      JSON.stringify({
+        type: 'wait',
+        data: 'waiting for opponent',
+      })
+    );
     sendRole(socket, 'player1');
     return;
   }

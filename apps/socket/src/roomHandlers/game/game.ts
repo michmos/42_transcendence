@@ -140,7 +140,6 @@ function getVector(
 
   let segment = Math.floor(relativeY / segmentHeight);
   segment = Math.max(0, Math.min(PADDLE_SEGMENTS - 1, segment));
-  // console.log('segment:', segment);
 
   const vectorIndex = isLeftPaddle ? segment : segment + PADDLE_SEGMENTS;
 
@@ -165,7 +164,6 @@ export function updateGame(currentGameState: GameState) {
     currentGameState.ballX >= CANVAS_WIDTH - BALL_SIZE
   ) {
     // // Left and right collision
-    // gameState.ballSpeedX *= -1;
     if (currentGameState.ballX <= 0) currentGameState.rightScore++;
     else currentGameState.leftScore++;
 
@@ -176,18 +174,6 @@ export function updateGame(currentGameState: GameState) {
 
     gameSpeed = baseGameSpeed;
     bounceCount = 0;
-    // console.log(
-    //   'Score! Base speed:',
-    //   baseGameSpeed,
-    //   'Current speed:',
-    //   gameSpeed
-    // );
-    // console.log(
-    //   'Score! Left:',
-    //   currentGameState.leftScore,
-    //   'Right:',
-    //   currentGameState.rightScore
-    // );
 
     currentGameState.ballX = CANVAS_WIDTH / 2 - BALL_SIZE / 2;
     currentGameState.ballY = CANVAS_HEIGHT / 2 - BALL_SIZE / 2;
@@ -230,14 +216,6 @@ export function updateGame(currentGameState: GameState) {
       const bounceSpeedIncrease = (bounceCount - 9) * 0.1;
       gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.6);
     }
-    // console.log(
-    //   'Bounce count:',
-    //   bounceCount,
-    //   'Base speed:',
-    //   baseGameSpeed,
-    //   'Current speed:',
-    //   gameSpeed
-    // );
   }
 
   // Right paddle collision
@@ -260,15 +238,6 @@ export function updateGame(currentGameState: GameState) {
       const bounceSpeedIncrease = (bounceCount - 9) * 0.1; // +0.1 for each bounce after 10
       gameSpeed = Math.min(baseGameSpeed + bounceSpeedIncrease, 1.6);
     }
-    // console.log(gameState.ballSpeedX * gameSpeed);
-    //   console.log(
-    //     'bounce count:',
-    //     bouncecount,
-    //     'base speed:',
-    //     basegamespeed,
-    //     'current speed:',
-    //     gamespeed
-    //   );
   }
 
   if (currentGameState.aiEnabled) {
@@ -286,12 +255,6 @@ export function updateGame(currentGameState: GameState) {
     ) {
       currentGameState.rightY -= 4;
     }
-    // if (gameState.leftY + (gameState.paddleHeight / 2) < gameState.ballY && gameState.leftY < CANVAS_HEIGHT - gameState.paddleHeight) {
-    // 	gameState.leftY += 4;
-    // }
-    // if (gameState.leftY + (gameState.paddleHeight / 2) > gameState.ballY && gameState.leftY > 0) {
-    // 	gameState.leftY -= 4;
-    // }
   }
 
   if (currentGameState.leftScore >= 10 || currentGameState.rightScore >= 10) {

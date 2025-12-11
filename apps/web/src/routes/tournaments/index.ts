@@ -1097,8 +1097,17 @@ export default async function initRoute() {
     }
   };
 
-  const handleTournamentStarted = (_data: unknown) => {
-    // Note: Toast notification is handled by the 'notify' event from the backend
+  const handleTournamentStarted = (data: unknown) => {
+    const eventData = data as { uuid?: string; tournamentName?: string };
+
+    // Show toast if user is a participant in this tournament
+    if (eventData.uuid && myTournaments.has(eventData.uuid)) {
+      const tournamentName = eventData.tournamentName || 'Tournament';
+      toast.show(`${tournamentName} is about to start!`, {
+        variant: 'success',
+      });
+    }
+
     // Update tournament list to show status change
     void loadTournaments();
   };
@@ -1128,6 +1137,8 @@ export default async function initRoute() {
         }
       })();
     }
+    // Don't show toast on tournaments list page - only update the list
+    // Participants will see the toast on the specific tournament page
   };
 
   const handleTournamentLeft = (_data: unknown) => {
