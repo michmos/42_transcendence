@@ -12,7 +12,7 @@ RUN corepack enable pnpm
 WORKDIR /workspace
 
 # Copy workspace configuration files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json ./
 
 # Copy all packages (shared dependencies)
 COPY packages/database ./packages/database
@@ -57,7 +57,7 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 # # Copy package files
-COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml /workspace/pnpm-lock.yaml ./
+COPY --from=build-socket /workspace/package.json /workspace/pnpm-workspace.yaml /workspace/./
 COPY --from=build-socket /workspace/packages/ ./packages/
 COPY --from=build-socket /workspace/apps/socket/package.json ./apps/socket/
 
