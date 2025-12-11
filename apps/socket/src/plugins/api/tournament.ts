@@ -1,6 +1,5 @@
 import { WSocket } from '../../plugins/rooms/WSocket/index.js';
 import { env } from '../../env.js';
-import { type TournamentParticipation } from 'types';
 
 export async function fetchTournaments(socket: WSocket, queryString: string) {
   const response = await fetch(
@@ -20,11 +19,20 @@ export async function fetchTournaments(socket: WSocket, queryString: string) {
     );
   }
 
-  const participations =
-    (await response.json()) as Array<TournamentParticipation>;
+  const participations = (await response.json()) as Array<{
+    tournamentId: string;
+    alias: string;
+  }>;
   const tournamentUuids = new Set<string>();
   for (const part of participations) {
-    tournamentUuids.add(part.tournamentId);
+    if (
+      part &&
+      typeof part === 'object' &&
+      'tournamentId' in part &&
+      typeof part.tournamentId === 'string'
+    ) {
+      tournamentUuids.add(part.tournamentId);
+    }
   }
   return tournamentUuids;
 }

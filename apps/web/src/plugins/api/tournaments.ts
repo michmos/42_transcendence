@@ -4,6 +4,7 @@ import type {
   status,
   CreateTournamentInput,
   JoinTournamentInput,
+  TournamentParticipation,
 } from '../../types/api.js';
 
 import type { TournamentParticipantsResponse } from 'types';
@@ -45,9 +46,9 @@ const TournamentAPI = {
   /**
    * Get tournaments where the current user is a participant
    * @param status - Optional status filter ('outstanding' | 'ongoing' | 'finished' | 'canceled')
-   * @returns Promise<Tournament[]> - Array of tournaments where user is a participant
+   * @returns Promise<TournamentParticipation[]> - Array of tournament participations with tournamentId and alias
    */
-  async getMyTournaments(status?: status): Promise<Tournament[]> {
+  async getMyTournaments(status?: status): Promise<TournamentParticipation[]> {
     try {
       const url = status
         ? `/api/user/me/tournaments?status=${status}`
@@ -61,7 +62,7 @@ const TournamentAPI = {
         throw new Error(`Failed to fetch my tournaments: ${response.status}`);
       }
 
-      return (await response.json()) as Tournament[];
+      return (await response.json()) as TournamentParticipation[];
     } catch (error) {
       console.error('Error fetching my tournaments:', error);
       return [];
@@ -184,11 +185,6 @@ const TournamentAPI = {
       if (!response.ok) {
         throw new Error(`Failed to join tournament: ${response.status}`);
       }
-
-      // Store the alias in localStorage for this tournament
-      // This allows us to identify the user's matches by comparing stored alias with match player names
-      // Key format: tournament-{tournamentUuid}-alias
-      localStorage.setItem(`tournament-${tournamentUuid}-alias`, alias);
 
       // Join socket room if available
       if (window.socket) {

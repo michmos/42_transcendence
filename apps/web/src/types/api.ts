@@ -37,6 +37,9 @@ export interface Tournament extends PrismaTournament {
 export type { status };
 export type User = PrismaUser;
 
+// Import TournamentParticipation from types package
+export type { TournamentParticipation } from 'types';
+
 /**
  * Input type for creating a tournament
  * Based on validation schema: apps/api/src/routes/tournaments/validationSchemas.ts

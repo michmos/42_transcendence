@@ -338,19 +338,6 @@ function showJoinTournamentDialog(
       try {
         await TournamentAPI.joinTournament(tournamentUuid, alias);
 
-        // Track that we're a participant in this tournament
-        const myTournaments = JSON.parse(
-          sessionStorage.getItem('myTournaments') || '[]'
-        ) as string[];
-        if (!myTournaments.includes(tournamentUuid)) {
-          myTournaments.push(tournamentUuid);
-          // TODO This is not working when loggin in on other machines/browsers!!!!
-          sessionStorage.setItem(
-            'myTournaments',
-            JSON.stringify(myTournaments)
-          );
-        }
-
         // Success - close dialog and reload page to refresh tournament data
         closeDialog();
         // TODO: Replace with SPA state update
@@ -871,16 +858,20 @@ export default async function initRoute() {
         if (currentUserId) {
           try {
             const myTournaments = await TournamentAPI.getMyTournaments();
-            isParticipantRefresh = myTournaments.some(
-              (t) => t.uuid === tournamentUuid
-            );
+            if (Array.isArray(myTournaments)) {
+              /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+              isParticipantRefresh = myTournaments.some(
+                (t) =>
+                  t &&
+                  typeof t === 'object' &&
+                  'tournamentId' in t &&
+                  t.tournamentId === tournamentUuid
+              );
+              /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+            }
           } catch (error) {
             console.error('Error checking participation:', error);
-            const myTournamentsStorage = JSON.parse(
-              sessionStorage.getItem('myTournaments') || '[]'
-            ) as string[];
-            isParticipantRefresh =
-              myTournamentsStorage.includes(tournamentUuid);
+            isParticipantRefresh = false;
           }
         }
 
@@ -1015,13 +1006,20 @@ export default async function initRoute() {
     if (currentUserId) {
       try {
         const myTournaments = await TournamentAPI.getMyTournaments();
-        isParticipant = myTournaments.some((t) => t.uuid === tournamentUuid);
+        if (Array.isArray(myTournaments)) {
+          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+          isParticipant = myTournaments.some(
+            (t) =>
+              t &&
+              typeof t === 'object' &&
+              'tournamentId' in t &&
+              t.tournamentId === tournamentUuid
+          );
+          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+        }
       } catch (error) {
         console.error('Error checking participation:', error);
-        const myTournamentsStorage = JSON.parse(
-          sessionStorage.getItem('myTournaments') || '[]'
-        ) as string[];
-        isParticipant = myTournamentsStorage.includes(tournamentUuid);
+        isParticipant = false;
       }
     }
 

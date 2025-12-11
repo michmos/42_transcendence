@@ -404,10 +404,11 @@ export default async function initRoute() {
           };
         });
 
-      // Get user's tournament alias from tournament.participants
+      // Get user's tournament alias
       const currentUserId = window.user?.cleanedUserData.uuid;
       let userAlias: string | null = null;
 
+      // Strategy 1: Get alias from tournament.participants by matching user UUID
       if (currentUserId && tournament.participants) {
         const userParticipant = tournament.participants.find(
           (p) => p.user.uuid === currentUserId
@@ -415,13 +416,31 @@ export default async function initRoute() {
         userAlias = userParticipant?.alias || null;
       }
 
-      // Get alias from localStorage (stored when joining/creating tournament)
-      if (!userAlias) {
-        const storedAlias = localStorage.getItem(
-          `tournament-${tournamentId}-alias`
-        );
-        if (storedAlias) {
-          userAlias = storedAlias;
+      // Strategy 2: Get alias from API (getMyTournaments endpoint)
+      if (!userAlias && currentUserId) {
+        try {
+          const myTournaments = await TournamentAPI.getMyTournaments();
+          if (Array.isArray(myTournaments)) {
+            /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+            for (const p of myTournaments) {
+              if (
+                p &&
+                typeof p === 'object' &&
+                'tournamentId' in p &&
+                'alias' in p &&
+                p.tournamentId === tournamentId
+              ) {
+                const alias = p.alias;
+                if (typeof alias === 'string') {
+                  userAlias = alias;
+                  break;
+                }
+              }
+            }
+            /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+          }
+        } catch (error) {
+          console.error('Error fetching tournament alias:', error);
         }
       }
 
@@ -495,13 +514,31 @@ export default async function initRoute() {
       userAlias = userParticipant?.alias || null;
     }
 
-    // Strategy 2: Get alias from localStorage (stored when joining/creating tournament)
-    if (!userAlias) {
-      const storedAlias = localStorage.getItem(
-        `tournament-${tournamentId}-alias`
-      );
-      if (storedAlias) {
-        userAlias = storedAlias;
+    // Strategy 2: Get alias from API (getMyTournaments endpoint)
+    if (!userAlias && currentUserId) {
+      try {
+        const myTournaments = await TournamentAPI.getMyTournaments();
+        if (Array.isArray(myTournaments)) {
+          for (const p of myTournaments) {
+            /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+            if (
+              p &&
+              typeof p === 'object' &&
+              'tournamentId' in p &&
+              'alias' in p &&
+              p.tournamentId === tournamentId
+            ) {
+              const alias = p.alias;
+              if (typeof alias === 'string') {
+                userAlias = alias;
+                break;
+              }
+            }
+            /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tournament alias:', error);
       }
     }
 

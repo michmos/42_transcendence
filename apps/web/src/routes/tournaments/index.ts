@@ -991,11 +991,41 @@ export default async function initRoute() {
       openTournaments.clear();
       tournamentsMap.clear();
 
-      // Add user's tournaments to myTournaments
-      userTournaments.forEach((tournament) => {
-        myTournaments.add(tournament.uuid);
-        tournamentsMap.set(tournament.uuid, tournament);
-      });
+      // Add user's tournaments to myTournaments (using tournamentId from new structure)
+      // Also fetch full tournament details for user's tournaments to ensure they appear in the list
+      // even if their status changed (e.g., from 'outstanding' to 'ongoing')
+      // Process tournaments sequentially to avoid overwhelming the API
+      /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+      for (const participation of userTournaments) {
+        if (
+          !participation ||
+          typeof participation !== 'object' ||
+          !('tournamentId' in participation)
+        ) {
+          continue;
+        }
+
+        const tournamentId =
+          typeof participation.tournamentId === 'string'
+            ? participation.tournamentId
+            : null;
+        if (!tournamentId) continue;
+
+        myTournaments.add(tournamentId);
+
+        // Fetch full tournament details to ensure it appears in the list
+        try {
+          const tournament = await TournamentAPI.getTournament(tournamentId);
+          if (tournament) {
+            tournamentsMap.set(tournament.uuid, tournament);
+          }
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          console.error(`Error fetching tournament ${tournamentId}:`, error);
+          // Continue with other tournaments even if one fails
+        }
+      }
+      /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 
       // Add outstanding tournaments to openTournaments and Map
       outstandingTournaments.forEach((tournament) => {
