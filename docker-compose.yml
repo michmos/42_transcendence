@@ -34,8 +34,6 @@ services:
     volumes:
       - ./shared/public-data/cdn/avatars:/data/cdn/avatars
     restart: on-failure
-    depends_on:
-      - cdn
 
   frontend:
     container_name: frontend

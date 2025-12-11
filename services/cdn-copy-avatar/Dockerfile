@@ -8,4 +8,7 @@ RUN set -eux; \
 
 COPY ./data/base_avatar.png /tmp/base_avatar.png
 
-CMD ["cp", "/tmp/base_avatar.png", "/data/cdn/avatars"]
+COPY ./scripts ./scripts
+
+CMD ["sh", "./scripts/copy-avatar.sh"]
+

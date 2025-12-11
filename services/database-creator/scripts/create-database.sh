@@ -1,3 +1,4 @@
+#!/bin/sh
 # If there is no database yet, push the schema to create it
 # Extract file path from DATABASE_URL (remove file: prefix if present)
 DB_FILE=${DATABASE_URL#file:}

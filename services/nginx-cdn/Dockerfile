@@ -1,11 +1,9 @@
-# Nginx stage to serve the web application
+# Nginx stage to serve the CDN files
 FROM nginx:stable-alpine
 
 # Update packages for security-fixes
 RUN set -eux; \
 	apk update && apk upgrade --no-cache && \
 	rm -rf /var/cache/apk/*
-
-RUN mkdir -p /data/cdn/avatars
 
 EXPOSE 80
