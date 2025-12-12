@@ -18,5 +18,3 @@ declare global {
     user: UserProfileData | null;
   }
 }
-
-export {};
