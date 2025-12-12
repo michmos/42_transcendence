@@ -2,7 +2,11 @@ import { Navbar, Card, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import type { Tournament, status } from 'db/generated/client/index.js';
-import type { TournamentRoundResponse } from 'types';
+import type {
+  TournamentRoundResponse,
+  TournamentParticipantsResponse,
+  MatchResponse,
+} from 'types';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
@@ -57,15 +61,13 @@ interface LeaderboardEntry {
 
 /**
  * Build leaderboard from tournament rounds and matches
- * Extracts participants from matches and builds stats
- * Uses aliases when available, falls back to nicknames
  */
-function buildLeaderboard(
+async function buildLeaderboard(
   tournament: Tournament,
   rounds: TournamentRoundResponse[],
-  _participantAliases?: Map<string, string>, // No longer needed - matches come with aliases
   allParticipantAliases?: string[]
-): LeaderboardEntry[] {
+): Promise<LeaderboardEntry[]> {
+  console.log('build leaderboard');
   // Calculate stats per player
   // Using aliases as keys (UUIDs no longer exposed)
   const playerStats = new Map<
@@ -73,47 +75,20 @@ function buildLeaderboard(
     { wins: number; losses: number; scoreDiff: number; displayName: string }
   >();
 
-  // TODO: if needed -> fetch from api
-  // const participants = await window.api.getTournamentParticipants(tournament.uuid);
-
-  // Also try to get participants from tournament.participants if available (for tournaments without matches yet)
-  // const participants = tournament.participants || [];
-  // participants.forEach((participant) => {
-  //   const participantTyped = participant as {
-  //     uuid?: string;
-  //     alias?: string;
-  //     user?: { uuid?: string; nickname?: string };
-  //   };
-  //   const user = participantTyped.user;
-  //   const participantId = user?.uuid;
-  //   // Prefer alias from participants array, fallback to nickname
-  //   const displayName = participantTyped.alias || user?.nickname || 'Unknown';
-  //
-  //   if (participantId && !playerStats.has(participantId)) {
-  //     // Initialize stats for participants from tournament.participants
-  //     playerStats.set(participantId, {
-  //       wins: 0,
-  //       losses: 0,
-  //       scoreDiff: 0,
-  //       displayName,
-  //     });
-  //   }
-  // });
-
   // Process all matches from all rounds to:
   // 1. Extract all participants (from player1Name and player2Name)
   // 2. Calculate stats for finished matches
   // Note: Using player names directly from MatchResponse (no UUIDs exposed)
-  rounds.forEach((round) => {
-    round.matches.forEach((match) => {
+  for (const round of rounds) {
+    for (const match of round.matches) {
       // Extract player info from matches (MatchResponse structure - now with player1Name/player2Name)
-      const matchResponse = match as {
-        player1Name?: string | null;
-        player2Name?: string | null;
-        score1?: number;
-        score2?: number;
-        status?: string;
-      };
+      const matchResponse: MatchResponse | null = await window.api.getMatch(
+        match.uuid
+      );
+      if (!matchResponse) {
+        throw new Error(`Fetching match failed for uuid: ${match.uuid}`);
+        // TODO: pminialg handle error
+      }
 
       // Get display names directly from MatchResponse
       const player1DisplayName = matchResponse.player1Name || null;
@@ -168,8 +143,8 @@ function buildLeaderboard(
           }
         }
       }
-    });
-  });
+    }
+  }
 
   // Convert to leaderboard entries
   const leaderboard: LeaderboardEntry[] = Array.from(playerStats.entries())
@@ -730,70 +705,7 @@ export default async function initRoute() {
   let currentTournament: Tournament | null = null;
   let currentLeaderboard: LeaderboardEntry[] = [];
   let currentUIRounds: Round[] = [];
-  let participantAliases = new Map<string, string>(); // Map of user UUID -> alias
   let allParticipantAliases: string[] = []; // All aliases from participants endpoint
-
-  /**
-   * Fetch participant aliases for the tournament
-   * Fetches from the participants endpoint and creates a map of aliases
-   * Note: The endpoint returns only aliases (strings), not UUIDs, so we store them
-   * in a way that allows us to use them for players found in matches
-   */
-  const fetchParticipantAliases = async (
-    // tournament: Tournament,
-    _rounds: TournamentRoundResponse[]
-  ): Promise<{ aliasMap: Map<string, string>; allAliases: string[] }> => {
-    const aliasMap = new Map<string, string>();
-
-    // TODO: if required -> fetch window.api.getTournamentParticipants
-    // First, try to get aliases from tournament.participants if available (admin view)
-    // const participants = tournament.participants || [];
-    // participants.forEach((participant) => {
-    //   const participantTyped = participant as {
-    //     alias?: string;
-    //     user?: { uuid?: string };
-    //   };
-    //   const user = participantTyped.user;
-    //   const participantId = user?.uuid;
-    //   const alias = participantTyped.alias;
-    //   if (participantId && alias) {
-    //     aliasMap.set(participantId, alias);
-    //   }
-    // });
-
-    // If we already have aliases from tournament.participants, return early
-    if (aliasMap.size > 0) {
-      return { aliasMap, allAliases: Array.from(aliasMap.values()) };
-    }
-
-    // Otherwise, fetch from the participants endpoint
-    let allAliases: string[] = [];
-    try {
-      const participantsResponse = await window.api
-        .getTournamentParticipants(tournamentUuid)
-        .catch(() => null);
-      // Type guard to ensure we have the correct response structure
-      if (
-        participantsResponse &&
-        typeof participantsResponse === 'object' &&
-        'participants' in participantsResponse &&
-        Array.isArray(
-          (participantsResponse as { participants: unknown }).participants
-        )
-      ) {
-        allAliases = (participantsResponse as { participants: string[] })
-          .participants;
-      }
-
-      // Note: We can't extract UUIDs from matches anymore since they're not exposed
-      // The aliases are used directly in the leaderboard for players who haven't played yet
-    } catch (error) {
-      console.error('Error fetching tournament participants:', error);
-      // Fallback: return empty map, will use nicknames from matches
-    }
-
-    return { aliasMap, allAliases };
-  };
 
   // Function to refresh tournament data
   const refreshTournamentData = async () => {
@@ -826,14 +738,17 @@ export default async function initRoute() {
         }));
 
         // Fetch participant aliases
-        const aliasData = await fetchParticipantAliases(updatedRounds);
-        participantAliases = aliasData.aliasMap;
-        allParticipantAliases = aliasData.allAliases;
+        const participantsResponse: TournamentParticipantsResponse | null =
+          await window.api.getTournamentParticipants(tournamentUuid);
+        if (!participantsResponse) {
+          // TODO: pminialg handle error
+          return;
+        }
 
-        currentLeaderboard = buildLeaderboard(
+        allParticipantAliases = participantsResponse.participants;
+        currentLeaderboard = await buildLeaderboard(
           updatedTournament,
           updatedRounds,
-          participantAliases,
           allParticipantAliases
         );
 
@@ -968,15 +883,19 @@ export default async function initRoute() {
     }));
 
     // Fetch participant aliases
-    const aliasData = await fetchParticipantAliases(rounds);
-    participantAliases = aliasData.aliasMap;
-    allParticipantAliases = aliasData.allAliases;
+    const participantsResponse: TournamentParticipantsResponse | null =
+      await window.api.getTournamentParticipants(tournamentUuid);
+    if (!participantsResponse) {
+      // TODO: pminialg handle error
+      return;
+    }
+
+    allParticipantAliases = participantsResponse.participants;
 
     // Build leaderboard with alias map
-    currentLeaderboard = buildLeaderboard(
+    currentLeaderboard = await buildLeaderboard(
       tournament,
       rounds,
-      participantAliases,
       allParticipantAliases
     );
 
