@@ -9,7 +9,6 @@ class Socket {
     if (url) {
       this.connect(url, sessionCookie);
     }
-    return this;
   }
 
   public waitingForConnection(): Promise<void> {
