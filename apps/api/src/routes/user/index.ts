@@ -34,10 +34,6 @@ export default function (app: FastifyInstance): void {
     return reply.status(200).send({ uuid: getUuid(request) });
   });
 
-  // TODO: Hacked this in as the web is requesting /me for own user data
-
-  // Might need to refactor later
-
   app.get('/me', async function (request, reply) {
     try {
       const uuidSelf: string = request.user.uuid;
@@ -177,8 +173,27 @@ export default function (app: FastifyInstance): void {
           Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
         });
       }
+
+      const userOwnData = await app.db.getUserMe(uuidSelf);
+      let oldImagePath: string | null = null;
+      if (userOwnData.avatar !== null) {
+        oldImagePath = path.join(`${env.CDN_PATH}`, userOwnData.avatar);
+      }
+
       // Setting/replacing image file path in user's record database
       const userData = await app.db.setUserMeAvatar(uuidSelf, filePath);
+
+      // Deleting old image
+      if (
+        oldImagePath &&
+        userOwnData.avatar &&
+        userOwnData.avatar !== 'avatars/base_avatar.png'
+      ) {
+        fs.unlink(oldImagePath, (error) => {
+          if (error) app.log.error(error);
+        });
+      }
+
       return reply.code(200).send(cleanSelfUserData(userData));
     } catch (error) {
       app.log.error(error);
