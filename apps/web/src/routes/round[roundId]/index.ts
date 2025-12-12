@@ -211,8 +211,8 @@ function renderMatches(
         );
         if (startButton) {
           startButton.addEventListener('click', (e) => {
-            // e.preventDefault();
-            // e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
             setIsLocalGame(false);
             setupWebSocketHook();
             joinTournamentMatch(match.id);
