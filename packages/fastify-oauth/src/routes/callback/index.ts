@@ -63,13 +63,13 @@ function setupCallbackRoute(ctx: OAuthContext) {
     }
 
     // Create session object to be stored in JWT
-    const session = {
+    const session: SessionCookie = {
       providerName: oAuthUser.providerName,
       fullName: oAuthUser.fullName,
       uuid: oAuthUser.uuid,
       refreshToken: accessToken.token.refresh_token as string,
       eat: Date.parse(accessToken.token.expires_at as string),
-    } as SessionCookie;
+    };
 
     const sessionJWT = jwt.sign(session, ctx.jwtSecret);
 
