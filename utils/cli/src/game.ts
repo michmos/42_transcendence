@@ -33,7 +33,7 @@ interface IncomingMessage {
   uuid?: string;
 }
 
-export default class game {
+export default class Game {
   private socket: Socket;
 
   private gameState: ServerState;
