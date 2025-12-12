@@ -1,11 +1,14 @@
 import type {
-  Tournament,
-  TournamentRound,
-  status,
   CreateTournamentInput,
   JoinTournamentInput,
   TournamentParticipation,
 } from '../../types/api.js';
+
+import type {
+  Tournament,
+  TournamentRound,
+  status,
+} from 'db/generated/client/index.js';
 
 import type { TournamentParticipantsResponse } from 'types';
 

@@ -7,32 +7,7 @@
  */
 
 // Import Prisma-generated types from database package
-import type {
-  Tournament as PrismaTournament,
-  TournamentRound as PrismaTournamentRound,
-  Match as PrismaMatch,
-  status,
-  User as PrismaUser,
-} from 'db/generated/client/index.js';
-
-// Extend types to include relations used in the frontend
-export type Match = PrismaMatch;
-
-export interface TournamentRound extends PrismaTournamentRound {
-  matches: Match[];
-}
-
-export interface Tournament extends PrismaTournament {
-  participants?: Array<{
-    uuid: string; // Participation record UUID (not user UUID)
-    alias: string; // Tournament-specific alias
-    user: {
-      uuid: string; // User UUID
-      nickname?: string;
-    };
-  }>;
-  rounds?: TournamentRound[];
-}
+import type { status, User as PrismaUser } from 'db/generated/client/index.js';
 
 export type { status };
 export type User = PrismaUser;
