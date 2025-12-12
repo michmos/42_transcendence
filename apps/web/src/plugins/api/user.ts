@@ -1,5 +1,6 @@
 import type { User } from 'db/generated/client/index.js';
 import { handleApiError } from '../../utils/api-helpers.js';
+import type { OtherUserProfileData, CleanedUserData } from 'types';
 
 // Profile API response types
 export interface ProfileMatch {
@@ -21,14 +22,14 @@ export interface ProfileFriend {
 }
 
 export interface UserProfileData {
-  cleanedUserData: Partial<User>;
+  cleanedUserData: CleanedUserData;
   cleanedUserFriends: ProfileFriend[];
   userMatches: ProfileMatch[];
 }
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
-  async getMe(): Promise<Partial<User> | null> {
+  async getMe(): Promise<CleanedUserData | null> {
     try {
       const response = await fetch('/api/user/me', {
         method: 'GET',
@@ -46,10 +47,10 @@ const UserAPI = {
         throw new Error('Failed to fetch user data');
       }
 
-      const res = (await response.json()) as Partial<User>;
+      const res = (await response.json()) as CleanedUserData;
 
       // Check if response has required fields
-      if (!res['nickname'] || !res.uuid) {
+      if (!res.nickname) {
         return null;
       }
 
@@ -88,7 +89,9 @@ const UserAPI = {
    * @param nickname - The nickname to search for
    * @returns Promise<User | null> - User data or null if not found
    */
-  async getUserByNickname(nickname: string): Promise<Partial<User> | null> {
+  async getUserByNickname(
+    nickname: string
+  ): Promise<OtherUserProfileData | null> {
     try {
       const response = await fetch(
         `/api/user/${encodeURIComponent(nickname)}`,
@@ -106,7 +109,7 @@ const UserAPI = {
         return null;
       }
 
-      return (await response.json()) as Partial<User>;
+      return (await response.json()) as OtherUserProfileData;
     } catch (error) {
       console.error('Error fetching user by nickname:', error);
       return null;
@@ -208,9 +211,9 @@ const UserAPI = {
   /**
    * Update user nickname
    * @param newNickname - New nickname (3-30 characters, alphanumeric, underscores, hyphens)
-   * @returns Promise<Partial<User> | null>
+   * @returns Promise<CleanedUserData | null>
    */
-  async updateNickname(newNickname: string): Promise<Partial<User> | null> {
+  async updateNickname(newNickname: string): Promise<CleanedUserData | null> {
     try {
       const response = await fetch('/api/user/me/nickname', {
         method: 'PATCH',
@@ -228,7 +231,7 @@ const UserAPI = {
         );
       }
 
-      return (await response.json()) as Partial<User>;
+      return (await response.json()) as CleanedUserData;
     } catch (error) {
       console.error('Error updating nickname:', error);
       throw error;

@@ -1,31 +1,48 @@
-// 1. put all type / interface exports here
-//
-//    export type SomeType = {
-//      id: number;
-//     }
-//
-// 2. add dev dependency to the package where types are needed
-//    pnpm add -D types@../../packages/types
-//
-// 3. import type you need
-//    import { SomeType } from 'types';
-
-import { type User, type Friendship } from 'db/generated/client/index.js';
-
-export interface UserMatchRecord {
+export interface ProfileMatch {
   date: string;
   score1: number;
   score2: number;
   player1: string;
   player2: string;
-  result: string;
+  result: 'WON' | 'LOST';
   gameType: string;
 }
 
-export interface UserDashboardResponse {
-  cleanedUserData: Partial<User>;
-  cleanedUserFriends: Array<Partial<Friendship>>;
-  userMatches: UserMatchRecord[];
+export interface ProfileFriend {
+  otherUser: string;
+  avatar: string | null;
+  state: 'REQUESTED' | 'ACCEPTED' | 'REJECTED';
+  isRequester: boolean;
+  isOnline: boolean;
+}
+
+export interface CleanedUserData {
+  createdAt: Date;
+  nickname: string;
+  avatar: string;
+  role: 'ADMIN' | 'MEMBER';
+  isOnline: boolean;
+}
+
+export interface UserProfileData {
+  cleanedUserData: CleanedUserData;
+  cleanedUserFriends: ProfileFriend[];
+  userMatches: ProfileMatch[];
+}
+
+export interface CleanedOtherUser {
+  nickname: string;
+  avatar: string;
+  isOnline: boolean;
+}
+
+export interface OtherUserProfileData {
+  cleanedUser: CleanedOtherUser;
+  matches: {
+    gamesPlayed: number;
+    gamesWon: number;
+    tournamentsPlayed: number;
+  };
 }
 
 export interface OnlineStatus {

@@ -11,12 +11,14 @@ import {
   type ProfileMatch,
   type ProfileFriend,
 } from '../../plugins/api/user.js';
-import type { User } from 'db/generated/client/index.js';
-// import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 import toast from '../../utils/toast.js';
-import type { OnlineStatus } from 'types';
+import type {
+  OnlineStatus,
+  OtherUserProfileData,
+  UserProfileData,
+} from 'types';
 import { setupWebSocketHook } from '../game/index.js';
 
 export let isLocalGame = true;
@@ -554,7 +556,8 @@ function renderFriendsTab(
 
     try {
       // Search for user by exact nickname
-      const user = await window.api.getUserByNickname(query);
+      const user: OtherUserProfileData | null =
+        await window.api.getUserByNickname(query);
 
       if (!user) {
         resultsContainer.innerHTML = `
@@ -572,10 +575,19 @@ function renderFriendsTab(
       );
 
       // Get current user's nickname from profile data
-      const profileData = await window.api.getUserProfile();
-      const currentNickname = profileData?.cleanedUserData['nickname'] || '';
-      const isSelf =
-        user['nickname']?.toLowerCase() === currentNickname.toLowerCase();
+      const profileData: UserProfileData | null =
+        await window.api.getUserProfile();
+      if (!profileData) {
+        resultsContainer.innerHTML = `
+          <div class="text-center text-muted-foreground py-8">
+            <p>User not found</p>
+            <p class="text-sm mt-2">Try searching by exact nickname</p>
+          </div>
+        `;
+        return;
+      }
+      const currentNickname = profileData.cleanedUserData.nickname;
+      const isSelf = user.cleanedUser.nickname === currentNickname;
 
       // Render search result
       const resultItem = createSearchResultItem(user, friendship, isSelf);
@@ -882,7 +894,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
 }
 
 function createSearchResultItem(
-  user: Partial<User>,
+  user: OtherUserProfileData,
   friendship: ProfileFriend | undefined,
   isSelf: boolean
 ): HTMLElement {
@@ -890,8 +902,8 @@ function createSearchResultItem(
   item.className =
     'flex items-center gap-3 p-4 rounded-lg bg-gradient-card backdrop-blur-glass border border-border';
 
-  const nickname = user['nickname'] || 'Unknown';
-  const avatar = user.avatar || null;
+  const nickname = user.cleanedUser.nickname;
+  const avatar = user.cleanedUser.avatar;
   const initials = nickname
     .split(' ')
     .map((n: string) => n[0])
@@ -965,7 +977,7 @@ function createSearchResultItem(
       <p class="font-semibold text-foreground">${nickname}</p>
       <div class="flex items-center gap-2 mt-1">
         ${statusBadge}
-        ${user.gamesPlayed !== undefined ? `<span class="text-xs text-muted-foreground">${user.gamesPlayed} games</span>` : ''}
+        ${user.matches.gamesPlayed !== undefined ? `<span class="text-xs text-muted-foreground">${user.matches.gamesPlayed} games</span>` : ''}
       </div>
     </div>
     <div>

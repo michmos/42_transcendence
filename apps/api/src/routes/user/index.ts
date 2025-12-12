@@ -15,9 +15,10 @@ import {
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
 import type {
-  UserMatchRecord,
-  UserDashboardResponse,
+  ProfileMatch,
+  UserProfileData,
   TournamentParticipation,
+  CleanedOtherUser,
 } from 'types';
 
 export default function (app: FastifyInstance): void {
@@ -58,14 +59,14 @@ export default function (app: FastifyInstance): void {
       const userFriends: fullFriendshipRecord[] =
         await app.db.getFriendsMe(uuidSelf);
       const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
-      const userMatches: UserMatchRecord[] =
+      const userMatches: ProfileMatch[] =
         await app.db.getUserMatchHistory(uuidSelf);
-      const userDashboardData: UserDashboardResponse = {
+      const userProfileData: UserProfileData = {
         cleanedUserData,
         cleanedUserFriends,
         userMatches,
       };
-      return reply.code(200).send(userDashboardData);
+      return reply.code(200).send(userProfileData);
     } catch (error) {
       app.log.error(error);
       return reply.code(500).send({ Error: 'Failed getting own user data' });
@@ -228,7 +229,7 @@ export default function (app: FastifyInstance): void {
         const { nickname } = request.params;
         const user = await app.db.getUserByNickname(nickname);
         if (!user) return reply.code(404).send({ Error: 'user not found' });
-        const cleanedUser = cleanOtherUserData(user);
+        const cleanedUser: CleanedOtherUser = cleanOtherUserData(user);
 
         // Calculate stats from actual match history and tournaments (like profile page does)
         const userMatches = await app.db.getUserMatchHistory(user.uuid);
@@ -242,12 +243,15 @@ export default function (app: FastifyInstance): void {
           await app.db.getTournamentParticipationsByUserAndStatus(user.uuid);
         const tournaments = tournamentParticipations.length;
 
-        return reply.code(200).send({
-          ...cleanedUser,
-          // Override with calculated values from actual data
+        const matches = {
           gamesPlayed: totalMatches,
           gamesWon: gamesWon,
           tournamentsPlayed: tournaments,
+        };
+
+        return reply.code(200).send({
+          ...cleanedUser,
+          matches,
         });
       } catch (error) {
         app.log.error(error);
@@ -255,17 +259,6 @@ export default function (app: FastifyInstance): void {
       }
     }
   );
-
-  // ----------- Add / delete users as admin
-  // app.post('/', async function (request, reply) {
-  //   const { email } = request.body as { email: string };
-  //   if (!isAdmin(request, reply)) return;
-  //   if (!email) {
-  //     return new Error('Email is required');
-  //   }
-  //   const nickname = await app.db.generateUniqueNickName();
-  //   return await app.db.addUser(email, nickname);
-  // });
 
   // ----------- First deletes user's Friends records, and then deletes own User record
   app.delete('/', async function (request, reply) {

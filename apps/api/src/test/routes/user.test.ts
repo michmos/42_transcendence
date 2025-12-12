@@ -32,7 +32,11 @@ describe('GET /user', () => {
   // ------------------------------------------------------------------------ 2
   test('Admin getting all users - valid', async () => {
     for (let i = 0; i < 10; ++i) {
-      await app.db.addUser(`user${i}@mail.com`, `nickName${i}`);
+      await app.db.addUser(
+        `user${i}@mail.com`,
+        `nickName${i}`,
+        'avatars/base_avatar.png'
+      );
     }
     setUserTo('ADMIN');
 
@@ -76,10 +80,7 @@ describe('GET /user/me/dashboard', () => {
         avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),
         role: expect.any(String),
-        gamesPlayed: expect.any(Number),
-        gamesWon: expect.any(Number),
-        tournamentsPlayed: expect.any(Number),
-        tournamentsWon: expect.any(Number),
+        isOnline: expect.any(Boolean),
       },
       cleanedUserFriends: expect.any(Array),
       userMatches: expect.any(Array),
@@ -99,7 +100,11 @@ describe('GET /user/me/dashboard', () => {
 
     let i;
     for (i = 0; i < 10; i++) {
-      let otherUser = await app.db.addUser(`friend${i}@mail.com`, `friend${i}`);
+      let otherUser = await app.db.addUser(
+        `friend${i}@mail.com`,
+        `friend${i}`,
+        'avatars/base_avatar.png'
+      );
       otherUser = await app.db.setUserMeAvatar(
         otherUser.uuid,
         'https://cdn.example.com/someAvatar'
@@ -143,7 +148,11 @@ describe('GET /user/me/dashboard', () => {
       }
     }
     for (i = 10; i < 20; i++) {
-      let otherUser = await app.db.addUser(`friend${i}@mail.com`, `friend${i}`);
+      let otherUser = await app.db.addUser(
+        `friend${i}@mail.com`,
+        `friend${i}`,
+        'avatars/base_avatar.png'
+      );
       otherUser = await app.db.setUserMeAvatar(
         otherUser.uuid,
         'https://cdn.example.com/someAvatar'
@@ -167,7 +176,6 @@ describe('GET /user/me/dashboard', () => {
           score2: 2,
           winnerId: normalUser.uuid,
           status: 'finished',
-          // tournamentRoundId: `t-round-${i}`,
         });
       } else {
         await app.db.modifyFriendsState(
@@ -177,7 +185,11 @@ describe('GET /user/me/dashboard', () => {
       }
     }
     for (i = 20; i < 30; i++) {
-      let otherUser = await app.db.addUser(`friend${i}@mail.com`, `friend${i}`);
+      let otherUser = await app.db.addUser(
+        `friend${i}@mail.com`,
+        `friend${i}`,
+        'avatars/base_avatar.png'
+      );
       otherUser = await app.db.setUserMeAvatar(
         otherUser.uuid,
         'https://cdn.example.com/someAvatar'
@@ -201,10 +213,7 @@ describe('GET /user/me/dashboard', () => {
         avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),
         role: expect.any(String),
-        gamesPlayed: expect.any(Number),
-        gamesWon: expect.any(Number),
-        tournamentsPlayed: expect.any(Number),
-        tournamentsWon: expect.any(Number),
+        isOnline: expect.any(Boolean),
       },
       cleanedUserFriends: expect.any(Array),
       userMatches: expect.any(Array),
@@ -258,10 +267,7 @@ describe('GET /user/me/nickname', () => {
       avatar: 'https://cdn.example.com/someAvatar',
       nickname: expect.any(String),
       role: expect.any(String),
-      gamesPlayed: expect.any(Number),
-      gamesWon: expect.any(Number),
-      tournamentsPlayed: expect.any(Number),
-      tournamentsWon: expect.any(Number),
+      isOnline: expect.any(Boolean),
     });
   });
 
@@ -312,7 +318,8 @@ describe('GET /user/:nickname', () => {
   test('VALID - Other user data', async () => {
     const otherUserResult = await app.db.addUser(
       'otherUser@email.com',
-      'otherUser'
+      'otherUser',
+      'avatars/base_avatar.png'
     );
     await app.db.setUserMeAvatar(
       otherUserResult.uuid,
@@ -329,10 +336,6 @@ describe('GET /user/:nickname', () => {
     expect(response.json()).toMatchObject({
       nickname: expect.any(String),
       avatar: 'https://cdn.example.com/someAvatar',
-      gamesPlayed: 0,
-      gamesWon: 0,
-      tournamentsPlayed: 0,
-      tournamentsWon: 0,
     });
   });
 

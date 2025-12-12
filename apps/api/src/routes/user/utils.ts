@@ -1,49 +1,22 @@
 import type { User } from 'db/generated/client/client.js';
+import type { CleanedOtherUser, CleanedUserData } from 'types';
 
-export function cleanOtherUserData(user: User): Partial<User> {
-  const {
-    nickname,
-    avatar,
-    isOnline,
-    gamesPlayed,
-    gamesWon,
-    tournamentsPlayed,
-    tournamentsWon,
-  } = user;
+export function cleanOtherUserData(user: User): CleanedOtherUser {
+  const { nickname, avatar, isOnline } = user;
   return {
     nickname,
     avatar,
     isOnline,
-    gamesPlayed,
-    gamesWon,
-    tournamentsPlayed,
-    tournamentsWon,
   };
 }
 
-export function cleanSelfUserData(user: User): Partial<User> {
-  const {
-    uuid,
-    createdAt,
-    nickname,
-    avatar,
-    role,
-    isOnline,
-    gamesPlayed,
-    gamesWon,
-    tournamentsPlayed,
-    tournamentsWon,
-  } = user;
+export function cleanSelfUserData(user: User): CleanedUserData {
+  const { createdAt, nickname, avatar, role, isOnline } = user;
   return {
-    uuid,
     createdAt,
     nickname,
     avatar,
     role,
     isOnline,
-    gamesPlayed,
-    gamesWon,
-    tournamentsPlayed,
-    tournamentsWon,
   };
 }

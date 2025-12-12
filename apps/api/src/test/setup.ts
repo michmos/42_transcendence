@@ -43,12 +43,17 @@ beforeEach(async () => {
   // Add standard test users
   const dbNormalUser = await app.db.addUser(
     normalUser.email,
-    normalUser.username
+    normalUser.username,
+    'avatars/base_avatar.png'
   );
   normalUser.uuid = dbNormalUser.uuid;
 
   // Add admin test user
-  const dbAdminUser = await app.db.addUser(adminUser.email, adminUser.username);
+  const dbAdminUser = await app.db.addUser(
+    adminUser.email,
+    adminUser.username,
+    'avatars/base_avatar.png'
+  );
   adminUser.uuid = dbAdminUser.uuid;
 });
 

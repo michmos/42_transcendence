@@ -3,6 +3,7 @@ import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import { type ProfileFriend } from '../../plugins/api/user.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
+import { type OtherUserProfileData } from 'types';
 
 export default function initRoute() {
   // Get the nickname from route parameters
@@ -71,10 +72,11 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
 
   try {
     // Fetch user data first - check if user exists before showing loading state
-    const userData = await window.api.getUserByNickname(nickname);
+    const userData: OtherUserProfileData | null =
+      await window.api.getUserByNickname(nickname);
 
     // Check if user exists immediately - show error right away, no loading state
-    if (!userData || !userData.nickname) {
+    if (!userData || !userData.cleanedUser.nickname) {
       renderError('User not found', mainContent);
       return;
     }
@@ -115,27 +117,39 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     const pageHeader = document.createElement('div');
     pageHeader.className = 'mb-8 flex items-center gap-6';
 
-    const avatar = userData.avatar || null;
-    const userNickname = userData['nickname'] || nickname;
+    // const avatar = userData.avatar || null;
+    // const userNickname = userData['nickname'] || nickname;
+
+    // const avatarDisplay = document.createElement('div');
+    // avatarDisplay.className =
+    //   'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden flex-shrink-0';
+
+    // if (avatar) {
+    //   const avatarImg = document.createElement('img');
+    //   avatarImg.src = avatar;
+    //   avatarImg.alt = userNickname;
+    //   avatarImg.className = 'w-full h-full object-cover';
+    //   avatarDisplay.appendChild(avatarImg);
+    // } else {
+    //   avatarDisplay.innerHTML = `
+    //     <svg class="w-12 h-12 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    //       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+    //       <circle cx="12" cy="7" r="4"/>
+    //     </svg>
+    //   `;
+    // }
+
+    const userNickname = userData.cleanedUser.nickname;
 
     const avatarDisplay = document.createElement('div');
     avatarDisplay.className =
       'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden flex-shrink-0';
 
-    if (avatar) {
-      const avatarImg = document.createElement('img');
-      avatarImg.src = avatar;
-      avatarImg.alt = userNickname;
-      avatarImg.className = 'w-full h-full object-cover';
-      avatarDisplay.appendChild(avatarImg);
-    } else {
-      avatarDisplay.innerHTML = `
-        <svg class="w-12 h-12 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-      `;
-    }
+    const avatarImg = document.createElement('img');
+    avatarImg.src = userData.cleanedUser.avatar;
+    avatarImg.alt = userNickname;
+    avatarImg.className = 'w-full h-full object-cover';
+    avatarDisplay.appendChild(avatarImg);
 
     const headerInfo = document.createElement('div');
     headerInfo.className = 'flex-1';
@@ -169,11 +183,11 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     leftColumn.appendChild(statsGrid);
 
     // Extract stats from userData (now calculated from actual match history by backend)
-    const totalMatches = userData.gamesPlayed ?? 0;
-    const gamesWon = userData.gamesWon ?? 0;
+    const totalMatches: number = userData.matches.gamesPlayed;
+    const gamesWon: number = userData.matches.gamesWon;
     const winRate =
       totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
-    const tournaments = userData.tournamentsPlayed ?? 0;
+    const tournaments: number = userData.matches.tournamentsPlayed;
 
     // Calculate friends count (ACCEPTED friends)
     // Use same logic as profile page: filter ACCEPTED friends

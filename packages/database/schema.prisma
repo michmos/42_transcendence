@@ -40,7 +40,7 @@ model User {
   email_verified    Boolean     @default(false)
   
   // Profile
-  avatar            String?
+  avatar            String
   fullName          String?
   nickname          String      @unique
   role              userRole    @default(MEMBER)
@@ -50,13 +50,6 @@ model User {
   tournaments       TournamentParticipations[]
   matches1          Match[]    @relation("MatchesAsPlayer1")
   matches2          Match[]    @relation("MatchesAsPlayer2")
-
-  // Statistics
-  gamesPlayed       Int       @default(0)
-  gamesWon          Int       @default(0)
-
-  tournamentsPlayed Int       @default(0)
-  tournamentsWon    Int       @default(0)
 
   // Relations / Friendships
   friendsA          Friendship[]  @relation(name: "friendsA")

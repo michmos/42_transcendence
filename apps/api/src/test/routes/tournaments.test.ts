@@ -443,7 +443,11 @@ describe('PATCH /tournaments/{uuid}/start', () => {
   test('valid: start tournament with uneven amount of players -> 200', async () => {
     const tournament = await createValidTournament(app);
     for (let i = 0; i < 3; ++i) {
-      const user = await app.db.addUser(`mail${i}`, `nickname${i}`);
+      const user = await app.db.addUser(
+        `mail${i}`,
+        `nickname${i}`,
+        'avatars/base_avatar.png'
+      );
       await app.db.addUserToTournament(user.uuid, tournament.uuid, `alias${i}`);
     }
 
@@ -632,7 +636,11 @@ describe('POST /tournaments/{uuid}/users', () => {
 
     for (let i = tournament.playerCount; i < maxPlayers; i++) {
       try {
-        const tempUser = await app.db.addUser(`email${i}`, `user${i}`);
+        const tempUser = await app.db.addUser(
+          `email${i}`,
+          `user${i}`,
+          'avatars/base_avatar.png'
+        );
         assert(tempUser !== null);
         await app.db.addUserToTournament(
           tempUser.uuid,
