@@ -307,11 +307,6 @@ describe('GET /user/me/nickname', () => {
 });
 
 // -----   /user/:nickname   -   GET OTHER USER'S RELEVANT DATA
-// describe('PATCH /user/me/avatar', async () => {
-//   // TODO
-// });
-
-// -----   /user/:nickname   -   GET OTHER USER'S RELEVANT DATA
 describe('GET /user/:nickname', () => {
   // ------------------------------------------------------------------------ 10
   test('VALID - Other user data', async () => {

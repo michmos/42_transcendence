@@ -25,6 +25,16 @@ services:
       - backend-network
     restart: on-failure
 
+  cdn-copy-avatar:
+    container_name: cdn-copy-avatar
+    labels:
+      description: "Copy base avatar to cdn"
+    build:
+      context: ./services/cdn-copy-avatar
+    volumes:
+      - ./shared/public-data/cdn/avatars:/data/cdn/avatars
+    restart: on-failure
+
   frontend:
     container_name: frontend
     labels:
