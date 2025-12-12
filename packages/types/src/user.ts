@@ -39,4 +39,9 @@ export interface OnlineUser {
   socketCount: number;
 }
 
+export interface TournamentParticipation {
+  tournamentId: string;
+  alias: string;
+}
+
 export type OnlineUsers = Map<string, OnlineUser>;

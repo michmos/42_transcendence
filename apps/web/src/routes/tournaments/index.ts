@@ -1,12 +1,7 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import TournamentAPI from '../../plugins/api/tournaments.js';
-import UserAPI from '../../plugins/api/user.js';
-import type {
-  Tournament as BackendTournament,
-  status,
-} from '../../types/api.js';
+import type { Tournament, status } from 'db/generated/client/index.js';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
@@ -21,7 +16,7 @@ declare global {
 }
 
 // UI Tournament interface (mapped from backend)
-interface Tournament {
+interface TournamentUI {
   id: string;
   name: string;
   status: 'active' | 'upcoming' | 'completed';
@@ -65,7 +60,7 @@ function formatDate(date: Date | string): string {
 /**
  * Map backend tournament to UI tournament format
  */
-function mapTournamentToUI(tournament: BackendTournament): Tournament {
+function mapTournamentToUI(tournament: Tournament): TournamentUI {
   return {
     id: tournament.uuid,
     name: tournament.tournamentName,
@@ -231,10 +226,10 @@ function renderErrorState(container: HTMLElement, message: string) {
 
 function renderTournamentGrid(
   container: HTMLElement,
-  tournaments: Tournament[],
-  backendTournaments: BackendTournament[],
+  tournaments: TournamentUI[],
+  backendTournaments: Tournament[],
   myTournaments: Set<string>,
-  tournamentsMap: Map<string, BackendTournament>
+  tournamentsMap: Map<string, Tournament>
 ) {
   const grid = document.createElement('div');
   grid.className = 'grid gap-6 md:grid-cols-2 lg:grid-cols-3';
@@ -445,7 +440,7 @@ function renderTournamentGrid(
         `;
 
           try {
-            await TournamentAPI.startTournament(tournamentUuid);
+            await window.api.startTournament(tournamentUuid);
 
             // Success - refresh tournaments list
             const windowWithTournaments = window as WindowWithTournaments;
@@ -513,7 +508,7 @@ function showJoinTournamentDialog(
   tournamentUuid: string,
   tournamentName: string,
   myTournaments: Set<string>,
-  tournamentsMap: Map<string, BackendTournament>
+  tournamentsMap: Map<string, Tournament>
 ) {
   // Create modal backdrop
   const backdrop = document.createElement('div');
@@ -584,7 +579,7 @@ function showJoinTournamentDialog(
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
-          const currentUser = await UserAPI.getMe();
+          const currentUser = await window.api.getMe();
           alias = currentUser?.nickname || 'Player';
         } catch (error) {
           console.error('Error fetching user info:', error);
@@ -604,7 +599,7 @@ function showJoinTournamentDialog(
       joinBtn.textContent = 'Joining...';
 
       try {
-        await TournamentAPI.joinTournament(tournamentUuid, alias);
+        await window.api.joinTournament(tournamentUuid, alias);
 
         // Add to myTournaments Set (user is now a participant)
         myTournaments.add(tournamentUuid);
@@ -615,7 +610,7 @@ function showJoinTournamentDialog(
           existingTournament.playerCount += 1;
         } else {
           // Fetch tournament if not in Map
-          const tournament = await TournamentAPI.getTournament(tournamentUuid);
+          const tournament = await window.api.getTournament(tournamentUuid);
           if (tournament) {
             tournamentsMap.set(tournamentUuid, tournament);
           }
@@ -646,7 +641,7 @@ function showJoinTournamentDialog(
 
 function showNewTournamentDialog(
   myTournaments: Set<string>,
-  tournamentsMap: Map<string, BackendTournament>
+  tournamentsMap: Map<string, Tournament>
 ) {
   // Create modal backdrop - darker for better contrast
   const backdrop = document.createElement('div');
@@ -816,11 +811,11 @@ function showNewTournamentDialog(
         };
 
         // Call API to create tournament
-        const tournament = await TournamentAPI.createTournament(tournamentData);
+        const tournament = await window.api.createTournament(tournamentData);
 
         // Auto-join the tournament as the creator (required: creator must be added automatically)
         try {
-          await TournamentAPI.joinTournament(tournament.uuid, alias);
+          await window.api.joinTournament(tournament.uuid, alias);
           // Add to myTournaments Set (creator is automatically a participant)
           myTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
@@ -874,13 +869,13 @@ export default async function initRoute() {
   // Tournament state management using Sets (no UUID exposure)
   const myTournaments = new Set<string>(); // Tournaments where user is a participant
   const openTournaments = new Set<string>(); // Outstanding tournaments available to join
-  const tournamentsMap = new Map<string, BackendTournament>(); // Full tournament objects
+  const tournamentsMap = new Map<string, Tournament>(); // Full tournament objects
 
   let searchQuery = '';
-  let allTournaments: Tournament[] = [];
-  let allBackendTournaments: BackendTournament[] = [];
-  let filteredTournaments: Tournament[] = [];
-  let filteredBackendTournaments: BackendTournament[] = [];
+  let allTournaments: TournamentUI[] = [];
+  let allBackendTournaments: Tournament[] = [];
+  let filteredTournaments: TournamentUI[] = [];
+  let filteredBackendTournaments: Tournament[] = [];
   let isLoading = true;
   let hasError = false;
   let errorMessage = '';
@@ -897,7 +892,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getMe();
+  const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [{ label: 'Profile', href: '/profile', active: false }],
@@ -934,7 +929,7 @@ export default async function initRoute() {
       .map((uiTournament) => {
         return allBackendTournaments.find((bt) => bt.uuid === uiTournament.id);
       })
-      .filter((bt): bt is BackendTournament => bt !== undefined);
+      .filter((bt): bt is Tournament => bt !== undefined);
     updateTournamentGrid();
   });
   mainContent.appendChild(searchContainer);
@@ -978,24 +973,51 @@ export default async function initRoute() {
 
     try {
       // Fetch outstanding tournaments (for openTournaments set)
-      const outstandingTournaments = await TournamentAPI.getTournaments(
+      const outstandingTournaments = await window.api.getTournaments(
         statusFilter || 'outstanding'
       );
 
       // Fetch user's tournaments (for myTournaments set)
-      const userTournaments =
-        await TournamentAPI.getMyTournaments(statusFilter);
+      const userTournaments = await window.api.getMyTournaments(statusFilter);
 
       // Populate Sets and Map
       myTournaments.clear();
       openTournaments.clear();
       tournamentsMap.clear();
 
-      // Add user's tournaments to myTournaments
-      userTournaments.forEach((tournament) => {
-        myTournaments.add(tournament.uuid);
-        tournamentsMap.set(tournament.uuid, tournament);
-      });
+      // Add user's tournaments to myTournaments (using tournamentId from new structure)
+      // Also fetch full tournament details for user's tournaments to ensure they appear in the list
+      // even if their status changed (e.g., from 'outstanding' to 'ongoing')
+      // Process tournaments sequentially to avoid overwhelming the API
+      for (const participation of userTournaments) {
+        if (
+          !participation ||
+          typeof participation !== 'object' ||
+          !('tournamentId' in participation)
+        ) {
+          continue;
+        }
+
+        const tournamentId =
+          typeof participation.tournamentId === 'string'
+            ? participation.tournamentId
+            : null;
+        if (!tournamentId) continue;
+
+        myTournaments.add(tournamentId);
+
+        // Fetch full tournament details to ensure it appears in the list
+        try {
+          const tournament = await window.api.getTournament(tournamentId);
+          if (tournament) {
+            tournamentsMap.set(tournament.uuid, tournament);
+          }
+        } catch (err) {
+          const error = err instanceof Error ? err.message : String(err);
+          console.error(`Error fetching tournament ${tournamentId}:`, error);
+          // Continue with other tournaments even if one fails
+        }
+      }
 
       // Add outstanding tournaments to openTournaments and Map
       outstandingTournaments.forEach((tournament) => {
@@ -1043,7 +1065,7 @@ export default async function initRoute() {
             (bt) => bt.uuid === uiTournament.id
           );
         })
-        .filter((bt): bt is BackendTournament => bt !== undefined);
+        .filter((bt): bt is Tournament => bt !== undefined);
     } else {
       filteredTournaments = [...allTournaments];
       filteredBackendTournaments = [...allBackendTournaments];
@@ -1053,7 +1075,7 @@ export default async function initRoute() {
   /**
    * Update or add a tournament to display arrays
    */
-  function updateTournamentInArrays(tournament: BackendTournament): void {
+  function updateTournamentInArrays(tournament: Tournament): void {
     const index = allBackendTournaments.findIndex(
       (t) => t.uuid === tournament.uuid
     );
@@ -1077,15 +1099,19 @@ export default async function initRoute() {
   // Set up socket listeners for real-time updates
   // These will work once backend socket handler is implemented
   const handleTournamentCreated = (data: unknown) => {
-    const eventData = data as { tournamentUuid?: string };
-    if (
-      eventData.tournamentUuid &&
-      !myTournaments.has(eventData.tournamentUuid)
-    ) {
+    const eventData = data as { uuid?: string };
+    if (eventData.uuid && !myTournaments.has(eventData.uuid)) {
       void (async () => {
-        const tournamentUuid = eventData.tournamentUuid;
+        const tournamentUuid = eventData.uuid;
         if (!tournamentUuid) return;
-        const tournament = await TournamentAPI.getTournament(tournamentUuid);
+        const tournament = await window.api.getTournament(tournamentUuid);
+        if (!tournament) {
+          console.error(`Tournament ${tournamentUuid} not found`);
+          return;
+        }
+        if (tournament.playerCount === 0) {
+          tournament.playerCount = 1;
+        }
         if (tournament && tournament.status === 'outstanding') {
           openTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
@@ -1097,17 +1123,8 @@ export default async function initRoute() {
     }
   };
 
-  const handleTournamentStarted = (data: unknown) => {
-    const eventData = data as { uuid?: string; tournamentName?: string };
-
-    // Show toast if user is a participant in this tournament
-    if (eventData.uuid && myTournaments.has(eventData.uuid)) {
-      const tournamentName = eventData.tournamentName || 'Tournament';
-      toast.show(`${tournamentName} is about to start!`, {
-        variant: 'success',
-      });
-    }
-
+  const handleTournamentStarted = (_data: unknown) => {
+    // Note: Toast notification is handled by the 'notify' event from the backend
     // Update tournament list to show status change
     void loadTournaments();
   };
@@ -1124,7 +1141,7 @@ export default async function initRoute() {
       // Tournament not in map yet - fetch it with correct playerCount
       void (async () => {
         try {
-          const fetchedTournament = await TournamentAPI.getTournament(
+          const fetchedTournament = await window.api.getTournament(
             eventData.uuid
           );
           if (fetchedTournament) {
@@ -1137,8 +1154,6 @@ export default async function initRoute() {
         }
       })();
     }
-    // Don't show toast on tournaments list page - only update the list
-    // Participants will see the toast on the specific tournament page
   };
 
   const handleTournamentLeft = (_data: unknown) => {

@@ -3,8 +3,6 @@
  * Handles session management and logout
  */
 
-import UserAPI from './user.js';
-
 export interface Session {
   uuid: string;
   role: 'ADMIN' | 'USER';
@@ -12,12 +10,12 @@ export interface Session {
 
 /**
  * Get current session from backend
- * Uses UserAPI.getMe() to fetch current user data
+ * Uses window.api.getMe() to fetch current user data
  * @returns Session object if logged in, null otherwise
  */
 export async function getSession(): Promise<Session | null> {
   try {
-    const user = await UserAPI.getMe();
+    const user = await window.api.getMe();
 
     if (!user || !user.uuid) {
       return null;
