@@ -49,7 +49,7 @@ class Socket {
     });
 
     this.socket.on('error', (error: Error): void => {
-      console.error('WebSocket error:', error);
+      console.error('Error connecting to WebSocket server:', error.message);
       process.exit(1);
     });
   }
