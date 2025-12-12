@@ -1,5 +1,5 @@
 import 'fastify';
-import { User } from 'db';
+import { type User } from 'db/generated/client/index.js';
 
 declare module 'fastify' {
   interface FastifyInstance {

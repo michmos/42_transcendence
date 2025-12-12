@@ -1,5 +1,5 @@
 import readline from 'readline';
-import { Socket, WebSocket } from './plugins/websocket/index.js';
+import { Socket } from './plugins/websocket/index.js';
 import { formatTime } from './gameUtils.js';
 
 interface ServerState {
@@ -270,7 +270,7 @@ export default class Game {
       );
 
       // Handle incoming messages
-      ws.on('message', (msg: WebSocket.RawData) => {
+      ws.on('message', (msg: Buffer) => {
         if (this.gameInProgress === false) return;
 
         const message = JSON.parse(msg.toString()) as IncomingMessage;
