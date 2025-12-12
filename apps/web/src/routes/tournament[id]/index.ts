@@ -739,7 +739,7 @@ export default async function initRoute() {
    * in a way that allows us to use them for players found in matches
    */
   const fetchParticipantAliases = async (
-    tournament: Tournament,
+    // tournament: Tournament,
     _rounds: TournamentRoundResponse[]
   ): Promise<{ aliasMap: Map<string, string>; allAliases: string[] }> => {
     const aliasMap = new Map<string, string>();
@@ -924,7 +924,8 @@ export default async function initRoute() {
 
   try {
     // Fetch tournament
-    const tournament = await window.api.getTournament(tournamentUuid);
+    const tournament: Tournament | null =
+      await window.api.getTournament(tournamentUuid);
     if (!tournament) {
       renderErrorState(innerContainer, 'Tournament not found');
       return;

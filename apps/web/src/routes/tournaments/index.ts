@@ -1108,6 +1108,13 @@ export default async function initRoute() {
         const tournamentUuid = eventData.tournamentUuid;
         if (!tournamentUuid) return;
         const tournament = await window.api.getTournament(tournamentUuid);
+        if (!tournament) {
+          console.error(`Tournament ${tournamentUuid} not found`);
+          return;
+        }
+        if (tournament.playerCount === 0) {
+          tournament.playerCount = 1;
+        }
         if (tournament && tournament.status === 'outstanding') {
           openTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
