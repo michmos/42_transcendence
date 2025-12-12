@@ -69,9 +69,14 @@ export default class Authenticate {
           credentials: 'include',
         },
       });
+      if (data.status !== 200) {
+        console.error(`Authentication failed with status code: ${data.status}`);
+        return null;
+      }
       const user = (await data.json()) as User;
       if (!user || !user.uuid) {
         console.error('Authentication failed: No user data received');
+        return null;
       } else {
         console.log(
           `\n\n\n🎉🎉🎉 Welcome to Transcendece CLI, ${user.fullName} 🎉🎉🎉\n\n\n`

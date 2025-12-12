@@ -89,18 +89,19 @@ function loginHandler(input: string) {
   if (auth.loginByProviderName(input)) {
     menu.showJWTTokenPrompt((token: string) => {
       app.jwtToken = token;
-      auth.saveTokenToFile(token);
-
-      // Reconnect WebSocket with new session cookie
-      socket.connect(wsUrl, token);
 
       auth
         .loginWithToken(token, env.CORS_URL)
         .then((user) => {
-          if (user) {
-            app.user = user;
+          if (user == null) {
+            console.log('❌ Login failed, exiting...');
+            process.exit(0);
           } else {
-            console.log('❌ Invalid token or failed to fetch user data');
+            app.user = user;
+            // Save token to file for future sessions
+            auth.saveTokenToFile(token);
+            // Reconnect WebSocket with new session cookie
+            socket.connect(wsUrl, token);
           }
           menu.refreshMenu();
         })
