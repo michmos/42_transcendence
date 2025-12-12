@@ -79,7 +79,7 @@ export default class Authenticate {
         return null;
       } else {
         console.log(
-          `\n\n\n🎉🎉🎉 Welcome to Transcendece CLI, ${user.fullName} 🎉🎉🎉\n\n\n`
+          `\n\n\n🎉🎉🎉 Welcome to Transcendence CLI, ${user.fullName} 🎉🎉🎉\n\n\n`
         );
         return user;
       }
