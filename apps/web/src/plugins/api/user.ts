@@ -35,15 +35,14 @@ const UserAPI = {
         credentials: 'include',
       });
 
+      // For getMe, 401 is expected when not logged in - don't show popup
       if (response.status === 401) {
         return null;
       }
 
       if (!response.ok) {
-        console.error(
-          `[getMe] Error ${response.status}: Failed to fetch user data`
-        );
-        throw new Error('Failed to fetch user data');
+        await handleApiError(response);
+        return null;
       }
 
       const res = (await response.json()) as Partial<User>;
@@ -67,12 +66,14 @@ const UserAPI = {
         credentials: 'include',
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
+      if (response.status === 401) {
+        await handleApiError(response);
+        return [];
       }
 
-      if (response.status === 401) {
-        throw new Error('Unauthorized');
+      if (!response.ok) {
+        await handleApiError(response);
+        return [];
       }
 
       const res = (await response.json()) as User[];
@@ -172,28 +173,14 @@ const UserAPI = {
         credentials: 'include',
       });
 
-      // Handle 401 gracefully without redirecting (let route handle it)
+      // Handle 401 - show session expired popup
       if (response.status === 401) {
+        await handleApiError(response);
         return null;
       }
 
       if (!response.ok) {
-        // Extract error message for logging
-        let errorMessage = 'Failed to fetch user profile';
-        try {
-          const errorData = (await response.json().catch(() => ({}))) as {
-            error?: string;
-          };
-          if (errorData.error && typeof errorData.error === 'string') {
-            errorMessage = errorData.error;
-          }
-        } catch {
-          // If parsing fails, use default message
-        }
-        console.error(
-          `[getUserProfile] Error ${response.status}:`,
-          errorMessage
-        );
+        await handleApiError(response);
         return null;
       }
 
@@ -218,6 +205,11 @@ const UserAPI = {
         credentials: 'include',
         body: JSON.stringify({ newNickname }),
       });
+
+      if (response.status === 401) {
+        await handleApiError(response);
+        return null;
+      }
 
       if (!response.ok) {
         const errorData = (await response.json().catch(() => ({}))) as {
@@ -250,6 +242,11 @@ const UserAPI = {
         credentials: 'include',
         body: formData,
       });
+
+      if (response.status === 401) {
+        await handleApiError(response);
+        return null;
+      }
 
       if (!response.ok) {
         const errorData = (await response.json().catch(() => ({}))) as {

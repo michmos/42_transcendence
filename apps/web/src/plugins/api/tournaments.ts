@@ -8,6 +8,8 @@ import type { Tournament, status } from 'db/generated/client/index.js';
 
 import type { TournamentParticipation, TournamentRoundResponse } from 'types';
 
+import { handleApiError } from '../../utils/api-helpers.js';
+
 /**
  * Tournament API Client
  *
@@ -21,7 +23,7 @@ const TournamentsAPI = {
    * @param status - Optional status filter ('outstanding' | 'ongoing' | 'finished' | 'canceled')
    * @returns Promise<Tournament[]> - Array of tournaments
    */
-  async getTournaments(status?: status): Promise<Tournament[]> {
+  async getTournaments(status?: status): Promise<Tournament[] | null> {
     try {
       const url = status
         ? `/api/tournaments?status=${status}`
@@ -32,13 +34,14 @@ const TournamentsAPI = {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch tournaments: ${response.status}`);
+        await handleApiError(response);
+        return null;
       }
 
       return (await response.json()) as Tournament[];
     } catch (error) {
       console.error('Error fetching tournaments:', error);
-      return [];
+      return null;
     }
   },
 
@@ -47,7 +50,9 @@ const TournamentsAPI = {
    * @param status - Optional status filter ('outstanding' | 'ongoing' | 'finished' | 'canceled')
    * @returns Promise<TournamentParticipation[]> - Array of tournament participations with tournamentId and alias
    */
-  async getMyTournaments(status?: status): Promise<TournamentParticipation[]> {
+  async getMyTournaments(
+    status?: status
+  ): Promise<TournamentParticipation[] | null> {
     try {
       const url = status
         ? `/api/user/me/tournaments?status=${status}`
@@ -58,13 +63,14 @@ const TournamentsAPI = {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch my tournaments: ${response.status}`);
+        await handleApiError(response);
+        return null;
       }
 
       return (await response.json()) as TournamentParticipation[];
     } catch (error) {
       console.error('Error fetching my tournaments:', error);
-      return [];
+      return null;
     }
   },
 
@@ -80,14 +86,10 @@ const TournamentsAPI = {
         credentials: 'include',
       });
 
-      if (response.status === 404) {
+      if (!response.ok) {
+        await handleApiError(response);
         return null;
       }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch tournament: ${response.status}`);
-      }
-
       return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error fetching tournament:', error);
@@ -101,7 +103,9 @@ const TournamentsAPI = {
    * @returns Promise<Tournament> - Created tournament
    * @throws Error if creation fails (400 validation, 401 unauthorized)
    */
-  async createTournament(data: CreateTournamentInput): Promise<Tournament> {
+  async createTournament(
+    data: CreateTournamentInput
+  ): Promise<Tournament | null> {
     try {
       const response = await fetch('/api/tournaments', {
         method: 'POST',
@@ -109,10 +113,6 @@ const TournamentsAPI = {
         credentials: 'include',
         body: JSON.stringify(data),
       });
-
-      if (response.status === 401) {
-        throw new Error('Unauthorized - Please log in to create a tournament');
-      }
 
       if (response.status === 400) {
         const errorData = (await response.json().catch(() => ({}))) as {
@@ -124,13 +124,14 @@ const TournamentsAPI = {
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to create tournament: ${response.status}`);
+        await handleApiError(response);
+        return null;
       }
 
       return (await response.json()) as Tournament;
     } catch (error) {
       console.error('Error creating tournament:', error);
-      throw error;
+      return null;
     }
   },
 
@@ -146,7 +147,7 @@ const TournamentsAPI = {
     tournamentUuid: string,
     alias: string,
     userUuid?: string
-  ): Promise<Tournament> {
+  ): Promise<Tournament | null> {
     try {
       const body: JoinTournamentInput = { alias };
       if (userUuid) {
@@ -159,10 +160,6 @@ const TournamentsAPI = {
         credentials: 'include',
         body: JSON.stringify(body),
       });
-
-      if (response.status === 401) {
-        throw new Error('Unauthorized - Please log in to join a tournament');
-      }
 
       if (response.status === 404) {
         const errorData = (await response.json().catch(() => ({}))) as {
@@ -179,6 +176,11 @@ const TournamentsAPI = {
           errorData.error ||
             'Tournament cannot be joined (full, locked, or canceled)'
         );
+      }
+
+      if (!response.ok) {
+        await handleApiError(response);
+        return null;
       }
 
       if (!response.ok) {
@@ -214,7 +216,10 @@ const TournamentsAPI = {
       });
 
       if (response.status === 401) {
-        throw new Error('Unauthorized - Please log in to leave a tournament');
+        await handleApiError(response);
+        throw new Error(
+          'Session expired - Please log in to leave a tournament'
+        );
       }
 
       if (response.status === 404) {
@@ -264,7 +269,10 @@ const TournamentsAPI = {
       });
 
       if (response.status === 401) {
-        throw new Error('Unauthorized - Please log in to start a tournament');
+        await handleApiError(response);
+        throw new Error(
+          'Session expired - Please log in to start a tournament'
+        );
       }
 
       if (response.status === 403) {
@@ -313,6 +321,11 @@ const TournamentsAPI = {
         }
       );
 
+      if (response.status === 401) {
+        await handleApiError(response);
+        throw new Error('Session expired');
+      }
+
       // TODO: @pminialg -> maybe you want to handle differently
       if (response.status === 404) {
         throw new Error(`Tournament not found: ${response.status}`);
@@ -349,6 +362,11 @@ const TournamentsAPI = {
           credentials: 'include',
         }
       );
+
+      if (response.status === 401) {
+        await handleApiError(response);
+        return null;
+      }
 
       if (response.status === 403) {
         throw new Error(

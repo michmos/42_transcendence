@@ -38,9 +38,11 @@ export async function handleApiError(response: Response): Promise<ApiError> {
   // Map status codes to user-friendly messages and actions
   switch (status) {
     case 401:
-      errorMessage = 'Please log in to continue';
+      errorMessage = 'Session expired. Please log in again.';
       shouldRedirect = true;
       redirectPath = '/login';
+      // Show session expired toast
+      createToast(errorMessage, 'error');
       break;
 
     case 403:

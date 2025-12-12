@@ -1,4 +1,5 @@
 import type { MatchResponse } from 'types';
+import { handleApiError } from '../../utils/api-helpers.js';
 
 const MatchAPI = {
   /**
@@ -14,12 +15,9 @@ const MatchAPI = {
         credentials: 'include',
       });
 
-      if (response.status === 404) {
-        return null;
-      }
-
       if (!response.ok) {
-        throw new Error(`Failed to fetch match: ${response.status}`);
+        await handleApiError(response);
+        return null;
       }
 
       return (await response.json()) as MatchResponse;
