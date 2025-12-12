@@ -152,14 +152,14 @@ class SessionManager {
         const oAuthUser = await getOauthUser(
           provider,
           accessToken,
-          sessionCookie.fullName
+          sessionCookie.name
         );
         if (!oAuthUser) {
           return reply.status(400).send({ error: 'Failed to fetch user info' });
         }
 
         const newSession: SessionCookie = {
-          fullName: oAuthUser.fullName,
+          name: oAuthUser.fullName,
           uuid: oAuthUser.uuid,
           providerName: oAuthUser.providerName,
           refreshToken: accessToken.token.refresh_token as string,

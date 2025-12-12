@@ -47,8 +47,6 @@ async function getOauthUser(
     throw new Error('Failed to fetch user data');
   }
 
-  console.log('Fetched user data:', provider, user);
-
   const uuid = provider.name + '_' + getOauthUserUUID(user);
 
   const fullName = getOauthUserName(user);
