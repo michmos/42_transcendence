@@ -98,14 +98,8 @@ class TournamentSocket {
    * Uses window.socket (same as tournamentOps.ts and tournament.ts API)
    */
   public joinTournament(uuid: string) {
-    if (!window.socket || !window.socket.isConnected()) {
-      console.warn('Socket not connected, cannot join tournament');
-      return;
-    }
-    try {
+    if (window.socket) {
       window.socket.joinRoom(`tournament:${uuid}`);
-    } catch (error) {
-      console.warn(`Failed to join tournament ${uuid} room:`, error);
     }
   }
 
@@ -114,11 +108,8 @@ class TournamentSocket {
    * Uses window.socket (same as tournamentOps.ts and tournament.ts API)
    */
   public leaveTournament(uuid: string) {
-    if (!window.socket || !window.socket.isConnected()) return;
-    try {
+    if (window.socket) {
       window.socket.leaveRoom(`tournament:${uuid}`);
-    } catch (error) {
-      console.warn(`Failed to leave tournament ${uuid} room:`, error);
     }
   }
 
