@@ -115,7 +115,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     const pageHeader = document.createElement('div');
     pageHeader.className = 'mb-8 flex items-center gap-6';
 
-    const avatar = userData.avatar || null;
+    const avatar = getAvatarSrc(userData.avatar);
     const userNickname = userData['nickname'] || nickname;
 
     const avatarDisplay = document.createElement('div');

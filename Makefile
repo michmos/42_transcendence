@@ -33,3 +33,6 @@ lint:  ## Run linting and type checking
 typecheck:  ## Run type checking
 	pnpm db:generate
 	pnpm typecheck
+
+cli: ## Run the CLI
+	pnpm cli

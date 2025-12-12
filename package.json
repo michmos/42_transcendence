@@ -8,6 +8,7 @@
     "build": "turbo run dep:build && turbo run build",
     "dep:build": "turbo run dep:build",
     "dev": "turbo run dev",
+    "cli": "cd utils/cli && pnpm cli",
     "preview": "turbo run preview",
     "lint": "turbo run lint --continue",
     "lint:fix": "turbo run lint:fix --continue",

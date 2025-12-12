@@ -72,6 +72,11 @@
       "persistent": true
     },
 
+    "cli": {
+      "dependsOn": ["app-base"],
+      "persistent": true
+    },
+
     "test": {
       "dependsOn": ["app-base"],
       "persistent": true

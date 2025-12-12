@@ -642,6 +642,7 @@ function renderErrorState(container: HTMLElement, message: string) {
   const retryBtn = errorState.querySelector('#retry-btn');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
+      // TODO no reloads!!!
       window.location.reload();
     });
   }

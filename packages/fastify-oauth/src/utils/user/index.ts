@@ -34,10 +34,8 @@ async function getOauthUser(
   // If the provider uses OpenID Connect, extract user info from the ID token
   if (accessToken.token.id_token) {
     user = extractOpenIDUser(accessToken, name);
-  }
-
-  // If a custom user data fetcher is provided, use it
-  else if (provider.fetchUserData) {
+  } else if (provider.fetchUserData) {
+    // If a custom user data fetcher is provided, use it
     user = await provider.fetchUserData(
       accessToken.token.access_token as string
     );
@@ -49,7 +47,8 @@ async function getOauthUser(
     throw new Error('Failed to fetch user data');
   }
 
-  const uuid = provider.name + getOauthUserUUID(user);
+  const uuid = provider.name + '_' + getOauthUserUUID(user);
+
   const fullName = getOauthUserName(user);
   if (
     !('email' in user) ||
