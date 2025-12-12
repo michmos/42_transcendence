@@ -12,8 +12,8 @@ import type { status, User as PrismaUser } from 'db/generated/client/index.js';
 export type { status };
 export type User = PrismaUser;
 
-// Import TournamentParticipation from types package
-export type { TournamentParticipation } from 'types';
+// Import TournamentParticipantsResponse from types package
+export type { TournamentParticipantsResponse } from 'types';
 
 /**
  * Input type for creating a tournament
