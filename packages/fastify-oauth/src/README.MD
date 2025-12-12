@@ -1,4 +1,3 @@
-
 # Auth Plugin
 
 This plugin provides OAuth2 authentication for Fastify applications, supporting providers like Google, GitHub, and 42. It manages user sessions using JWTs and HTTP-only cookies, and exposes endpoints for login, callback, session management, and logout.
@@ -30,11 +29,7 @@ This plugin provides OAuth2 authentication for Fastify applications, supporting 
    ```typescript
    import AuthPlugin from './plugins/auth';
 
-   const auth = AuthPlugin(
-     app,
-     process.env.GOOGLE_REDIRECT_URL,
-     process.env.JWT_SECRET
-   );
+   const auth = AuthPlugin(app, env.GOOGLE_REDIRECT_URL, env.JWT_SECRET);
    auth.addProvider('google', ['profile', 'email'], {
      client: {
        id: process.env.GOOGLE_CLIENT_ID,

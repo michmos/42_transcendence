@@ -30,17 +30,6 @@ export const routes = {
     css: () => import('./routes/settings/index.css?inline'),
     script: () => import('./routes/settings/index.js'),
   },
-  // TODO: Enable these routes when needed or remove them entirely
-  // '/waiting-room': {
-  //   html: () => import('./routes/waiting-room/index.html?raw'),
-  //   css: () => import('./routes/waiting-room/index.css?inline'),
-  //   script: () => import('./routes/waiting-room.notinuse/index.js'),
-  // },
-  // '/error': {
-  //   html: () => import('./routes/error/index.html?raw'),
-  //   css: () => import('./routes/error/index.css?inline'),
-  //   script: () => import('./routes/error.notinuse/index.js'),
-  // },
 };
 
 export const dynamicRoutes = [

@@ -89,7 +89,10 @@ function setupCallbackRoute(ctx: OAuthContext) {
       secure: process.env.NODE_ENV === 'production',
       path: '/',
     });
+    // Add small delay to ensure cookie is set before redirect
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
+    // Redirect to success URL or home
     reply.redirect(ctx.successRedirectUrl || '/');
   });
 }

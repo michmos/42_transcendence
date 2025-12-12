@@ -1,11 +1,11 @@
 import type { OAuthProviderOptions } from '../../index.js';
+import { env } from '../../env.js';
 
-// TODO: Make sure the ENV get checked!!!
 const Google: OAuthProviderOptions = {
   name: 'Google',
   client: {
-    id: process.env.GOOGLE_CLIENT_ID || '',
-    secret: process.env.GOOGLE_CLIENT_SECRET || '',
+    id: env.GOOGLE_CLIENT_ID || '',
+    secret: env.GOOGLE_CLIENT_SECRET || '',
   },
   auth: {
     tokenHost: 'https://oauth2.googleapis.com',

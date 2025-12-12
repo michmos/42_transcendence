@@ -4,7 +4,6 @@ import ProviderUtility from '../providers/index.js';
 import { getOauthUser } from '../../utils/user/index.js';
 import type { FastifyReply } from 'fastify';
 
-// TODO: @jensbouma make sure the cookie gets deleted on error and throw the default errors instead of returning reply directly
 class SessionManager {
   private ctx!: OAuthContext;
 
