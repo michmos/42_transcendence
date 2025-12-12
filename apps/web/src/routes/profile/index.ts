@@ -217,7 +217,7 @@ export default async function initRoute() {
   renderFriendsSection(rightColumn, cleanedUserFriends);
 
   // ===== ONLINE STATUS SOCKET INTEGRATION =====
-  setupOnlineStatusSocket();
+  listenForStatusUpdates();
 }
 
 // Friends data state for refresh
@@ -1471,32 +1471,10 @@ function showNewTournamentDialog() {
 // ===== ONLINE STATUS SOCKET HANDLING =====
 
 /**
- * Setup socket connection for online status updates
- * Joins the 'online' room and listens for status-update events
+ * Listens for status-update events
  */
-function setupOnlineStatusSocket() {
+function listenForStatusUpdates() {
   if (!window.socket) return;
-
-  // Join the 'online' room when socket connects (for friend status updates)
-  const joinRooms = () => {
-    if (window.socket?.isConnected()) {
-      window.socket.joinRoom('online');
-    } else {
-      setTimeout(joinRooms, 500);
-    }
-  };
-
-  if (window.socket.isConnected()) {
-    joinRooms();
-  } else {
-    const checkConnection = setInterval(() => {
-      if (window.socket?.isConnected()) {
-        clearInterval(checkConnection);
-        joinRooms();
-      }
-    }, 100);
-    setTimeout(() => clearInterval(checkConnection), 5000);
-  }
 
   // Listen for status updates
   window.socket.registerWebSocketHook((event: MessageEvent) => {
@@ -1529,7 +1507,6 @@ function setupOnlineStatusSocket() {
 function cleanupOnlineStatusSocket(): void {
   // Leave rooms and close socket so backend broadcasts offline status
   if (window.socket?.isConnected()) {
-    window.socket.leaveRoom('online');
     window.socket.leaveRoom('tournament:main');
     // Close socket to trigger backend's onClose handler which broadcasts offline status
     const ws = window.socket.getSocket();
