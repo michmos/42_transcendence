@@ -7,6 +7,9 @@ import toast from '../../utils/toast.js';
 import { joinTournamentMatch } from '../game/buttonLogic.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import type { TournamentParticipation } from 'types';
+import { setIsLocalGame } from '../profile/index.js';
+
+import { setupWebSocketHook } from '../game/index.js';
 
 // UI Match interface (mapped from backend)
 interface Match {
@@ -210,7 +213,10 @@ function renderMatches(
           startButton.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            setIsLocalGame(false);
+            setupWebSocketHook();
             joinTournamentMatch(match.id);
+            navigateTo('/game');
           });
         }
       }

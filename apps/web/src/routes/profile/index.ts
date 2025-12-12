@@ -24,6 +24,9 @@ export let isLocalGame = true;
 export function getIsLocalGame(): boolean {
   return isLocalGame;
 }
+export function setIsLocalGame(boolean: boolean) {
+  isLocalGame = boolean;
+}
 
 // Extend Window interface for SPA navigation
 declare global {
@@ -39,6 +42,7 @@ interface MatchData {
   score: string;
   tournament: string;
   result: 'win' | 'loss';
+  date: string;
 }
 
 export default async function initRoute() {
@@ -1145,6 +1149,7 @@ function renderRecentMatches(
       const userScore = isPlayer1 ? match.score1 : match.score2;
       const opponentScore = isPlayer1 ? match.score2 : match.score1;
       const score = `${userScore}-${opponentScore}`;
+      const date = match.date;
 
       return {
         playerName: opponentName,
@@ -1152,6 +1157,7 @@ function renderRecentMatches(
         score: score,
         tournament: match.gameType,
         result: isWin ? 'win' : 'loss',
+        date: date,
       };
     });
 
@@ -1302,7 +1308,7 @@ function handleOnlineStatusUpdate(status: OnlineStatus) {
   friend.isOnline = status.isOnline;
 
   // Show toast if status changed
-  if (wasOnline !== status.isOnline) {
+  if (wasOnline !== status.isOnline && friend.state === 'ACCEPTED') {
     const message = status.isOnline
       ? `${status.nickname} is now online`
       : `${status.nickname} went offline`;
