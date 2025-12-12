@@ -17,10 +17,26 @@ interface RouteMatch {
 class SimpleRouter {
   private root: HTMLElement;
   private currentStyleElement: HTMLStyleElement | null = null;
+  private beforeNavigateHook: (() => void) | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
     this.setupNavigation();
+  }
+
+  onBeforeNavigate(callback: () => void): () => void {
+    this.beforeNavigateHook = callback;
+    return () => {
+      if (this.beforeNavigateHook === callback) {
+        this.beforeNavigateHook = null;
+      }
+    };
+  }
+  private runBeforeNavigateHook() {
+    if (this.beforeNavigateHook) {
+      this.beforeNavigateHook();
+      this.beforeNavigateHook = null;
+    }
   }
 
   private setupNavigation() {
@@ -68,6 +84,7 @@ class SimpleRouter {
   }
 
   async render() {
+    this.runBeforeNavigateHook();
     const path = window.location.pathname;
     const match = this.matchRoute(path);
 

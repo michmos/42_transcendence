@@ -19,4 +19,10 @@ declare global {
   }
 }
 
+declare module '../plugins/router/index.js' {
+  interface SimpleRouter {
+    onBeforeNavigate(callback: () => void): () => void;
+  }
+}
+
 export {};
