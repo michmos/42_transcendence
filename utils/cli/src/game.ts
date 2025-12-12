@@ -99,6 +99,7 @@ export default class game {
     return new Promise<void>((resolve) => {
       const keys: Record<string, boolean> = {};
       let inputInterval: NodeJS.Timeout | null = null;
+      let keyTimeouts: Record<string, NodeJS.Timeout> = {};
 
       const enableKeyboardInput = () => {
         // Clean up any existing keypress listeners first
@@ -115,8 +116,8 @@ export default class game {
         process.stdout.write('\x1B[?25l'); // Hide cursor
 
         const keypressHandler = (
-          _: any,
-          key: { name?: string; ctrl?: boolean }
+          _: unknown,
+          key: { name: string; ctrl?: boolean }
         ) => {
           if (!key) return;
 
@@ -131,6 +132,9 @@ export default class game {
               clearInterval(inputInterval);
               inputInterval = null;
             }
+            // Clear all timeouts
+            Object.values(keyTimeouts).forEach((t) => clearTimeout(t));
+            keyTimeouts = {};
             if (process.stdin.isTTY) {
               process.stdin.setRawMode(false);
             }
@@ -141,9 +145,21 @@ export default class game {
             return;
           }
 
-          // Track key state
+          // Track key state with auto-release timeout to simulate keyup
           if (key.name === 'w' || key.name === 's') {
+            // Clear existing timeout for this key
+            if (keyTimeouts[key.name]) {
+              clearTimeout(keyTimeouts[key.name]);
+            }
+
+            // Set key as pressed
             keys[key.name] = true;
+
+            // Auto-release after 100ms if no new keypress
+            // This simulates keyup event in terminal
+            keyTimeouts[key.name] = setTimeout(() => {
+              keys[key.name] = false;
+            }, 100);
           }
 
           // Handle pause and reset (immediate actions)
@@ -159,13 +175,6 @@ export default class game {
                 action: 'reset',
               });
             }
-          }
-        };
-
-        const keyupHandler = (_: any, key: { name?: string }) => {
-          if (!key) return;
-          if (key.name === 'w' || key.name === 's') {
-            keys[key.name] = false;
           }
         };
 

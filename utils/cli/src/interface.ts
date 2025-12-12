@@ -132,6 +132,8 @@ export default class Interface {
   refreshMenu() {
     // Remove all previous listeners to avoid duplicates
     this.clearMenu();
+    // Re-setup event listeners
+    this.setupEventListeners();
     this.showMenu();
   }
 
