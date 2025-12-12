@@ -825,10 +825,7 @@ export default async function initRoute() {
         }));
 
         // Fetch participant aliases
-        const aliasData = await fetchParticipantAliases(
-          updatedTournament,
-          updatedRounds
-        );
+        const aliasData = await fetchParticipantAliases(updatedRounds);
         participantAliases = aliasData.aliasMap;
         allParticipantAliases = aliasData.allAliases;
 
@@ -970,7 +967,7 @@ export default async function initRoute() {
     }));
 
     // Fetch participant aliases
-    const aliasData = await fetchParticipantAliases(tournament, rounds);
+    const aliasData = await fetchParticipantAliases(rounds);
     participantAliases = aliasData.aliasMap;
     allParticipantAliases = aliasData.allAliases;
 
