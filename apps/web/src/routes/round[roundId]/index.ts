@@ -210,7 +210,7 @@ function renderMatches(
           `#start-game-btn-${match.id}`
         );
         if (startButton) {
-          startButton.addEventListener('click', (e) => {
+          startButton.addEventListener('click', () => {
             // e.preventDefault();
             // e.stopPropagation();
             setIsLocalGame(false);
