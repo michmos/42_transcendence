@@ -16,7 +16,7 @@ import type { TournamentParticipantsResponse } from 'types';
  * All functions use credentials: 'include' for authentication.
  */
 
-const TournamentAPI = {
+const TournamentsAPI = {
   /**
    * Get all tournaments, optionally filtered by status
    * @param status - Optional status filter ('outstanding' | 'ongoing' | 'finished' | 'canceled')
@@ -373,4 +373,4 @@ const TournamentAPI = {
   },
 };
 
-export default TournamentAPI;
+export default TournamentsAPI;

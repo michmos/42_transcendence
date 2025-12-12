@@ -1,7 +1,6 @@
 import { Navbar, Card, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import UserAPI from '../../plugins/api/user.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 export default async function initRoute() {
@@ -21,7 +20,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch full user profile data
-  const profileData = await UserAPI.getUserProfile();
+  const profileData = await window.api.getUserProfile();
   if (!profileData) {
     const errorMsg = document.createElement('div');
     errorMsg.className = 'text-center text-white py-8';
@@ -33,7 +32,7 @@ export default async function initRoute() {
   const userData = profileData.cleanedUserData;
   const currentAvatar = getAvatarSrc(userData.avatar);
 
-  // const userInfo = await UserAPI.getMe();
+  // const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
@@ -290,7 +289,7 @@ export default async function initRoute() {
         // Update nickname if changed
         if (newNickname !== currentNickname) {
           try {
-            const result = await UserAPI.updateNickname(newNickname);
+            const result = await window.api.updateNickname(newNickname);
             if (!result) {
               hasError = true;
               errorMessage = 'Failed to update nickname';
@@ -308,7 +307,7 @@ export default async function initRoute() {
         // Upload avatar if selected (only if nickname update succeeded or wasn't needed)
         if (selectedAvatarFile && !hasError) {
           try {
-            const result = await UserAPI.uploadAvatar(selectedAvatarFile);
+            const result = await window.api.uploadAvatar(selectedAvatarFile);
             console.log('Avatar upload result:', result);
             // uploadAvatar returns the avatar path string, so any truthy value means success
             if (result) {

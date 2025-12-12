@@ -1,8 +1,6 @@
 import { Navbar, Card, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import TournamentAPI from '../../plugins/api/tournaments.js';
-import UserAPI from '../../plugins/api/user.js';
 import type {
   Tournament as BackendTournament,
   TournamentRound,
@@ -314,7 +312,7 @@ function showJoinTournamentDialog(
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
-          const currentUser = await UserAPI.getMe();
+          const currentUser = await window.api.getMe();
           alias =
             currentUser?.nickname ||
             `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
@@ -336,7 +334,7 @@ function showJoinTournamentDialog(
       joinBtn.textContent = 'Joining...';
 
       try {
-        await TournamentAPI.joinTournament(tournamentUuid, alias);
+        await window.api.joinTournament(tournamentUuid, alias);
 
         // Success - close dialog and reload page to refresh tournament data
         closeDialog();
@@ -408,7 +406,7 @@ function renderTournamentHeader(
         onClick: () => {
           void (async () => {
             try {
-              await TournamentAPI.startTournament(tournament.uuid);
+              await window.api.startTournament(tournament.uuid);
               // Will refresh via socket
             } catch (error) {
               alert(error instanceof Error ? error.message : 'Failed to start');
@@ -679,7 +677,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getMe();
+  const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
@@ -780,10 +778,9 @@ export default async function initRoute() {
     // Otherwise, fetch from the participants endpoint
     let allAliases: string[] = [];
     try {
-      const participantsResponse =
-        await TournamentAPI.getTournamentParticipants(tournamentUuid).catch(
-          () => null
-        );
+      const participantsResponse = await window.api
+        .getTournamentParticipants(tournamentUuid)
+        .catch(() => null);
       // Type guard to ensure we have the correct response structure
       if (
         participantsResponse &&
@@ -812,15 +809,14 @@ export default async function initRoute() {
     if (!currentTournament) return;
 
     try {
-      const updatedTournament =
-        await TournamentAPI.getTournament(tournamentUuid);
+      const updatedTournament = await window.api.getTournament(tournamentUuid);
       if (updatedTournament) {
         currentTournament = updatedTournament;
         // Re-fetch rounds if needed
         const updatedRounds: TournamentRound[] = [];
         for (let i = 0; i < updatedTournament.numberOfRounds; i++) {
           try {
-            const round = await TournamentAPI.getTournamentRound(
+            const round = await window.api.getTournamentRound(
               tournamentUuid,
               i
             );
@@ -857,7 +853,7 @@ export default async function initRoute() {
         let isParticipantRefresh = false;
         if (currentUserId) {
           try {
-            const myTournaments = await TournamentAPI.getMyTournaments();
+            const myTournaments = await window.api.getMyTournaments();
             if (Array.isArray(myTournaments)) {
               /* eslint-disable @typescript-eslint/no-unsafe-member-access */
               isParticipantRefresh = myTournaments.some(
@@ -939,7 +935,7 @@ export default async function initRoute() {
 
   try {
     // Fetch tournament
-    const tournament = await TournamentAPI.getTournament(tournamentUuid);
+    const tournament = await window.api.getTournament(tournamentUuid);
     if (!tournament) {
       renderErrorState(innerContainer, 'Tournament not found');
       return;
@@ -962,7 +958,7 @@ export default async function initRoute() {
     const rounds: TournamentRound[] = [];
     for (let i = 0; i < tournament.numberOfRounds; i++) {
       try {
-        const round = await TournamentAPI.getTournamentRound(tournamentUuid, i);
+        const round = await window.api.getTournamentRound(tournamentUuid, i);
         if (round) {
           rounds.push(round);
         }
@@ -1005,7 +1001,7 @@ export default async function initRoute() {
     let isParticipant = false;
     if (currentUserId) {
       try {
-        const myTournaments = await TournamentAPI.getMyTournaments();
+        const myTournaments = await window.api.getMyTournaments();
         if (Array.isArray(myTournaments)) {
           /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           isParticipant = myTournaments.some(

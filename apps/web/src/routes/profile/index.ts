@@ -7,13 +7,11 @@ import {
 } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import UserAPI, {
+import {
   type ProfileMatch,
   type ProfileFriend,
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
-import FriendsAPI from '../../plugins/api/friends.js';
-import TournamentAPI from '../../plugins/api/tournaments.js';
 // import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
@@ -61,7 +59,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch profile data from API
-  const profileData = await UserAPI.getUserProfile();
+  const profileData = await window.api.getUserProfile();
 
   if (!profileData) {
     // User is authenticated but profile fetch failed - show error
@@ -135,7 +133,7 @@ export default async function initRoute() {
   // Tournaments: fetch tournaments where user is a participant
   let tournaments = 0;
   try {
-    const userTournaments = await TournamentAPI.getMyTournaments();
+    const userTournaments = await window.api.getMyTournaments();
     tournaments = userTournaments.length;
   } catch (error) {
     console.error('Failed to fetch user tournaments:', error);
@@ -207,7 +205,7 @@ let activeTabName: 'Friends' | 'Pending' | 'Blocked' = 'Friends';
 let currentUserNickname: string = '';
 
 async function refreshFriendsData() {
-  const profileData = await UserAPI.getUserProfile();
+  const profileData = await window.api.getUserProfile();
   if (profileData && friendsCardBody && friendsCardHeader) {
     currentFriendsData = profileData.cleanedUserFriends;
     // Clear existing content before re-rendering
@@ -552,7 +550,7 @@ function renderFriendsTab(
 
     try {
       // Search for user by exact nickname
-      const user = await UserAPI.getUserByNickname(query);
+      const user = await window.api.getUserByNickname(query);
 
       if (!user) {
         resultsContainer.innerHTML = `
@@ -570,7 +568,7 @@ function renderFriendsTab(
       );
 
       // Get current user's nickname from profile data
-      const profileData = await UserAPI.getUserProfile();
+      const profileData = await window.api.getUserProfile();
       const currentNickname = profileData?.cleanedUserData['nickname'] || '';
       const isSelf =
         user['nickname']?.toLowerCase() === currentNickname.toLowerCase();
@@ -785,10 +783,10 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
       acceptBtn.textContent = 'Accepting...';
 
       try {
-        const result = await FriendsAPI.acceptFriendRequest(nickname);
+        const result = await window.api.acceptFriendRequest(nickname);
         if (result) {
           // Get updated profile data
-          const updatedProfileData = await UserAPI.getUserProfile();
+          const updatedProfileData = await window.api.getUserProfile();
           if (updatedProfileData && friendsCardBody && friendsCardHeader) {
             currentFriendsData = updatedProfileData.cleanedUserFriends;
             // Update tab badges
@@ -837,10 +835,10 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
       rejectBtn.textContent = 'Rejecting...';
 
       try {
-        const result = await FriendsAPI.rejectFriendRequest(nickname);
+        const result = await window.api.rejectFriendRequest(nickname);
         if (result) {
           // Get updated profile data
-          const updatedProfileData = await UserAPI.getUserProfile();
+          const updatedProfileData = await window.api.getUserProfile();
           if (updatedProfileData && friendsCardBody && friendsCardHeader) {
             currentFriendsData = updatedProfileData.cleanedUserFriends;
             // Update tab badges
@@ -984,10 +982,10 @@ function createSearchResultItem(
         addFriendBtn.textContent = 'Sending...';
 
         try {
-          const result = await FriendsAPI.sendFriendRequest(nickname);
+          const result = await window.api.sendFriendRequest(nickname);
           if (result) {
             // Get updated profile data
-            const updatedProfileData = await UserAPI.getUserProfile();
+            const updatedProfileData = await window.api.getUserProfile();
             if (updatedProfileData) {
               currentFriendsData = updatedProfileData.cleanedUserFriends;
               const updatedFriendship =
@@ -1104,7 +1102,7 @@ function createBlockedUserItem(user: ProfileFriend): HTMLElement {
       unblockBtn.textContent = 'Removing...';
 
       try {
-        await FriendsAPI.unblockUser(nickname);
+        await window.api.unblockUser(nickname);
         await refreshFriendsData();
       } catch (error) {
         const errorMessage =
@@ -1405,10 +1403,6 @@ function showNewTournamentDialog() {
       createBtn.textContent = 'Creating...';
 
       try {
-        // Import TournamentAPI dynamically to avoid circular dependencies
-        const TournamentAPI = (await import('../../plugins/api/tournaments.js'))
-          .default;
-
         // Prepare tournament data
         const tournamentData: {
           tournamentName: string;
@@ -1423,7 +1417,7 @@ function showNewTournamentDialog() {
         };
 
         // Call API
-        const tournament = await TournamentAPI.createTournament(tournamentData);
+        const tournament = await window.api.createTournament(tournamentData);
 
         // Success - close dialog and navigate to new tournament
         closeDialog();

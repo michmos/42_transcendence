@@ -1,9 +1,6 @@
 import { Navbar, Card, Badge } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import TournamentAPI from '../../plugins/api/tournaments.js';
-import MatchAPI from '../../plugins/api/match.js';
-import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
@@ -312,7 +309,7 @@ async function getUserTournamentAlias(
   if (!userAlias) {
     try {
       /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-      const myTournaments = await TournamentAPI.getMyTournaments();
+      const myTournaments = await window.api.getMyTournaments();
       if (Array.isArray(myTournaments)) {
         for (const p of myTournaments) {
           if (
@@ -374,7 +371,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getMe();
+  const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
@@ -428,11 +425,11 @@ export default async function initRoute() {
   const refreshRoundData = async () => {
     try {
       // Re-fetch tournament
-      const tournament = await TournamentAPI.getTournament(tournamentId);
+      const tournament = await window.api.getTournament(tournamentId);
       if (!tournament) return;
 
       // Re-fetch round
-      const round = await TournamentAPI.getTournamentRound(
+      const round = await window.api.getTournamentRound(
         tournamentId,
         roundIndex
       );
@@ -440,7 +437,7 @@ export default async function initRoute() {
 
       // Fetch full match details for each match UUID
       const matchDetails = await Promise.all(
-        round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+        round.matches.map((match) => window.api.getMatch(match.uuid))
       );
 
       // Map matches using MatchResponse data
@@ -483,17 +480,14 @@ export default async function initRoute() {
 
   try {
     // Fetch tournament data
-    const tournament = await TournamentAPI.getTournament(tournamentId);
+    const tournament = await window.api.getTournament(tournamentId);
     if (!tournament) {
       renderErrorState(innerContainer, 'Tournament not found');
       return;
     }
 
     // Fetch round data
-    const round = await TournamentAPI.getTournamentRound(
-      tournamentId,
-      roundIndex
-    );
+    const round = await window.api.getTournamentRound(tournamentId, roundIndex);
     if (!round) {
       renderErrorState(innerContainer, 'Round not found');
       return;
@@ -501,7 +495,7 @@ export default async function initRoute() {
 
     // Fetch full match details for each match UUID
     const matchDetails = await Promise.all(
-      round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+      round.matches.map((match) => window.api.getMatch(match.uuid))
     );
 
     // Map matches using MatchResponse data

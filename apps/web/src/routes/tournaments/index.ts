@@ -1,8 +1,6 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import TournamentAPI from '../../plugins/api/tournaments.js';
-import UserAPI from '../../plugins/api/user.js';
 import type {
   Tournament as BackendTournament,
   status,
@@ -445,7 +443,7 @@ function renderTournamentGrid(
         `;
 
           try {
-            await TournamentAPI.startTournament(tournamentUuid);
+            await window.api.startTournament(tournamentUuid);
 
             // Success - refresh tournaments list
             const windowWithTournaments = window as WindowWithTournaments;
@@ -584,7 +582,7 @@ function showJoinTournamentDialog(
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
-          const currentUser = await UserAPI.getMe();
+          const currentUser = await window.api.getMe();
           alias = currentUser?.nickname || 'Player';
         } catch (error) {
           console.error('Error fetching user info:', error);
@@ -604,7 +602,7 @@ function showJoinTournamentDialog(
       joinBtn.textContent = 'Joining...';
 
       try {
-        await TournamentAPI.joinTournament(tournamentUuid, alias);
+        await window.api.joinTournament(tournamentUuid, alias);
 
         // Add to myTournaments Set (user is now a participant)
         myTournaments.add(tournamentUuid);
@@ -615,7 +613,7 @@ function showJoinTournamentDialog(
           existingTournament.playerCount += 1;
         } else {
           // Fetch tournament if not in Map
-          const tournament = await TournamentAPI.getTournament(tournamentUuid);
+          const tournament = await window.api.getTournament(tournamentUuid);
           if (tournament) {
             tournamentsMap.set(tournamentUuid, tournament);
           }
@@ -816,11 +814,11 @@ function showNewTournamentDialog(
         };
 
         // Call API to create tournament
-        const tournament = await TournamentAPI.createTournament(tournamentData);
+        const tournament = await window.api.createTournament(tournamentData);
 
         // Auto-join the tournament as the creator (required: creator must be added automatically)
         try {
-          await TournamentAPI.joinTournament(tournament.uuid, alias);
+          await window.api.joinTournament(tournament.uuid, alias);
           // Add to myTournaments Set (creator is automatically a participant)
           myTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
@@ -897,7 +895,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getMe();
+  const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [{ label: 'Profile', href: '/profile', active: false }],
@@ -978,13 +976,12 @@ export default async function initRoute() {
 
     try {
       // Fetch outstanding tournaments (for openTournaments set)
-      const outstandingTournaments = await TournamentAPI.getTournaments(
+      const outstandingTournaments = await window.api.getTournaments(
         statusFilter || 'outstanding'
       );
 
       // Fetch user's tournaments (for myTournaments set)
-      const userTournaments =
-        await TournamentAPI.getMyTournaments(statusFilter);
+      const userTournaments = await window.api.getMyTournaments(statusFilter);
 
       // Populate Sets and Map
       myTournaments.clear();
@@ -1015,7 +1012,7 @@ export default async function initRoute() {
 
         // Fetch full tournament details to ensure it appears in the list
         try {
-          const tournament = await TournamentAPI.getTournament(tournamentId);
+          const tournament = await window.api.getTournament(tournamentId);
           if (tournament) {
             tournamentsMap.set(tournament.uuid, tournament);
           }
@@ -1115,7 +1112,7 @@ export default async function initRoute() {
       void (async () => {
         const tournamentUuid = eventData.tournamentUuid;
         if (!tournamentUuid) return;
-        const tournament = await TournamentAPI.getTournament(tournamentUuid);
+        const tournament = await window.api.getTournament(tournamentUuid);
         if (tournament && tournament.status === 'outstanding') {
           openTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
@@ -1145,7 +1142,7 @@ export default async function initRoute() {
       // Tournament not in map yet - fetch it with correct playerCount
       void (async () => {
         try {
-          const fetchedTournament = await TournamentAPI.getTournament(
+          const fetchedTournament = await window.api.getTournament(
             eventData.uuid
           );
           if (fetchedTournament) {
