@@ -159,17 +159,11 @@ export default class Game {
             }, 100);
           }
 
-          // Handle pause and reset (immediate actions)
+          // Handle pause (immediate actions)
           if (key.name === 'p') {
             if (this.isRoomReady && this.socket.isConnected()) {
               this.socket.sendMessage(this.currentGameRoom, {
                 action: 'pause',
-              });
-            }
-          } else if (key.name === 'r') {
-            if (this.isRoomReady && this.socket.isConnected()) {
-              this.socket.sendMessage(this.currentGameRoom, {
-                action: 'reset',
               });
             }
           }
@@ -265,9 +259,7 @@ export default class Game {
         `Score: ${this.gameState.leftScore} - ${this.gameState.rightScore}`
       );
       displayBoard();
-      console.log(
-        '\nControls: W/S = Move paddle, P = Pause, R = Reset, X = Exit'
-      );
+      console.log('\nControls: W/S = Move paddle, P = Pause, X = Exit');
 
       // Handle incoming messages
       ws.on('message', (msg: Buffer) => {
