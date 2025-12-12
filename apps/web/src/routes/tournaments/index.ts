@@ -1099,13 +1099,10 @@ export default async function initRoute() {
   // Set up socket listeners for real-time updates
   // These will work once backend socket handler is implemented
   const handleTournamentCreated = (data: unknown) => {
-    const eventData = data as { tournamentUuid?: string };
-    if (
-      eventData.tournamentUuid &&
-      !myTournaments.has(eventData.tournamentUuid)
-    ) {
+    const eventData = data as { uuid?: string };
+    if (eventData.uuid && !myTournaments.has(eventData.uuid)) {
       void (async () => {
-        const tournamentUuid = eventData.tournamentUuid;
+        const tournamentUuid = eventData.uuid;
         if (!tournamentUuid) return;
         const tournament = await window.api.getTournament(tournamentUuid);
         if (!tournament) {
