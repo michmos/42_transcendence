@@ -67,7 +67,6 @@ async function buildLeaderboard(
   rounds: TournamentRoundResponse[],
   allParticipantAliases?: string[]
 ): Promise<LeaderboardEntry[]> {
-  console.log('build leaderboard');
   // Calculate stats per player
   // Using aliases as keys (UUIDs no longer exposed)
   const playerStats = new Map<
