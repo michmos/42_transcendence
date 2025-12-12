@@ -58,14 +58,13 @@ export async function build(loadAuth = true) {
     ignoreFilter: (path) => path.includes('auth') && !loadAuth,
   });
 
-  // TODO: Add this into the plugins folder as a separate plugin
   await app.register(import('@fastify/multipart'), {
     limits: {
       fileSize: 5 * 1024 * 1024, // 5MB max file size
     },
   });
 
-  console.info('✅ Multipart loaded');
+  console.info('✅ Multipart for images loaded');
 
   app.setErrorHandler(errorHandler);
 
