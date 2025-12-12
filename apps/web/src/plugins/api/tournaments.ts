@@ -234,8 +234,6 @@ const TournamentsAPI = {
       if (!response.ok) {
         throw new Error(`Failed to leave tournament: ${response.status}`);
       }
-
-      // Leave socket room if available
     } catch (error) {
       console.error('Error leaving tournament:', error);
       throw error;
