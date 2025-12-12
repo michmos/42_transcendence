@@ -1,7 +1,6 @@
 import { Navbar } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import UserAPI from '../../plugins/api/user.js';
 import { setPlayerNickname, getPlayerNickname } from '../game/state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
@@ -29,7 +28,7 @@ async function renderWaitingRoom(pageRoot: Element) {
   mainWrapper.appendChild(navbarContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getMe();
+  const userInfo = await window.api.getMe();
   new Navbar(navbarContainer, {
     title: 'The Pong Game',
     links: [

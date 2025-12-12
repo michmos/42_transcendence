@@ -2,7 +2,6 @@ import { draw } from './draw';
 import { Navbar } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import UserAPI from '../../plugins/api/user.js';
 import { leaveMatch } from './buttonLogic.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { getIsLocalGame } from '../profile/index.js';
@@ -257,7 +256,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getMe();
+  const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [

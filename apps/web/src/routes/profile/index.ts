@@ -7,13 +7,11 @@ import {
 } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import UserAPI, {
+import {
   type ProfileMatch,
   type ProfileFriend,
 } from '../../plugins/api/user.js';
 import type { User } from 'db/generated/client/index.js';
-import FriendsAPI from '../../plugins/api/friends.js';
-import TournamentAPI from '../../plugins/api/tournaments.js';
 // import { getCurrentSession, clearSession } from '../../utils/auth-state.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
@@ -25,27 +23,6 @@ export let isLocalGame = true;
 
 export function getIsLocalGame(): boolean {
   return isLocalGame;
-}
-
-// Local interface to avoid import type issues
-interface OnlineStatusData {
-  event: 'status-update';
-  nickname: string;
-  isOnline: boolean;
-}
-
-// Type guard to safely validate parsed JSON
-function isValidOnlineStatus(value: unknown): value is OnlineStatusData {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'event' in value &&
-    value.event === 'status-update' &&
-    'nickname' in value &&
-    typeof value.nickname === 'string' &&
-    'isOnline' in value &&
-    typeof value.isOnline === 'boolean'
-  );
 }
 
 // Extend Window interface for SPA navigation
@@ -82,7 +59,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch profile data from API
-  const profileData = await UserAPI.getUserProfile();
+  const profileData = await window.api.getUserProfile();
 
   if (!profileData) {
     // User is authenticated but profile fetch failed - show error
@@ -156,7 +133,7 @@ export default async function initRoute() {
   // Tournaments: fetch tournaments where user is a participant
   let tournaments = 0;
   try {
-    const userTournaments = await TournamentAPI.getMyTournaments();
+    const userTournaments = await window.api.getMyTournaments();
     tournaments = userTournaments.length;
   } catch (error) {
     console.error('Failed to fetch user tournaments:', error);
@@ -228,7 +205,7 @@ let activeTabName: 'Friends' | 'Pending' | 'Blocked' = 'Friends';
 let currentUserNickname: string = '';
 
 async function refreshFriendsData() {
-  const profileData = await UserAPI.getUserProfile();
+  const profileData = await window.api.getUserProfile();
   if (profileData && friendsCardBody && friendsCardHeader) {
     currentFriendsData = profileData.cleanedUserFriends;
     // Clear existing content before re-rendering
@@ -573,7 +550,7 @@ function renderFriendsTab(
 
     try {
       // Search for user by exact nickname
-      const user = await UserAPI.getUserByNickname(query);
+      const user = await window.api.getUserByNickname(query);
 
       if (!user) {
         resultsContainer.innerHTML = `
@@ -591,7 +568,7 @@ function renderFriendsTab(
       );
 
       // Get current user's nickname from profile data
-      const profileData = await UserAPI.getUserProfile();
+      const profileData = await window.api.getUserProfile();
       const currentNickname = profileData?.cleanedUserData['nickname'] || '';
       const isSelf =
         user['nickname']?.toLowerCase() === currentNickname.toLowerCase();
@@ -806,10 +783,10 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
       acceptBtn.textContent = 'Accepting...';
 
       try {
-        const result = await FriendsAPI.acceptFriendRequest(nickname);
+        const result = await window.api.acceptFriendRequest(nickname);
         if (result) {
           // Get updated profile data
-          const updatedProfileData = await UserAPI.getUserProfile();
+          const updatedProfileData = await window.api.getUserProfile();
           if (updatedProfileData && friendsCardBody && friendsCardHeader) {
             currentFriendsData = updatedProfileData.cleanedUserFriends;
             // Update tab badges
@@ -858,10 +835,10 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
       rejectBtn.textContent = 'Rejecting...';
 
       try {
-        const result = await FriendsAPI.rejectFriendRequest(nickname);
+        const result = await window.api.rejectFriendRequest(nickname);
         if (result) {
           // Get updated profile data
-          const updatedProfileData = await UserAPI.getUserProfile();
+          const updatedProfileData = await window.api.getUserProfile();
           if (updatedProfileData && friendsCardBody && friendsCardHeader) {
             currentFriendsData = updatedProfileData.cleanedUserFriends;
             // Update tab badges
@@ -1005,10 +982,10 @@ function createSearchResultItem(
         addFriendBtn.textContent = 'Sending...';
 
         try {
-          const result = await FriendsAPI.sendFriendRequest(nickname);
+          const result = await window.api.sendFriendRequest(nickname);
           if (result) {
             // Get updated profile data
-            const updatedProfileData = await UserAPI.getUserProfile();
+            const updatedProfileData = await window.api.getUserProfile();
             if (updatedProfileData) {
               currentFriendsData = updatedProfileData.cleanedUserFriends;
               const updatedFriendship =
@@ -1125,7 +1102,7 @@ function createBlockedUserItem(user: ProfileFriend): HTMLElement {
       unblockBtn.textContent = 'Removing...';
 
       try {
-        await FriendsAPI.unblockUser(nickname);
+        await window.api.unblockUser(nickname);
         await refreshFriendsData();
       } catch (error) {
         const errorMessage =
@@ -1256,15 +1233,6 @@ function renderQuickActions(container: HTMLElement): void {
     },
   });
 
-  // Create Tournament button - shows popup
-  new QuickActionButton(actionsWrapper, {
-    icon: '🏆',
-    label: 'Create Tournament',
-    onClick: () => {
-      showNewTournamentDialog();
-    },
-  });
-
   // Settings button - routes to settings page
   new QuickActionButton(actionsWrapper, {
     icon: '⚙️',
@@ -1272,199 +1240,6 @@ function renderQuickActions(container: HTMLElement): void {
     onClick: () => {
       navigateTo('/settings');
     },
-  });
-}
-
-function showNewTournamentDialog() {
-  // Create modal backdrop - darker for better contrast
-  const backdrop = document.createElement('div');
-  backdrop.className =
-    'fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in';
-
-  // Create dialog - lighter background with better contrast
-  const dialog = document.createElement('div');
-  dialog.className =
-    'bg-white rounded-lg shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95';
-  dialog.style.backgroundColor = 'rgb(255, 255, 255)';
-
-  dialog.innerHTML = `
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold mb-2 text-gray-900">Create New Tournament</h2>
-      <p class="text-sm text-gray-600">Set up a new tournament with your preferred settings</p>
-    </div>
-    
-    <div class="space-y-4">
-      <div class="space-y-2">
-        <label for="tournament-name" class="text-sm font-semibold text-gray-700">Tournament Name</label>
-        <input
-          id="tournament-name"
-          type="text"
-          placeholder="Enter tournament name"
-          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-        />
-      </div>
-      
-      <div class="space-y-2">
-        <label for="player-alias" class="text-sm font-semibold text-gray-700">Your Alias (for this tournament)</label>
-        <input
-          id="player-alias"
-          type="text"
-          placeholder="Enter your alias"
-          maxlength="50"
-          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-        />
-        <p class="text-xs text-gray-500">This is how you'll appear in the tournament</p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <div class="space-y-2">
-          <label for="min-size" class="text-sm font-semibold text-gray-700">Min Players (min: 4)</label>
-          <input
-            id="min-size"
-            type="number"
-            min="4"
-            placeholder="4"
-            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-          />
-        </div>
-        <div class="space-y-2">
-          <label for="max-players" class="text-sm font-semibold text-gray-700">Max Players (max: 16)</label>
-          <input
-            id="max-players"
-            type="number"
-            max="16"
-            placeholder="16"
-            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-          />
-        </div>
-      </div>
-      
-      <div class="flex gap-3 pt-4">
-        <button class="flex-1 px-6 py-3 bg-white border-2 border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg cursor-pointer" id="create-btn">
-          Save
-        </button>
-        <button class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" id="cancel-btn">
-          Cancel
-        </button>
-      </div>
-    </div>
-  `;
-
-  backdrop.appendChild(dialog);
-  document.body.appendChild(backdrop);
-
-  // Close handlers
-  const closeDialog = () => {
-    backdrop.classList.add('animate-out', 'fade-out');
-    setTimeout(() => backdrop.remove(), 200);
-  };
-
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeDialog();
-  });
-
-  dialog.querySelector('#cancel-btn')?.addEventListener('click', closeDialog);
-
-  // Handle form submission
-  const createBtn = dialog.querySelector('#create-btn') as HTMLButtonElement;
-  const nameInput = dialog.querySelector(
-    '#tournament-name'
-  ) as HTMLInputElement;
-  const aliasInput = dialog.querySelector('#player-alias') as HTMLInputElement;
-  const minSizeInput = dialog.querySelector('#min-size') as HTMLInputElement;
-  const maxPlayersInput = dialog.querySelector(
-    '#max-players'
-  ) as HTMLInputElement;
-
-  createBtn.addEventListener('click', () => {
-    void (async () => {
-      // Get form values
-      const tournamentName = nameInput.value.trim();
-      const alias = aliasInput.value.trim();
-      const minPlayers = parseInt(minSizeInput.value, 10);
-      const maxPlayers = parseInt(maxPlayersInput.value, 10);
-
-      // Validation
-      if (!tournamentName) {
-        alert('Please enter a tournament name');
-        nameInput.focus();
-        return;
-      }
-
-      if (!alias) {
-        alert('Please enter your alias for this tournament');
-        aliasInput.focus();
-        return;
-      }
-
-      if (alias.length > 50) {
-        alert('Alias must be 50 characters or less');
-        aliasInput.focus();
-        return;
-      }
-
-      if (isNaN(minPlayers) || minPlayers < 4) {
-        alert('Min players must be 4 or higher');
-        minSizeInput.focus();
-        return;
-      }
-
-      if (isNaN(maxPlayers) || maxPlayers > 16) {
-        alert('Max players must be 16 or lower');
-        maxPlayersInput.focus();
-        return;
-      }
-
-      if (maxPlayers < minPlayers) {
-        alert('Max players must be greater than or equal to min players');
-        maxPlayersInput.focus();
-        return;
-      }
-
-      // Disable button and show loading state
-      createBtn.disabled = true;
-      createBtn.textContent = 'Creating...';
-
-      try {
-        // Import TournamentAPI dynamically to avoid circular dependencies
-        const TournamentAPI = (await import('../../plugins/api/tournaments.js'))
-          .default;
-
-        // Prepare tournament data
-        const tournamentData: {
-          tournamentName: string;
-          minPlayers: number;
-          maxPlayers: number;
-          alias: string;
-        } = {
-          tournamentName,
-          minPlayers,
-          maxPlayers,
-          alias,
-        };
-
-        // Call API
-        const tournament = await TournamentAPI.createTournament(tournamentData);
-
-        // Success - close dialog and navigate to new tournament
-        closeDialog();
-
-        // Navigate to new tournament
-        void navigateTo(`/tournament/${tournament.uuid}`);
-      } catch (error) {
-        // Handle errors
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to create tournament';
-
-        alert(errorMessage);
-
-        // Re-enable button
-        createBtn.disabled = false;
-        createBtn.textContent = 'Save';
-      }
-    })();
   });
 }
 
@@ -1481,19 +1256,19 @@ function listenForStatusUpdates() {
     try {
       const parsed: unknown = JSON.parse(event.data as string);
 
-      // Validate and handle online status updates
+      // Handle online status updates
       if (
-        isValidOnlineStatus(parsed) &&
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'event' in parsed &&
+        parsed.event === 'status-update' &&
+        'nickname' in parsed &&
         parsed.nickname &&
+        typeof parsed.nickname === 'string' &&
         currentUserNickname &&
         parsed.nickname.toLowerCase() !== currentUserNickname.toLowerCase()
       ) {
-        // Type guard ensures parsed is OnlineStatusData, which matches OnlineStatus structure
-        handleOnlineStatusUpdate({
-          event: parsed.event,
-          nickname: parsed.nickname,
-          isOnline: parsed.isOnline,
-        });
+        handleOnlineStatusUpdate(parsed as OnlineStatus);
       }
 
       // Note: tournament-created events are handled by tournaments list page

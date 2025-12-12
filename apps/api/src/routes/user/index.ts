@@ -14,7 +14,11 @@ import {
 } from '../tournaments/validationSchemas.js';
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
-import type { UserMatchRecord, UserDashboardResponse } from 'types';
+import type {
+  UserMatchRecord,
+  UserDashboardResponse,
+  TournamentParticipation,
+} from 'types';
 
 export default function (app: FastifyInstance): void {
   // ----------- Get all users
@@ -206,11 +210,12 @@ export default function (app: FastifyInstance): void {
     '/me/tournaments',
     { schema: getTournaments },
     async function (request, reply) {
-      const tournaments = await app.db.getTournamentsByParticipant(
-        getUuid(request),
-        request.query.status
-      );
-      return reply.status(200).send(tournaments);
+      const participations: TournamentParticipation[] =
+        await app.db.getTournamentParticipationsByUserAndStatus(
+          getUuid(request),
+          request.query.status
+        );
+      return reply.status(200).send(participations);
     }
   );
 
