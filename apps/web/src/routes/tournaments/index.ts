@@ -1,10 +1,7 @@
 import { Navbar, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import type {
-  Tournament as BackendTournament,
-  status,
-} from '../../types/api.js';
+import type { Tournament, status } from 'db/generated/client/index.js';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
@@ -19,7 +16,7 @@ declare global {
 }
 
 // UI Tournament interface (mapped from backend)
-interface Tournament {
+interface TournamentUI {
   id: string;
   name: string;
   status: 'active' | 'upcoming' | 'completed';
@@ -63,7 +60,7 @@ function formatDate(date: Date | string): string {
 /**
  * Map backend tournament to UI tournament format
  */
-function mapTournamentToUI(tournament: BackendTournament): Tournament {
+function mapTournamentToUI(tournament: Tournament): TournamentUI {
   return {
     id: tournament.uuid,
     name: tournament.tournamentName,
@@ -229,10 +226,10 @@ function renderErrorState(container: HTMLElement, message: string) {
 
 function renderTournamentGrid(
   container: HTMLElement,
-  tournaments: Tournament[],
-  backendTournaments: BackendTournament[],
+  tournaments: TournamentUI[],
+  backendTournaments: Tournament[],
   myTournaments: Set<string>,
-  tournamentsMap: Map<string, BackendTournament>
+  tournamentsMap: Map<string, Tournament>
 ) {
   const grid = document.createElement('div');
   grid.className = 'grid gap-6 md:grid-cols-2 lg:grid-cols-3';
@@ -511,7 +508,7 @@ function showJoinTournamentDialog(
   tournamentUuid: string,
   tournamentName: string,
   myTournaments: Set<string>,
-  tournamentsMap: Map<string, BackendTournament>
+  tournamentsMap: Map<string, Tournament>
 ) {
   // Create modal backdrop
   const backdrop = document.createElement('div');
@@ -644,7 +641,7 @@ function showJoinTournamentDialog(
 
 function showNewTournamentDialog(
   myTournaments: Set<string>,
-  tournamentsMap: Map<string, BackendTournament>
+  tournamentsMap: Map<string, Tournament>
 ) {
   // Create modal backdrop - darker for better contrast
   const backdrop = document.createElement('div');
@@ -872,13 +869,13 @@ export default async function initRoute() {
   // Tournament state management using Sets (no UUID exposure)
   const myTournaments = new Set<string>(); // Tournaments where user is a participant
   const openTournaments = new Set<string>(); // Outstanding tournaments available to join
-  const tournamentsMap = new Map<string, BackendTournament>(); // Full tournament objects
+  const tournamentsMap = new Map<string, Tournament>(); // Full tournament objects
 
   let searchQuery = '';
-  let allTournaments: Tournament[] = [];
-  let allBackendTournaments: BackendTournament[] = [];
-  let filteredTournaments: Tournament[] = [];
-  let filteredBackendTournaments: BackendTournament[] = [];
+  let allTournaments: TournamentUI[] = [];
+  let allBackendTournaments: Tournament[] = [];
+  let filteredTournaments: TournamentUI[] = [];
+  let filteredBackendTournaments: Tournament[] = [];
   let isLoading = true;
   let hasError = false;
   let errorMessage = '';
@@ -932,7 +929,7 @@ export default async function initRoute() {
       .map((uiTournament) => {
         return allBackendTournaments.find((bt) => bt.uuid === uiTournament.id);
       })
-      .filter((bt): bt is BackendTournament => bt !== undefined);
+      .filter((bt): bt is Tournament => bt !== undefined);
     updateTournamentGrid();
   });
   mainContent.appendChild(searchContainer);
@@ -1070,7 +1067,7 @@ export default async function initRoute() {
             (bt) => bt.uuid === uiTournament.id
           );
         })
-        .filter((bt): bt is BackendTournament => bt !== undefined);
+        .filter((bt): bt is Tournament => bt !== undefined);
     } else {
       filteredTournaments = [...allTournaments];
       filteredBackendTournaments = [...allBackendTournaments];
@@ -1080,7 +1077,7 @@ export default async function initRoute() {
   /**
    * Update or add a tournament to display arrays
    */
-  function updateTournamentInArrays(tournament: BackendTournament): void {
+  function updateTournamentInArrays(tournament: Tournament): void {
     const index = allBackendTournaments.findIndex(
       (t) => t.uuid === tournament.uuid
     );
