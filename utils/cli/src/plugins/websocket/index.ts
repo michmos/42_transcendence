@@ -2,10 +2,12 @@ import WebSocket from 'ws';
 
 class Socket {
   private socket: WebSocket | null = null;
+  private sessionCookie: string | null = null;
 
-  constructor(url?: string) {
+  constructor(url?: string, sessionCookie?: string) {
+    this.sessionCookie = sessionCookie || null;
     if (url) {
-      this.connect(url);
+      this.connect(url, sessionCookie);
     }
     return this;
   }
@@ -23,8 +25,19 @@ class Socket {
     });
   }
 
-  public connect(url: string): void {
-    this.socket = new WebSocket(url);
+  public connect(url: string, sessionCookie?: string): void {
+    if (sessionCookie) {
+      this.sessionCookie = sessionCookie;
+    }
+
+    const options: WebSocket.ClientOptions = {};
+    if (this.sessionCookie) {
+      options.headers = {
+        Cookie: `session=${this.sessionCookie}`,
+      };
+    }
+
+    this.socket = new WebSocket(url, options);
 
     this.socket.on('message', (data: WebSocket.Data): void => {
       console.log('Received message:', data.toString());

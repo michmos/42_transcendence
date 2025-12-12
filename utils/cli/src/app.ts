@@ -10,11 +10,15 @@ import Game from './game.js';
 
 const app = await build();
 
-// Initialize WebSocket connection
-const socket = new Socket(`${env.CORS_URL}websocket`);
+// Load JWT token from file if it exists
+const auth = new Authenticate(env.CORS_URL);
+const initialToken = auth.loadTokenFromFile();
+app.jwtToken = initialToken;
+
+// Initialize WebSocket connection with session cookie if available
+const socket = new Socket(`${env.CORS_URL}websocket`, initialToken);
 app.decorate('socket', socket);
 
-const auth = new Authenticate(env.CORS_URL);
 const menu = new Interface(await auth.getProviders(env.CORS_URL));
 const game = new Game(socket);
 
@@ -26,10 +30,7 @@ try {
   process.exit(0);
 }
 
-// Load JWT token from file if it exists and attempt to authenticate
-app.jwtToken = auth.loadTokenFromFile();
-
-// Initialize readline menu
+// Attempt to authenticate with existing token
 if (app.jwtToken) await auth.loginWithToken(app.jwtToken, env.CORS_URL);
 
 menu
@@ -77,6 +78,9 @@ function loginHandler(input: string) {
     menu.showJWTTokenPrompt((token: string) => {
       app.jwtToken = token;
       auth.saveTokenToFile(token);
+
+      // Reconnect WebSocket with new session cookie
+      socket.connect(`${env.CORS_URL}websocket`, token);
 
       auth
         .loginWithToken(token, env.CORS_URL)
