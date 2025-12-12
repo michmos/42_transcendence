@@ -1191,9 +1191,6 @@ export default async function initRoute() {
   tournamentSocket.on('tournament-left', handleTournamentLeft);
   tournamentSocket.on('tournament-updated', handleTournamentUpdated);
 
-  // Join tournament list room (will fail gracefully if backend not ready)
-  tournamentSocket.joinTournamentList();
-
   // Initial load
   await loadTournaments();
 }
