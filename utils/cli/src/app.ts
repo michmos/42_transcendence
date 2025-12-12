@@ -18,7 +18,7 @@ app.jwtToken = auth.loadTokenFromFile();
 const protocolRegex = /^https?:\/\//i;
 const wsProtocol = env.CORS_URL.startsWith('https') ? 'wss://' : 'ws://';
 const cleanUrl = env.CORS_URL.replace(protocolRegex, '').replace(/\/$/, '');
-const wsUrl = wsProtocol + cleanUrl + '/websocket/';
+const wsUrl = wsProtocol + cleanUrl + '/websocket';
 
 // Initialize WebSocket connection with session cookie if available
 const socket = new Socket();
