@@ -4,6 +4,8 @@ import type {
   TournamentParticipation,
 } from '../../types/api.js';
 
+import type { TournamentRoundResponse } from 'types';
+
 import type {
   Tournament,
   TournamentRound,
@@ -344,7 +346,7 @@ const TournamentsAPI = {
   async getTournamentRound(
     tournamentUuid: string,
     roundIndex: number
-  ): Promise<TournamentRound | null> {
+  ): Promise<TournamentRoundResponse | null> {
     try {
       const response = await fetch(
         `/api/tournaments/${tournamentUuid}/rounds/${roundIndex}`,
@@ -368,7 +370,7 @@ const TournamentsAPI = {
         throw new Error(`Failed to fetch tournament round: ${response.status}`);
       }
 
-      return (await response.json()) as TournamentRound;
+      return (await response.json()) as TournamentRoundResponse;
     } catch (error) {
       console.error('Error fetching tournament round:', error);
       return null;

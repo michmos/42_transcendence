@@ -6,6 +6,7 @@ import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { joinTournamentMatch } from '../game/buttonLogic.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
+import type { TournamentParticipation } from 'types';
 
 // UI Match interface (mapped from backend)
 interface Match {
@@ -279,61 +280,26 @@ function renderErrorState(container: HTMLElement, message: string) {
 
 /**
  * Get user's tournament alias using two strategies:
- * Strategy 1: Get alias from tournament.participants by matching user UUID (faster, no API call)
- * Strategy 2: Get alias from API (getMyTournaments endpoint) as fallback
  *
- * @param tournament - Tournament object that may contain participants array
  * @param tournamentId - Tournament UUID to match against
  * @returns Promise<string | null> - User's alias for the tournament, or null if not found
  */
 async function getUserTournamentAlias(
-  tournament: {
-    participants?: Array<{ alias?: string; user?: { uuid?: string } }>;
-  },
   tournamentId: string
 ): Promise<string | null> {
   const currentUserId = window.user?.cleanedUserData.uuid;
   if (!currentUserId) return null;
 
-  let userAlias: string | null = null;
-
-  // Strategy 1: Get alias from tournament.participants by matching user UUID
-  if (tournament.participants) {
-    const userParticipant = tournament.participants.find(
-      (p) => p.user?.uuid === currentUserId
+  try {
+    const myTournaments: TournamentParticipation[] =
+      await window.api.getMyTournaments();
+    return (
+      myTournaments.find((t) => t.tournamentId === tournamentId)?.alias || null
     );
-    userAlias = userParticipant?.alias || null;
+  } catch (error) {
+    console.error('Error fetching tournament alias:', (error as Error).message);
   }
-
-  // Strategy 2: Get alias from API (getMyTournaments endpoint) as fallback
-  if (!userAlias) {
-    try {
-      /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-      const myTournaments = await window.api.getMyTournaments();
-      if (Array.isArray(myTournaments)) {
-        for (const p of myTournaments) {
-          if (
-            p &&
-            typeof p === 'object' &&
-            'tournamentId' in p &&
-            'alias' in p &&
-            p.tournamentId === tournamentId
-          ) {
-            const alias = p.alias;
-            if (typeof alias === 'string') {
-              userAlias = alias;
-              break;
-            }
-          }
-        }
-      }
-      /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-    } catch (error) {
-      console.error('Error fetching tournament alias:', error);
-    }
-  }
-
-  return userAlias;
+  return null;
 }
 
 export default async function initRoute() {
@@ -461,7 +427,7 @@ export default async function initRoute() {
         });
 
       // Get user's tournament alias
-      const userAlias = await getUserTournamentAlias(tournament, tournamentId);
+      const userAlias = await getUserTournamentAlias(tournamentId);
 
       // Clear and re-render
       innerContainer.innerHTML = '';
@@ -518,7 +484,7 @@ export default async function initRoute() {
       });
 
     // Get user's tournament alias
-    const userAlias = await getUserTournamentAlias(tournament, tournamentId);
+    const userAlias = await getUserTournamentAlias(tournamentId);
 
     // Render content
     innerContainer.innerHTML = '';
