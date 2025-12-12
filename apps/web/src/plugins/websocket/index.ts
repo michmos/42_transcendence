@@ -3,6 +3,8 @@ import { type SocketMessage } from '../../types/SocketMessage.js';
 class Socket {
   private socket: WebSocket | null = null;
   private hooks: Array<(_event: MessageEvent) => void> = [];
+  private connectionTries: number = 0;
+  private reconnection: boolean = false;
 
   constructor(url?: string) {
     console.log('📦 Initializing WebSocket connection...');
@@ -23,6 +25,39 @@ class Socket {
     this.hooks.forEach((hook) => hook(event));
   }
 
+  private reconnect(url: string): void {
+    this.reconnection = true;
+    this.connectionTries += 1;
+
+    if (this.connectionTries > 3) {
+      if (
+        window.confirm(
+          'Unable to connect to the server after multiple attempts. Click OK to finish this Evaluation.'
+        )
+      ) {
+        window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        return;
+      }
+      this.connectionTries = 0;
+      this.reconnect(url);
+      return;
+    }
+    console.log('Reconnecting to WebSocket server...');
+    this.connect(url);
+
+    setTimeout(() => {
+      if (!this.isConnected()) {
+        console.log('Reconnection attempt failed.');
+        this.reconnect(url);
+      } else {
+        console.log('Reconnected to WebSocket server successfully.');
+        this.reconnection = false;
+        this.connectionTries = 0;
+        return;
+      }
+    }, 1000);
+  }
+
   public connect(url: string) {
     console.log('Connecting to WebSocket server at', url);
     this.socket = new WebSocket(url);
@@ -37,10 +72,12 @@ class Socket {
 
     this.socket.onclose = () => {
       console.log('WebSocket connection closed');
+      if (!this.reconnection) this.reconnect(url);
     };
 
     this.socket.onerror = (error) => {
       console.error('WebSocket error:', error);
+      if (!this.reconnection) this.reconnect(url);
     };
   }
 

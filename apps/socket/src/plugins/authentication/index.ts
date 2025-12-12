@@ -45,7 +45,7 @@ function authenticateAPIServer(request: FastifyRequest) {
 
 function authPlugin(app: FastifyInstance) {
   app.decorateRequest('identifiers', null);
-  app.addHook('preValidation', async function (request, reply) {
+  app.addHook('preValidation', async function (request) {
     try {
       if (request.url === '/') {
         await authenticateClient(request);
@@ -57,7 +57,6 @@ function authPlugin(app: FastifyInstance) {
         'Authentication error:',
         error instanceof Error ? error.message : error
       );
-      await reply.code(401).send('not authenticated');
     }
   });
 }

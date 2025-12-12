@@ -774,7 +774,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
     <div class="relative">
       ${
         request.avatar
-          ? `<img src="${request.avatar}" alt="${request.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover" />`
+          ? `<img src="${getAvatarSrc(request.avatar)}" alt="${request.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover" />`
           : `<div class="h-10 w-10 border-2 border-border rounded-full flex items-center justify-center text-foreground bg-muted font-semibold">
               ${initials}
             </div>`
@@ -910,7 +910,7 @@ function createSearchResultItem(
     'flex items-center gap-3 p-4 rounded-lg bg-gradient-card backdrop-blur-glass border border-border';
 
   const nickname = user['nickname'] || 'Unknown';
-  const avatar = user.avatar || null;
+  const avatar = getAvatarSrc(user.avatar);
   const initials = nickname
     .split(' ')
     .map((n: string) => n[0])
@@ -1093,7 +1093,7 @@ function createBlockedUserItem(user: ProfileFriend): HTMLElement {
     <div class="relative">
       ${
         user.avatar
-          ? `<img src="${user.avatar}" alt="${user.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover opacity-50" />`
+          ? `<img src="${getAvatarSrc(user.avatar)}" alt="${user.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover opacity-50" />`
           : `<div class="h-10 w-10 border-2 border-border rounded-full flex items-center justify-center text-foreground bg-muted font-semibold opacity-50">
               ${initials}
             </div>`
