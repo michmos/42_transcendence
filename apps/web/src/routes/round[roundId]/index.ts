@@ -505,7 +505,6 @@ export default async function initRoute() {
 
     // ===== SOCKET INTEGRATION =====
     tournamentSocket.initialize();
-    tournamentSocket.joinTournament(tournamentId);
 
     const handleMatchUpdated = (data: unknown) => {
       const eventData = data as {
