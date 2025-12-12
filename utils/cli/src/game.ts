@@ -119,7 +119,7 @@ export default class game {
           key: { name?: string; ctrl?: boolean }
         ) => {
           if (!key) return;
-          
+
           // Handle exit
           if (key.name === 'x') {
             this.gameInProgress = false;
@@ -302,7 +302,7 @@ export default class game {
         ) {
           this.waitingForPlayer = false;
           this.gameState = message.data.serverState;
-          
+
           // Redraw game board
           console.clear();
 
@@ -318,11 +318,14 @@ export default class game {
           console.log(
             `Score: ${this.gameState.leftScore} (${leftPlayer}) - ${this.gameState.rightScore} (${rightPlayer})`
           );
-          
+
           // Check if game is over
           if (this.gameState.gameOver) {
             console.log('\n🏁 Game Over!');
-            const winner = this.gameState.leftScore > this.gameState.rightScore ? leftPlayer : rightPlayer;
+            const winner =
+              this.gameState.leftScore > this.gameState.rightScore
+                ? leftPlayer
+                : rightPlayer;
             console.log(`🏆 Winner: ${winner}`);
             console.log('\nPress X to exit');
           }
