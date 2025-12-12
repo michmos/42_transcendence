@@ -24,8 +24,6 @@ export interface CreateTournamentInput {
   minPlayers: number; // minimum: 2, maximum: 8
   maxPlayers: number; // minimum: 2, maximum: 16
   alias: string; // minLength: 1, maxLength: 50
-  lockTime?: number; // optional
-  gameTime?: number; // optional
 }
 
 /**
