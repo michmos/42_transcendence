@@ -168,11 +168,12 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
       'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
     leftColumn.appendChild(statsGrid);
 
-    const totalMatches = userData.gamesPlayed || 0;
-    const gamesWon = userData.gamesWon || 0;
+    // Extract stats from userData (now calculated from actual match history by backend)
+    const totalMatches = userData.gamesPlayed ?? 0;
+    const gamesWon = userData.gamesWon ?? 0;
     const winRate =
       totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
-    const tournaments = userData.tournamentsPlayed || 0;
+    const tournaments = userData.tournamentsPlayed ?? 0;
 
     // Calculate friends count (ACCEPTED friends)
     // Use same logic as profile page: filter ACCEPTED friends

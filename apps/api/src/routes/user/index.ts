@@ -229,7 +229,26 @@ export default function (app: FastifyInstance): void {
         const user = await app.db.getUserByNickname(nickname);
         if (!user) return reply.code(404).send({ Error: 'user not found' });
         const cleanedUser = cleanOtherUserData(user);
-        return reply.code(200).send(cleanedUser);
+
+        // Calculate stats from actual match history and tournaments (like profile page does)
+        const userMatches = await app.db.getUserMatchHistory(user.uuid);
+        const totalMatches = userMatches.length;
+        const gamesWon = userMatches.filter(
+          (match) => match.result === 'WON'
+        ).length;
+
+        // Get tournament participations count
+        const tournamentParticipations =
+          await app.db.getTournamentParticipationsByUserAndStatus(user.uuid);
+        const tournaments = tournamentParticipations.length;
+
+        return reply.code(200).send({
+          ...cleanedUser,
+          // Override with calculated values from actual data
+          gamesPlayed: totalMatches,
+          gamesWon: gamesWon,
+          tournamentsPlayed: tournaments,
+        });
       } catch (error) {
         app.log.error(error);
         return reply.code(500).send({ Error: 'Failed getting user' });
