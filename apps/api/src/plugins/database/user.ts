@@ -104,38 +104,10 @@ export async function generateUniqueNickName(): Promise<string> {
 export async function upsertUser(
   user: Partial<User> & { uuid: string }
 ): Promise<User> {
-  // First check if user exists by UUID
-  const existingByUuid = await Database.user.findUnique({
+  return Database.user.upsert({
     where: { uuid: user.uuid },
-  });
-
-  if (existingByUuid) {
-    // Update existing user by UUID
-    return Database.user.update({
-      where: { uuid: user.uuid },
-      data: user,
-    });
-  }
-
-  // Check if user exists by email (different OAuth provider)
-  if (user.email) {
-    const existingByEmail = await Database.user.findUnique({
-      where: { email: user.email },
-    });
-
-    if (existingByEmail) {
-      // User exists with same email but different UUID (different provider)
-      // Update the existing user
-      return Database.user.update({
-        where: { email: user.email },
-        data: user,
-      });
-    }
-  }
-
-  // Create new user
-  return Database.user.create({
-    data: user as User,
+    update: user,
+    create: user as User,
   });
 }
 
