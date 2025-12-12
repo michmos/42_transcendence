@@ -35,22 +35,23 @@ class Socket {
       options.headers = {
         Cookie: `session=${this.sessionCookie}`,
       };
+    } else {
+      console.error('❌ No session cookie available for WebSocket connection');
+      process.exit(1);
     }
 
     this.socket = new WebSocket(url, options);
-
-    this.socket.on('message', (data: WebSocket.Data): void => {
-      console.log('Received message:', data.toString());
-    });
 
     this.socket.on('close', (code: number, reason: Buffer): void => {
       console.log(
         `WebSocket connection closed: [${code}] ${reason.toString()}`
       );
+      process.exit(0);
     });
 
     this.socket.on('error', (error: Error): void => {
       console.error('WebSocket error:', error);
+      process.exit(1);
     });
   }
 

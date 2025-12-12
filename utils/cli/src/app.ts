@@ -12,15 +12,19 @@ const app = await build();
 
 // Load JWT token from file if it exists
 const auth = new Authenticate(env.CORS_URL);
-const initialToken = auth.loadTokenFromFile();
-app.jwtToken = initialToken;
+app.jwtToken = auth.loadTokenFromFile();
+
+// Strip https or http from CORS_URL for WebSocket connection
+const protocolRegex = /^https?:\/\//i;
+const wsProtocol = env.CORS_URL.startsWith('https') ? 'wss://' : 'ws://';
+const cleanUrl = env.CORS_URL.replace(protocolRegex, '').replace(/\/$/, '');
+const wsUrl = wsProtocol + cleanUrl + '/websocket/';
 
 // Initialize WebSocket connection with session cookie if available
-const socket = new Socket(`${env.CORS_URL}websocket`, initialToken);
+const socket = new Socket();
 app.decorate('socket', socket);
 
 const menu = new Interface(await auth.getProviders(env.CORS_URL));
-const game = new Game(socket);
 
 try {
   console.log('Connecting to server at', env.CORS_URL);
@@ -49,6 +53,14 @@ async function gameHandler() {
     menu.refreshMenu();
   } else {
     menu.pause();
+    try {
+      socket.connect(wsUrl, app.jwtToken);
+      await socket.waitingForConnection();
+    } catch {
+      console.error('❌ Failed to establish WebSocket connection');
+      process.exit(0);
+    }
+    const game = new Game(socket);
     await game.startGameSession(app.jwtToken);
     // Give stdin a moment to settle
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -80,7 +92,7 @@ function loginHandler(input: string) {
       auth.saveTokenToFile(token);
 
       // Reconnect WebSocket with new session cookie
-      socket.connect(`${env.CORS_URL}websocket`, token);
+      socket.connect(wsUrl, token);
 
       auth
         .loginWithToken(token, env.CORS_URL)
