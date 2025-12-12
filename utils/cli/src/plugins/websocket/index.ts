@@ -72,11 +72,15 @@ class Socket {
   }
 
   public joinRoom(room: string) {
-    this.send(JSON.stringify({ type: 'join', room }));
+    const message = JSON.stringify({ type: 'join-room', room });
+    console.log('Sending join-room message:', message);
+    this.send(message);
   }
 
   public leaveRoom(room: string) {
-    this.send(JSON.stringify({ type: 'leave', room }));
+    const message = JSON.stringify({ type: 'leave-room', room });
+    console.log('Sending leave-room message:', message);
+    this.send(message);
   }
 
   public isConnected(): boolean {

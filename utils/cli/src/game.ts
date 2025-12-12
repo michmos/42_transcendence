@@ -27,6 +27,7 @@ interface IncomingMessage {
   data?: {
     subtype?: string;
     serverState?: ServerState;
+    role?: string;
   };
   event?: string;
   uuid?: string;
@@ -47,6 +48,8 @@ export default class game {
   private jwtToken: string;
   private currentGameRoom: string;
   private isRoomReady: boolean;
+  private playerRole: string | null;
+  private playerName: string;
 
   constructor(socket: Socket) {
     this.socket = socket;
@@ -55,6 +58,8 @@ export default class game {
     this.waitingForPlayer = true;
     this.currentGameRoom = 'game:placeholder';
     this.isRoomReady = false;
+    this.playerRole = null;
+    this.playerName = 'You';
     this.gameState = {
       paddleWidth: 10,
       paddleHeight: 100,
@@ -88,10 +93,7 @@ export default class game {
 
     const ws = this.socket.getSocket();
 
-    // Connect to WebSocket with JWT token
-    ws.send(JSON.stringify({ type: 'connect', jwtToken: this.jwtToken }));
-
-    // Join online match queue
+    // Join online match queue (authentication via session cookie in headers)
     this.socket.joinRoom('game:online');
 
     return new Promise<void>((resolve) => {
@@ -126,6 +128,7 @@ export default class game {
             process.stdout.write('\x1B[?25h'); // Show cursor
             resolve();
             return;
+          }
           if (key.name === 'w') {
             if (this.isRoomReady && this.socket.isConnected()) {
               this.socket.sendMessage(this.currentGameRoom, { action: 'up' });
@@ -142,7 +145,6 @@ export default class game {
             if (this.isRoomReady && this.socket.isConnected()) {
               this.socket.sendMessage(this.currentGameRoom, { action: 'reset' });
             }
-          } this.socket.sendMessage(this.currentGameRoom, { action: 'reset' });
           }
         };
 
@@ -225,12 +227,23 @@ export default class game {
         if (this.gameInProgress === false) return;
         
         const message = JSON.parse(msg.toString()) as IncomingMessage;
+        console.log('Received message:', JSON.stringify(message, null, 2));
 
         // Handle room-created event
         if (message.event === 'room-created' && message.uuid) {
           this.currentGameRoom = message.uuid;
           this.isRoomReady = true;
           console.log(`\n✓ Joined game room: ${this.currentGameRoom}\n`);
+        }
+
+        // Handle role assignment
+        if (
+          message.type === 'message' &&
+          message.data?.subtype === 'role' &&
+          message.data.role
+        ) {
+          this.playerRole = message.data.role;
+          console.log(`\n🎮 Your role: ${this.playerRole}\n`);
         }
 
         // Handle state updates
@@ -242,6 +255,12 @@ export default class game {
           this.waitingForPlayer = false; // Player has connected, game started
           this.gameState = message.data.serverState;
           console.clear();
+          
+          // Display player names based on role
+          const leftPlayer = this.playerRole === 'player1' ? this.playerName : 'Opponent';
+          const rightPlayer = this.playerRole === 'player2' ? this.playerName : 'Opponent';
+          
+          console.log(`🎮 ${leftPlayer} vs ${rightPlayer}`);
           console.log(
             `Ball: (${this.gameState.ballX.toFixed(2)}, ${this.gameState.ballY.toFixed(2)})`
           );
@@ -251,7 +270,7 @@ export default class game {
           displayBoard();
           console.log(`Time: ${formatTime(this.gameState.timeRemaining)} ⏱`);
           console.log(
-            `Score: ${this.gameState.leftScore} - ${this.gameState.rightScore}`
+            `Score: ${this.gameState.leftScore} (${leftPlayer}) - ${this.gameState.rightScore} (${rightPlayer})`
           );
         }
       });
