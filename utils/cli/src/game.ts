@@ -97,6 +97,9 @@ export default class game {
     this.socket.joinRoom('game:online');
 
     return new Promise<void>((resolve) => {
+      const keys: Record<string, boolean> = {};
+      let inputInterval: NodeJS.Timeout | null = null;
+
       const enableKeyboardInput = () => {
         // Clean up any existing keypress listeners first
         process.stdin.removeAllListeners('keypress');
@@ -116,10 +119,18 @@ export default class game {
           key: { name?: string; ctrl?: boolean }
         ) => {
           if (!key) return;
+          
+          // Handle exit
           if (key.name === 'x') {
             this.gameInProgress = false;
-            this.socket.leaveRoom('game:main');
+            if (this.isRoomReady) {
+              this.socket.leaveRoom(this.currentGameRoom);
+            }
             // Clean up
+            if (inputInterval) {
+              clearInterval(inputInterval);
+              inputInterval = null;
+            }
             if (process.stdin.isTTY) {
               process.stdin.setRawMode(false);
             }
@@ -129,26 +140,56 @@ export default class game {
             resolve();
             return;
           }
-          if (key.name === 'w') {
+
+          // Track key state
+          if (key.name === 'w' || key.name === 's') {
+            keys[key.name] = true;
+          }
+
+          // Handle pause and reset (immediate actions)
+          if (key.name === 'p') {
             if (this.isRoomReady && this.socket.isConnected()) {
-              this.socket.sendMessage(this.currentGameRoom, { action: 'up' });
-            }
-          } else if (key.name === 's') {
-            if (this.isRoomReady && this.socket.isConnected()) {
-              this.socket.sendMessage(this.currentGameRoom, { action: 'down' });
-            }
-          } else if (key.name === 'p') {
-            if (this.isRoomReady && this.socket.isConnected()) {
-              this.socket.sendMessage(this.currentGameRoom, { action: 'pause' });
+              this.socket.sendMessage(this.currentGameRoom, {
+                action: 'pause',
+              });
             }
           } else if (key.name === 'r') {
             if (this.isRoomReady && this.socket.isConnected()) {
-              this.socket.sendMessage(this.currentGameRoom, { action: 'reset' });
+              this.socket.sendMessage(this.currentGameRoom, {
+                action: 'reset',
+              });
             }
           }
         };
 
+        const keyupHandler = (_: any, key: { name?: string }) => {
+          if (!key) return;
+          if (key.name === 'w' || key.name === 's') {
+            keys[key.name] = false;
+          }
+        };
+
         process.stdin.on('keypress', keypressHandler);
+
+        // Setup continuous input sending at 60Hz (like web client)
+        inputInterval = setInterval(() => {
+          if (!this.gameInProgress || !this.isRoomReady) {
+            return;
+          }
+
+          if (
+            this.socket.isConnected() &&
+            !this.gameState.gamePaused &&
+            !this.gameState.gameOver
+          ) {
+            if (keys['w']) {
+              this.socket.sendMessage(this.currentGameRoom, { action: 'up' });
+            }
+            if (keys['s']) {
+              this.socket.sendMessage(this.currentGameRoom, { action: 'down' });
+            }
+          }
+        }, 1000 / 60);
       };
       const displayBoard = () => {
         // Game title
@@ -225,15 +266,21 @@ export default class game {
       // Handle incoming messages
       ws.on('message', (msg: WebSocket.RawData) => {
         if (this.gameInProgress === false) return;
-        
+
         const message = JSON.parse(msg.toString()) as IncomingMessage;
-        console.log('Received message:', JSON.stringify(message, null, 2));
+
+        // Handle wait message
+        if (message.type === 'wait') {
+          console.log('\n⏳ Waiting for opponent...\n');
+          return;
+        }
 
         // Handle room-created event
         if (message.event === 'room-created' && message.uuid) {
           this.currentGameRoom = message.uuid;
           this.isRoomReady = true;
           console.log(`\n✓ Joined game room: ${this.currentGameRoom}\n`);
+          return;
         }
 
         // Handle role assignment
@@ -244,6 +291,7 @@ export default class game {
         ) {
           this.playerRole = message.data.role;
           console.log(`\n🎮 Your role: ${this.playerRole}\n`);
+          return;
         }
 
         // Handle state updates
@@ -252,26 +300,32 @@ export default class game {
           message.data?.subtype === 'state' &&
           message.data.serverState
         ) {
-          this.waitingForPlayer = false; // Player has connected, game started
+          this.waitingForPlayer = false;
           this.gameState = message.data.serverState;
+          
+          // Redraw game board
           console.clear();
-          
+
           // Display player names based on role
-          const leftPlayer = this.playerRole === 'player1' ? this.playerName : 'Opponent';
-          const rightPlayer = this.playerRole === 'player2' ? this.playerName : 'Opponent';
-          
+          const leftPlayer =
+            this.playerRole === 'player1' ? this.playerName : 'Opponent';
+          const rightPlayer =
+            this.playerRole === 'player2' ? this.playerName : 'Opponent';
+
           console.log(`🎮 ${leftPlayer} vs ${rightPlayer}`);
-          console.log(
-            `Ball: (${this.gameState.ballX.toFixed(2)}, ${this.gameState.ballY.toFixed(2)})`
-          );
-          console.log(
-            `Paddles: left ${this.gameState.leftY}, right ${this.gameState.rightY}`
-          );
           displayBoard();
           console.log(`Time: ${formatTime(this.gameState.timeRemaining)} ⏱`);
           console.log(
             `Score: ${this.gameState.leftScore} (${leftPlayer}) - ${this.gameState.rightScore} (${rightPlayer})`
           );
+          
+          // Check if game is over
+          if (this.gameState.gameOver) {
+            console.log('\n🏁 Game Over!');
+            const winner = this.gameState.leftScore > this.gameState.rightScore ? leftPlayer : rightPlayer;
+            console.log(`🏆 Winner: ${winner}`);
+            console.log('\nPress X to exit');
+          }
         }
       });
 
