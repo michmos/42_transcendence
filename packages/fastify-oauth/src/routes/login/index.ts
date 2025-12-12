@@ -14,14 +14,15 @@ import ProviderUtility from '../providers/index.js';
 function generateAuthUrl(
   ctx: OAuthContext,
   provider: OAuthProvider,
-  ipNumber: string
+  ipNumber: string,
+  cli: string | undefined
 ): string {
   // Generate a unique state parameter for CSRF protection
   const state = {
     state: Math.random().toString(36).substring(2, 15),
     ipNumber: ipNumber,
     provider: provider,
-    cli: true,
+    cli: cli === 'true',
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
   };
@@ -64,7 +65,7 @@ function setupLoginRoute(ctx: OAuthContext) {
     }
 
     // Generate the authorization URL
-    const url = generateAuthUrl(ctx, provider, ipNumber);
+    const url = generateAuthUrl(ctx, provider, ipNumber, cli);
     return reply.status(302).redirect(url);
   });
 }

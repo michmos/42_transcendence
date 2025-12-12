@@ -41,12 +41,29 @@ class Socket {
     });
   }
 
-  public sendMessage(message: string) {
+  public sendMessage(room: string, data: object) {
+    const message = {
+      type: 'message',
+      room: room,
+      data: data,
+    };
+    this.send(JSON.stringify(message));
+  }
+
+  public send(message: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(message);
     } else {
       console.error('WebSocket is not open. Unable to send message:', message);
     }
+  }
+
+  public joinRoom(room: string) {
+    this.send(JSON.stringify({ type: 'join', room }));
+  }
+
+  public leaveRoom(room: string) {
+    this.send(JSON.stringify({ type: 'leave', room }));
   }
 
   public isConnected(): boolean {

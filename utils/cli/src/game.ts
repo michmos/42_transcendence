@@ -21,23 +21,40 @@ interface ServerState {
   gameStartTime: number;
 }
 
+interface IncomingMessage {
+  type: string;
+  room?: string;
+  data?: {
+    subtype?: string;
+    serverState?: ServerState;
+  };
+  event?: string;
+  uuid?: string;
+}
+
 export default class game {
   private socket: Socket;
 
   private gameState: ServerState;
 
   private gameInProgress: boolean;
+  private waitingForPlayer: boolean;
   private CANVAS_WIDTH = 800;
   private CANVAS_HEIGHT = 600;
   private WINDOW_WIDTH = 91;
   private WINDOW_HEIGHT = 34;
 
   private jwtToken: string;
+  private currentGameRoom: string;
+  private isRoomReady: boolean;
 
   constructor(socket: Socket) {
     this.socket = socket;
     this.jwtToken = '';
     this.gameInProgress = false;
+    this.waitingForPlayer = true;
+    this.currentGameRoom = 'game:placeholder';
+    this.isRoomReady = false;
     this.gameState = {
       paddleWidth: 10,
       paddleHeight: 100,
@@ -61,16 +78,21 @@ export default class game {
   startGameSession(jwtToken: string) {
     this.jwtToken = jwtToken;
     this.gameInProgress = true;
+    this.waitingForPlayer = true;
+    this.isRoomReady = false;
 
-    // // Force terminal window size
-    // process.stdout.write(
-    //   `\x1b[8;${this.WINDOW_HEIGHT + 10};${this.WINDOW_WIDTH}t`
-    // );
+    // Force terminal window size
+    process.stdout.write(
+      `\x1b[8;${this.WINDOW_HEIGHT + 10};${this.WINDOW_WIDTH}t`
+    );
 
     const ws = this.socket.getSocket();
 
-    // Start game session
+    // Connect to WebSocket with JWT token
     ws.send(JSON.stringify({ type: 'connect', jwtToken: this.jwtToken }));
+
+    // Join online match queue
+    this.socket.joinRoom('game:online');
 
     return new Promise<void>((resolve) => {
       const enableKeyboardInput = () => {
@@ -94,7 +116,7 @@ export default class game {
           if (!key) return;
           if (key.name === 'x') {
             this.gameInProgress = false;
-            ws.send(JSON.stringify({ type: 'game', action: 'exit' }));
+            this.socket.leaveRoom('game:main');
             // Clean up
             if (process.stdin.isTTY) {
               process.stdin.setRawMode(false);
@@ -104,15 +126,23 @@ export default class game {
             process.stdout.write('\x1B[?25h'); // Show cursor
             resolve();
             return;
-          }
           if (key.name === 'w') {
-            ws.send(JSON.stringify({ type: 'game', action: 'up' }));
+            if (this.isRoomReady && this.socket.isConnected()) {
+              this.socket.sendMessage(this.currentGameRoom, { action: 'up' });
+            }
           } else if (key.name === 's') {
-            ws.send(JSON.stringify({ type: 'game', action: 'down' }));
+            if (this.isRoomReady && this.socket.isConnected()) {
+              this.socket.sendMessage(this.currentGameRoom, { action: 'down' });
+            }
           } else if (key.name === 'p') {
-            ws.send(JSON.stringify({ type: 'game', action: 'pause' }));
+            if (this.isRoomReady && this.socket.isConnected()) {
+              this.socket.sendMessage(this.currentGameRoom, { action: 'pause' });
+            }
           } else if (key.name === 'r') {
-            ws.send(JSON.stringify({ type: 'game', action: 'reset' }));
+            if (this.isRoomReady && this.socket.isConnected()) {
+              this.socket.sendMessage(this.currentGameRoom, { action: 'reset' });
+            }
+          } this.socket.sendMessage(this.currentGameRoom, { action: 'reset' });
           }
         };
 
@@ -178,6 +208,9 @@ export default class game {
       // Initial draw
       console.clear();
       console.log('🏓 Starting CLI Pong Game...');
+      if (this.waitingForPlayer) {
+        console.log('\n⏳ Waiting for opponent to join...\n');
+      }
       console.log(`Time: ${formatTime(this.gameState.timeRemaining)} ⏱`);
       console.log(
         `Score: ${this.gameState.leftScore} - ${this.gameState.rightScore}`
@@ -190,21 +223,36 @@ export default class game {
       // Handle incoming messages
       ws.on('message', (msg: WebSocket.RawData) => {
         if (this.gameInProgress === false) return;
-        const message = JSON.parse(msg.toString()) as ServerState & {
-          type: string;
-        };
-        if (message.type === 'state') {
-          this.gameState = message;
+        
+        const message = JSON.parse(msg.toString()) as IncomingMessage;
+
+        // Handle room-created event
+        if (message.event === 'room-created' && message.uuid) {
+          this.currentGameRoom = message.uuid;
+          this.isRoomReady = true;
+          console.log(`\n✓ Joined game room: ${this.currentGameRoom}\n`);
+        }
+
+        // Handle state updates
+        if (
+          message.type === 'message' &&
+          message.data?.subtype === 'state' &&
+          message.data.serverState
+        ) {
+          this.waitingForPlayer = false; // Player has connected, game started
+          this.gameState = message.data.serverState;
           console.clear();
           console.log(
-            `Ball: (${message.ballX.toFixed(2)}, ${message.ballY.toFixed(2)})`
+            `Ball: (${this.gameState.ballX.toFixed(2)}, ${this.gameState.ballY.toFixed(2)})`
           );
           console.log(
-            `Paddles: left ${message.leftY}, right ${message.rightY}`
+            `Paddles: left ${this.gameState.leftY}, right ${this.gameState.rightY}`
           );
           displayBoard();
           console.log(`Time: ${formatTime(this.gameState.timeRemaining)} ⏱`);
-          console.log(`Score: ${message.leftScore} - ${message.rightScore}`);
+          console.log(
+            `Score: ${this.gameState.leftScore} - ${this.gameState.rightScore}`
+          );
         }
       });
 
