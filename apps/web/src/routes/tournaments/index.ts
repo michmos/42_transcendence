@@ -600,6 +600,7 @@ function showJoinTournamentDialog(
 
       try {
         await window.api.joinTournament(tournamentUuid, alias);
+        tournamentSocket.joinTournament(tournamentUuid);
 
         // Add to myTournaments Set (user is now a participant)
         myTournaments.add(tournamentUuid);
@@ -816,6 +817,7 @@ function showNewTournamentDialog(
         // Auto-join the tournament as the creator (required: creator must be added automatically)
         try {
           await window.api.joinTournament(tournament.uuid, alias);
+          tournamentSocket.joinTournament(tournament.uuid);
           // Add to myTournaments Set (creator is automatically a participant)
           myTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
