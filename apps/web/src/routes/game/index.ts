@@ -173,14 +173,6 @@ function setupEventListeners() {
     keys[e.key.toLowerCase()] = false;
   };
   document.addEventListener('keyup', keyupHandler);
-
-  // // handle page leave
-  // unloadHandler = () => {
-  //   if (isRouteActive) {
-  //     cleanup();
-  //   }
-  // };
-  // window.addEventListener('popstate', unloadHandler);
 }
 
 // Cleanup function to close WebSocket when leaving route
@@ -222,10 +214,6 @@ function cleanup() {
     document.removeEventListener('keyup', keyupHandler);
     keyupHandler = null;
   }
-  // if (unloadHandler) {
-  //   window.removeEventListener('beforeunload', unloadHandler);
-  //   unloadHandler = null;
-  // }
 
   // remove on message socket hook
   if (unregisterOnMessageHook) {
