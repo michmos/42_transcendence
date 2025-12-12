@@ -989,7 +989,6 @@ export default async function initRoute() {
       // Also fetch full tournament details for user's tournaments to ensure they appear in the list
       // even if their status changed (e.g., from 'outstanding' to 'ongoing')
       // Process tournaments sequentially to avoid overwhelming the API
-      /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
       for (const participation of userTournaments) {
         if (
           !participation ||
@@ -1019,7 +1018,6 @@ export default async function initRoute() {
           // Continue with other tournaments even if one fails
         }
       }
-      /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 
       // Add outstanding tournaments to openTournaments and Map
       outstandingTournaments.forEach((tournament) => {

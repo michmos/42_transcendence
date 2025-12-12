@@ -6,11 +6,7 @@ import type {
 
 import type { TournamentRoundResponse } from 'types';
 
-import type {
-  Tournament,
-  TournamentRound,
-  status,
-} from 'db/generated/client/index.js';
+import type { Tournament, status } from 'db/generated/client/index.js';
 
 import type { TournamentParticipantsResponse } from 'types';
 

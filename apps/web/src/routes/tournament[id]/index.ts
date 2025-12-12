@@ -846,7 +846,6 @@ export default async function initRoute() {
           try {
             const myTournaments = await window.api.getMyTournaments();
             if (Array.isArray(myTournaments)) {
-              /* eslint-disable @typescript-eslint/no-unsafe-member-access */
               isParticipantRefresh = myTournaments.some(
                 (t) =>
                   t &&
@@ -854,7 +853,6 @@ export default async function initRoute() {
                   'tournamentId' in t &&
                   t.tournamentId === tournamentUuid
               );
-              /* eslint-enable @typescript-eslint/no-unsafe-member-access */
             }
           } catch (error) {
             console.error('Error checking participation:', error);
@@ -990,7 +988,6 @@ export default async function initRoute() {
       try {
         const myTournaments = await window.api.getMyTournaments();
         if (Array.isArray(myTournaments)) {
-          /* eslint-disable @typescript-eslint/no-unsafe-member-access */
           isParticipant = myTournaments.some(
             (t) =>
               t &&
@@ -998,7 +995,6 @@ export default async function initRoute() {
               'tournamentId' in t &&
               t.tournamentId === tournamentUuid
           );
-          /* eslint-enable @typescript-eslint/no-unsafe-member-access */
         }
       } catch (error) {
         console.error('Error checking participation:', error);
