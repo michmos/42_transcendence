@@ -1,11 +1,8 @@
 import { Navbar, Card, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import type {
-  Tournament as BackendTournament,
-  TournamentRound,
-  status,
-} from '../../types/api.js';
+import type { Tournament, status } from 'db/generated/client/index.js';
+import type { TournamentRoundResponse } from 'types';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
@@ -24,7 +21,7 @@ declare global {
 interface Round {
   id: number;
   name: string;
-  status: 'completed' | 'in-progress' | 'upcoming';
+  status: 'outstanding' | 'ongoing' | 'finished' | 'canceled';
 }
 
 // UI LeaderboardEntry interface
@@ -38,25 +35,25 @@ interface LeaderboardEntry {
 /**
  * Map backend status to UI round status
  */
-function mapRoundStatusToUI(
-  round: TournamentRound
-): 'completed' | 'in-progress' | 'upcoming' {
-  // Check if all matches are finished
-  const allMatchesFinished = round.matches.every(
-    (match) => match.status === 'finished'
-  );
-  const anyMatchOngoing = round.matches.some(
-    (match) => match.status === 'ongoing'
-  );
-
-  if (allMatchesFinished && round.matches.length > 0) {
-    return 'completed';
-  }
-  if (anyMatchOngoing) {
-    return 'in-progress';
-  }
-  return 'upcoming';
-}
+// function mapRoundStatusToUI(
+//   round: TournamentRoundResponse
+// ): 'completed' | 'in-progress' | 'upcoming' {
+//   // Check if all matches are finished
+//   const allMatchesFinished = round.status === 'finished';
+//     (match) => match.status === 'finished'
+//   );
+//   const anyMatchOngoing = round.matches.some(
+//     (match) => match.status === 'ongoing'
+//   );
+//
+//   if (allMatchesFinished && round.matches.length > 0) {
+//     return 'completed';
+//   }
+//   if (anyMatchOngoing) {
+//     return 'in-progress';
+//   }
+//   return 'upcoming';
+// }
 
 /**
  * Build leaderboard from tournament rounds and matches
@@ -64,8 +61,8 @@ function mapRoundStatusToUI(
  * Uses aliases when available, falls back to nicknames
  */
 function buildLeaderboard(
-  tournament: BackendTournament,
-  rounds: TournamentRound[],
+  tournament: Tournament,
+  rounds: TournamentRoundResponse[],
   _participantAliases?: Map<string, string>, // No longer needed - matches come with aliases
   allParticipantAliases?: string[]
 ): LeaderboardEntry[] {
@@ -76,29 +73,32 @@ function buildLeaderboard(
     { wins: number; losses: number; scoreDiff: number; displayName: string }
   >();
 
-  // Also try to get participants from tournament.participants if available (for tournaments without matches yet)
-  const participants = tournament.participants || [];
-  participants.forEach((participant) => {
-    const participantTyped = participant as {
-      uuid?: string;
-      alias?: string;
-      user?: { uuid?: string; nickname?: string };
-    };
-    const user = participantTyped.user;
-    const participantId = user?.uuid;
-    // Prefer alias from participants array, fallback to nickname
-    const displayName = participantTyped.alias || user?.nickname || 'Unknown';
+  // TODO: if needed -> fetch from api
+  // const participants = await window.api.getTournamentParticipants(tournament.uuid);
 
-    if (participantId && !playerStats.has(participantId)) {
-      // Initialize stats for participants from tournament.participants
-      playerStats.set(participantId, {
-        wins: 0,
-        losses: 0,
-        scoreDiff: 0,
-        displayName,
-      });
-    }
-  });
+  // Also try to get participants from tournament.participants if available (for tournaments without matches yet)
+  // const participants = tournament.participants || [];
+  // participants.forEach((participant) => {
+  //   const participantTyped = participant as {
+  //     uuid?: string;
+  //     alias?: string;
+  //     user?: { uuid?: string; nickname?: string };
+  //   };
+  //   const user = participantTyped.user;
+  //   const participantId = user?.uuid;
+  //   // Prefer alias from participants array, fallback to nickname
+  //   const displayName = participantTyped.alias || user?.nickname || 'Unknown';
+  //
+  //   if (participantId && !playerStats.has(participantId)) {
+  //     // Initialize stats for participants from tournament.participants
+  //     playerStats.set(participantId, {
+  //       wins: 0,
+  //       losses: 0,
+  //       scoreDiff: 0,
+  //       displayName,
+  //     });
+  //   }
+  // });
 
   // Process all matches from all rounds to:
   // 1. Extract all participants (from player1Name and player2Name)
@@ -370,7 +370,7 @@ function getRoundColor(status: string): string {
 
 function renderTournamentHeader(
   container: HTMLElement,
-  tournament: BackendTournament,
+  tournament: Tournament,
   isParticipant: boolean
 ) {
   const tournamentHeader = document.createElement('div');
@@ -440,10 +440,7 @@ function renderTournamentHeader(
   container.appendChild(tournamentHeader);
 }
 
-function renderStatsCards(
-  container: HTMLElement,
-  tournament: BackendTournament
-) {
+function renderStatsCards(container: HTMLElement, tournament: Tournament) {
   const statsGrid = document.createElement('div');
   statsGrid.className = 'grid gap-4 md:grid-cols-2 mb-8';
 
@@ -521,9 +518,9 @@ function renderTournamentProgress(
     roundItem.className = `flex items-center justify-between rounded-lg border p-4 transition-all hover:scale-105 cursor-pointer ${getRoundColor(round.status)}`;
 
     const statusText =
-      round.status === 'completed'
+      round.status === 'finished'
         ? 'Complete'
-        : round.status === 'in-progress'
+        : round.status === 'ongoing'
           ? '100%'
           : 'Upcoming';
 
@@ -728,16 +725,8 @@ export default async function initRoute() {
   // Show loading state initially
   renderLoadingState(innerContainer);
 
-  // Map tournament status for badge (defined early for use in refresh function)
-  const statusMap: Record<status, string> = {
-    outstanding: 'Upcoming',
-    ongoing: 'Active',
-    finished: 'Completed',
-    canceled: 'Canceled',
-  };
-
   // Store tournament and rounds for socket updates
-  let currentTournament: BackendTournament | null = null;
+  let currentTournament: Tournament | null = null;
   let currentLeaderboard: LeaderboardEntry[] = [];
   let currentUIRounds: Round[] = [];
   let participantAliases = new Map<string, string>(); // Map of user UUID -> alias
@@ -750,25 +739,26 @@ export default async function initRoute() {
    * in a way that allows us to use them for players found in matches
    */
   const fetchParticipantAliases = async (
-    tournament: BackendTournament,
-    _rounds: TournamentRound[]
+    tournament: Tournament,
+    _rounds: TournamentRoundResponse[]
   ): Promise<{ aliasMap: Map<string, string>; allAliases: string[] }> => {
     const aliasMap = new Map<string, string>();
 
+    // TODO: if required -> fetch window.api.getTournamentParticipants
     // First, try to get aliases from tournament.participants if available (admin view)
-    const participants = tournament.participants || [];
-    participants.forEach((participant) => {
-      const participantTyped = participant as {
-        alias?: string;
-        user?: { uuid?: string };
-      };
-      const user = participantTyped.user;
-      const participantId = user?.uuid;
-      const alias = participantTyped.alias;
-      if (participantId && alias) {
-        aliasMap.set(participantId, alias);
-      }
-    });
+    // const participants = tournament.participants || [];
+    // participants.forEach((participant) => {
+    //   const participantTyped = participant as {
+    //     alias?: string;
+    //     user?: { uuid?: string };
+    //   };
+    //   const user = participantTyped.user;
+    //   const participantId = user?.uuid;
+    //   const alias = participantTyped.alias;
+    //   if (participantId && alias) {
+    //     aliasMap.set(participantId, alias);
+    //   }
+    // });
 
     // If we already have aliases from tournament.participants, return early
     if (aliasMap.size > 0) {
@@ -809,11 +799,12 @@ export default async function initRoute() {
     if (!currentTournament) return;
 
     try {
-      const updatedTournament = await window.api.getTournament(tournamentUuid);
+      const updatedTournament: Tournament | null =
+        await window.api.getTournament(tournamentUuid);
       if (updatedTournament) {
         currentTournament = updatedTournament;
         // Re-fetch rounds if needed
-        const updatedRounds: TournamentRound[] = [];
+        const updatedRounds: TournamentRoundResponse[] = [];
         for (let i = 0; i < updatedTournament.numberOfRounds; i++) {
           try {
             const round = await window.api.getTournamentRound(
@@ -830,7 +821,7 @@ export default async function initRoute() {
         currentUIRounds = updatedRounds.map((round) => ({
           id: round.index + 1,
           name: `Round ${round.index + 1}`,
-          status: mapRoundStatusToUI(round),
+          status: round.status,
         }));
 
         // Fetch participant aliases
@@ -892,19 +883,19 @@ export default async function initRoute() {
           if (badgesSection) {
             const statusBadgeContainer = document.createElement('div');
             new Badge(statusBadgeContainer, {
-              text: statusMap[updatedTournament.status] || 'Unknown',
+              text: updatedTournament.status,
               variant: 'default',
             });
             const statusBadgeElement =
               statusBadgeContainer.firstElementChild as HTMLElement;
             if (statusBadgeElement) {
-              const statusColors: Record<status, string> = {
-                outstanding: 'bg-warning text-white',
-                ongoing: 'bg-accent text-white',
-                finished: 'bg-muted text-muted-foreground',
-                canceled: 'bg-red-500 text-white',
-              };
-              statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[updatedTournament.status] || 'bg-muted'}`;
+              const statusColors = new Map<string, string>([
+                ['outstanding', 'bg-warning text-white'],
+                ['ongoing', 'bg-accent text-white'],
+                ['finished', 'bg-muted text-muted-foreground'],
+                ['canceled', 'bg-red-500 text-white'],
+              ]);
+              statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors.get(updatedTournament.status) || 'bg-muted'}`;
             }
             badgesSection.insertBefore(
               statusBadgeContainer,
@@ -946,16 +937,12 @@ export default async function initRoute() {
       uuid: tournament.uuid,
       tournamentName: tournament.tournamentName,
       playerCount: tournament.playerCount,
-      participants: tournament.participants,
-      participantsLength: tournament.participants?.length || 0,
-      participantsType: typeof tournament.participants,
-      participantsIsArray: Array.isArray(tournament.participants),
     });
 
     currentTournament = tournament;
 
     // Fetch all rounds
-    const rounds: TournamentRound[] = [];
+    const rounds: TournamentRoundResponse[] = [];
     for (let i = 0; i < tournament.numberOfRounds; i++) {
       try {
         const round = await window.api.getTournamentRound(tournamentUuid, i);
@@ -980,7 +967,7 @@ export default async function initRoute() {
     currentUIRounds = rounds.map((round) => ({
       id: round.index + 1,
       name: `Round ${round.index + 1}`,
-      status: mapRoundStatusToUI(round),
+      status: round.status,
     }));
 
     // Fetch participant aliases
@@ -1037,19 +1024,19 @@ export default async function initRoute() {
       if (badgesSection) {
         const statusBadgeContainer = document.createElement('div');
         new Badge(statusBadgeContainer, {
-          text: statusMap[tournament.status] || 'Unknown',
+          text: tournament.status,
           variant: 'default',
         });
         const statusBadgeElement =
           statusBadgeContainer.firstElementChild as HTMLElement;
         if (statusBadgeElement) {
-          const statusColors: Record<status, string> = {
-            outstanding: 'bg-warning text-white',
-            ongoing: 'bg-accent text-white',
-            finished: 'bg-muted text-muted-foreground',
-            canceled: 'bg-red-500 text-white',
-          };
-          statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[tournament.status] || 'bg-muted'}`;
+          const statusColors = new Map<string, string>([
+            ['outstanding', 'bg-warning text-white'],
+            ['ongoing', 'bg-accent text-white'],
+            ['finished', 'bg-muted text-muted-foreground'],
+            ['canceled', 'bg-red-500 text-white'],
+          ]);
+          statusBadgeElement.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors.get(tournament.status) || 'bg-muted'}`;
         }
         badgesSection.insertBefore(
           statusBadgeContainer,
