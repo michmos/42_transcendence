@@ -187,11 +187,6 @@ const TournamentsAPI = {
         throw new Error(`Failed to join tournament: ${response.status}`);
       }
 
-      // Join socket room if available
-      if (window.socket) {
-        window.socket.joinRoom(`tournament:${tournamentUuid}`);
-      }
-
       // Response is 204, but backend returns tournament in body
       return (await response.json()) as Tournament;
     } catch (error) {
@@ -241,9 +236,6 @@ const TournamentsAPI = {
       }
 
       // Leave socket room if available
-      if (window.socket) {
-        window.socket.leaveRoom(`tournament:${tournamentUuid}`);
-      }
     } catch (error) {
       console.error('Error leaving tournament:', error);
       throw error;
