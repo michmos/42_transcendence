@@ -24,6 +24,9 @@ export let isLocalGame = true;
 export function getIsLocalGame(): boolean {
   return isLocalGame;
 }
+export function setIsLocalGame(boolean: boolean) {
+  isLocalGame = boolean;
+}
 
 // Extend Window interface for SPA navigation
 declare global {
