@@ -1527,7 +1527,7 @@ function handleOnlineStatusUpdate(status: OnlineStatus) {
   friend.isOnline = status.isOnline;
 
   // Show toast if status changed
-  if (wasOnline !== status.isOnline) {
+  if (wasOnline !== status.isOnline && friend.state === 'ACCEPTED') {
     const message = status.isOnline
       ? `${status.nickname} is now online`
       : `${status.nickname} went offline`;
