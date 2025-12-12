@@ -7,7 +7,7 @@ declare module 'fastify' {
     providers: Array<{ name: string; buttonUri: string }>;
     hostname: string;
     jwtToken: string | null;
-    user: User;
+    user: User | null;
     gameInProgress: boolean;
   }
 }

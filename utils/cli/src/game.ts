@@ -45,7 +45,6 @@ export default class Game {
   private WINDOW_WIDTH = 91;
   private WINDOW_HEIGHT = 34;
 
-  private jwtToken: string;
   private currentGameRoom: string;
   private isRoomReady: boolean;
   private playerRole: string | null;
@@ -53,7 +52,6 @@ export default class Game {
 
   constructor(socket: Socket) {
     this.socket = socket;
-    this.jwtToken = '';
     this.gameInProgress = false;
     this.waitingForPlayer = true;
     this.currentGameRoom = 'game:placeholder';
@@ -80,8 +78,7 @@ export default class Game {
     };
   }
 
-  startGameSession(jwtToken: string) {
-    this.jwtToken = jwtToken;
+  startGameSession() {
     this.gameInProgress = true;
     this.waitingForPlayer = true;
     this.isRoomReady = false;
