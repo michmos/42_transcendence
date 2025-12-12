@@ -339,8 +339,6 @@ function showJoinTournamentDialog(
 
         // Success - close dialog and reload page to refresh tournament data
         closeDialog();
-        // TODO: Replace with SPA state update
-        window.location.reload();
       } catch (error) {
         // Handle errors
         const errorMessage =
