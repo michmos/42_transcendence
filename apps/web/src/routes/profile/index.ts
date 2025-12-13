@@ -217,14 +217,14 @@ interface IncomingMessage {
   event: 'friends-updated';
 }
 
-let unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+const unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
   const message = JSON.parse(event.data as string) as IncomingMessage;
 
   if (typeof message === 'object' && 'event' in message) {
     console.log('friends message received');
     switch (message.event) {
       case 'friends-updated': {
-        refreshFriendsData();
+        void refreshFriendsData();
         break;
       }
     }
