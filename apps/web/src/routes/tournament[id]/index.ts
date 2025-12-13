@@ -81,12 +81,19 @@ async function buildLeaderboard(
   for (const round of rounds) {
     for (const match of round.matches) {
       // Extract player info from matches (MatchResponse structure - now with player1Name/player2Name)
-      const matchResponse: MatchResponse | null = await window.api.getMatch(
-        match.uuid
-      );
+      let matchResponse: MatchResponse | null = null;
+      try {
+        matchResponse = await window.api.getMatch(match.uuid);
+      } catch (error) {
+        console.error(`Error fetching match ${match.uuid}:`, error);
+        // Skip this match and continue building leaderboard
+        continue;
+      }
+
       if (!matchResponse) {
-        throw new Error(`Fetching match failed for uuid: ${match.uuid}`);
-        // TODO: pminialg handle error
+        console.warn(`Match response is null for uuid: ${match.uuid}`);
+        // Skip this match and continue building leaderboard
+        continue;
       }
 
       // Get display names directly from MatchResponse
@@ -213,7 +220,8 @@ async function buildLeaderboard(
 
 function showJoinTournamentDialog(
   tournamentUuid: string,
-  tournamentName: string
+  tournamentName: string,
+  onJoinSuccess?: () => void | Promise<void>
 ) {
   // Create modal backdrop
   const backdrop = document.createElement('div');
@@ -310,10 +318,11 @@ function showJoinTournamentDialog(
       try {
         await window.api.joinTournament(tournamentUuid, alias);
 
-        // Success - close dialog and reload page to refresh tournament data
+        // Success - close dialog and refresh tournament data via SPA
         closeDialog();
-        // TODO: Replace with SPA state update
-        window.location.reload();
+        if (onJoinSuccess) {
+          void onJoinSuccess();
+        }
       } catch (error) {
         // Handle errors
         const errorMessage =
@@ -345,7 +354,8 @@ function getRoundColor(status: string): string {
 function renderTournamentHeader(
   container: HTMLElement,
   tournament: Tournament,
-  isParticipant: boolean
+  isParticipant: boolean,
+  onJoinSuccess?: () => void | Promise<void>
 ) {
   const tournamentHeader = document.createElement('div');
   tournamentHeader.className =
@@ -398,7 +408,11 @@ function renderTournamentHeader(
       text: 'Join Tournament',
       variant: 'secondary',
       onClick: () => {
-        showJoinTournamentDialog(tournament.uuid, tournament.tournamentName);
+        showJoinTournamentDialog(
+          tournament.uuid,
+          tournament.tournamentName,
+          onJoinSuccess
+        );
       },
       className: '!bg-accent !text-white hover:!bg-accent/90',
     });
@@ -598,7 +612,11 @@ function renderLoadingState(container: HTMLElement) {
   container.appendChild(loadingState);
 }
 
-function renderErrorState(container: HTMLElement, message: string) {
+function renderErrorState(
+  container: HTMLElement,
+  message: string,
+  onRetry?: () => void | Promise<void>
+) {
   const errorState = document.createElement('div');
   errorState.className = 'py-16 text-center';
   errorState.innerHTML = `
@@ -616,8 +634,12 @@ function renderErrorState(container: HTMLElement, message: string) {
   const retryBtn = errorState.querySelector('#retry-btn');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
-      // TODO no reloads!!!
-      window.location.reload();
+      if (onRetry) {
+        void onRetry();
+      } else {
+        // Fallback: re-initialize the route
+        void initRoute();
+      }
     });
   }
   container.appendChild(errorState);
@@ -737,14 +759,31 @@ export default async function initRoute() {
         }));
 
         // Fetch participant aliases
-        const participantsResponse: TournamentParticipantsResponse | null =
-          await window.api.getTournamentParticipants(tournamentUuid);
-        if (!participantsResponse) {
-          // TODO: pminialg handle error
-          return;
+        let participantsResponse: TournamentParticipantsResponse | null = null;
+        try {
+          participantsResponse =
+            await window.api.getTournamentParticipants(tournamentUuid);
+        } catch (error) {
+          console.error('Error fetching tournament participants:', error);
+          toast.show('Failed to fetch tournament participants', {
+            variant: 'error',
+          });
+          // Continue with existing data if available
+          if (allParticipantAliases.length === 0) {
+            return;
+          }
         }
 
-        allParticipantAliases = participantsResponse.participants;
+        if (!participantsResponse) {
+          console.warn('Participants response is null, using existing data');
+          // Continue with existing participant aliases if available
+          if (allParticipantAliases.length === 0) {
+            return;
+          }
+        } else {
+          allParticipantAliases = participantsResponse.participants;
+        }
+
         currentLeaderboard = await buildLeaderboard(
           updatedTournament,
           updatedRounds,
@@ -778,7 +817,8 @@ export default async function initRoute() {
         renderTournamentHeader(
           headerDiv,
           updatedTournament,
-          isParticipantRefresh
+          isParticipantRefresh,
+          refreshTournamentData
         );
         innerContainer.appendChild(headerDiv);
 
@@ -839,7 +879,9 @@ export default async function initRoute() {
     const tournament: Tournament | null =
       await window.api.getTournament(tournamentUuid);
     if (!tournament) {
-      renderErrorState(innerContainer, 'Tournament not found');
+      renderErrorState(innerContainer, 'Tournament not found', () =>
+        initRoute()
+      );
       return;
     }
 
@@ -882,10 +924,33 @@ export default async function initRoute() {
     }));
 
     // Fetch participant aliases
-    const participantsResponse: TournamentParticipantsResponse | null =
-      await window.api.getTournamentParticipants(tournamentUuid);
+    let participantsResponse: TournamentParticipantsResponse | null = null;
+    try {
+      participantsResponse =
+        await window.api.getTournamentParticipants(tournamentUuid);
+    } catch (error) {
+      console.error('Error fetching tournament participants:', error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch tournament participants';
+      renderErrorState(innerContainer, errorMessage, () => initRoute());
+      showApiError({
+        message: errorMessage,
+        status: 0,
+        shouldRedirect: false,
+      });
+      return;
+    }
+
     if (!participantsResponse) {
-      // TODO: pminialg handle error
+      const errorMessage = 'Failed to fetch tournament participants';
+      renderErrorState(innerContainer, errorMessage, () => initRoute());
+      showApiError({
+        message: errorMessage,
+        status: 0,
+        shouldRedirect: false,
+      });
       return;
     }
 
@@ -924,7 +989,12 @@ export default async function initRoute() {
 
     // Render header with tournament data
     const headerDiv = document.createElement('div');
-    renderTournamentHeader(headerDiv, tournament, isParticipant);
+    renderTournamentHeader(
+      headerDiv,
+      tournament,
+      isParticipant,
+      refreshTournamentData
+    );
     innerContainer.appendChild(headerDiv);
 
     // Add status badge to header
@@ -1073,9 +1143,10 @@ export default async function initRoute() {
       renderErrorState(
         innerContainer,
         'You must be a participant to view this tournament'
+        // No retry for Forbidden errors - user doesn't have permission
       );
     } else {
-      renderErrorState(innerContainer, errorMessage);
+      renderErrorState(innerContainer, errorMessage, () => initRoute());
     }
 
     showApiError({
