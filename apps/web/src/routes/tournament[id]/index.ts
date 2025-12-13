@@ -81,7 +81,7 @@ async function buildLeaderboard(
   for (const round of rounds) {
     for (const match of round.matches) {
       // Extract player info from matches (MatchResponse structure - now with player1Name/player2Name)
-      let matchResponse: MatchResponse | null = await window.api.getMatch(
+      const matchResponse: MatchResponse | null = await window.api.getMatch(
         match.uuid
       );
       if (!matchResponse) {
@@ -752,7 +752,7 @@ export default async function initRoute() {
         }));
 
         // Fetch participant aliases
-        let participantsResponse: TournamentParticipantsResponse | null =
+        const participantsResponse: TournamentParticipantsResponse | null =
           await window.api.getTournamentParticipants(tournamentUuid);
         if (!participantsResponse) {
           toast.show('Failed to fetch tournament participants', {
@@ -905,7 +905,7 @@ export default async function initRoute() {
     }));
 
     // Fetch participant aliases
-    let participantsResponse: TournamentParticipantsResponse | null =
+    const participantsResponse: TournamentParticipantsResponse | null =
       await window.api.getTournamentParticipants(tournamentUuid);
     if (!participantsResponse) {
       const errorMessage = 'Failed to fetch tournament participants';
