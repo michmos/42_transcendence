@@ -99,8 +99,6 @@ export default async function initRoute() {
       void navigateTo('/settings');
     },
     onLogoutClick: () => {
-      // Leave the 'online' room before logout so backend broadcasts offline status
-      cleanupOnlineStatusSocket();
       void handleLogout();
     },
   });
@@ -207,6 +205,24 @@ let friendsCardBody: HTMLElement | null = null;
 let friendsCardHeader: HTMLElement | null = null;
 let activeTabName: 'Friends' | 'Pending' | 'Blocked' = 'Friends';
 let currentUserNickname: string = '';
+
+interface IncomingMessage {
+  event: 'friends-updated';
+}
+
+const unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+  const message = JSON.parse(event.data as string) as IncomingMessage;
+
+  if (typeof message === 'object' && 'event' in message) {
+    switch (message.event) {
+      case 'friends-updated': {
+        void refreshFriendsData();
+        break;
+      }
+    }
+  }
+});
+window.router.onBeforeNavigate(unregisterOnMessageHook);
 
 async function refreshFriendsData() {
   const profileData = await window.api.getSelfUserProfile();
@@ -744,7 +760,7 @@ function createFriendItem(friend: FriendData): HTMLElement {
   `;
 
   item.addEventListener('click', () => {
-    navigateTo(`/user/${friend.otherUser}`);
+    window.router.refresh();
   });
 
   return item;
@@ -1298,18 +1314,6 @@ function listenForStatusUpdates() {
       // Ignore non-JSON or non-matching messages
     }
   });
-}
-
-function cleanupOnlineStatusSocket(): void {
-  // Leave rooms and close socket so backend broadcasts offline status
-  if (window.socket?.isConnected()) {
-    window.socket.leaveRoom('tournament:main');
-    // Close socket to trigger backend's onClose handler which broadcasts offline status
-    const ws = window.socket.getSocket();
-    ws.close();
-  }
-  currentUserNickname = '';
-  // Note: Rooms will be rejoined automatically when socket reconnects (via app.ts)
 }
 
 function handleOnlineStatusUpdate(status: OnlineStatus) {

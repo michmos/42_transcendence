@@ -11,6 +11,7 @@ import {
 } from './types.js';
 import { cleanFriendshipRecord } from './utils.js';
 import * as schemas from './friendshipValidationSchemas.js';
+import { messageSocketServer } from '../tournaments/utils.js';
 
 export default function (app: FastifyInstance): void {
   // ----------- Send friend request to another user
@@ -55,6 +56,12 @@ export default function (app: FastifyInstance): void {
 
         const cleanedFriendshipRecord: cleanedFriendshipRecord =
           cleanFriendshipRecord(uuidSelf, addedFriendResult);
+
+        await messageSocketServer('/friends', {
+          event: 'friends-updated',
+          uuid: uuidOther,
+        });
+
         return reply
           .code(200)
           .send({ cleanedFriendshipRecord, message: 'Friend request sent' });
@@ -124,6 +131,11 @@ export default function (app: FastifyInstance): void {
         const cleanedFriendshipRecord: cleanedFriendshipRecord =
           cleanFriendshipRecord(uuidSelf, updatedFriendshipState);
 
+        await messageSocketServer('/friends', {
+          event: 'friends-updated',
+          uuid: uuidOther,
+        });
+
         if (accept === true)
           return reply.code(200).send({
             cleanedFriendshipRecord,
@@ -176,6 +188,10 @@ export default function (app: FastifyInstance): void {
             .code(500)
             .send({ Error: 'Failed deleting friendRecord' });
 
+        await messageSocketServer('/friends', {
+          event: 'friends-updated',
+          uuid: uuidOther,
+        });
         if (result.state === friendshipState.REQUESTED)
           return reply
             .code(200)

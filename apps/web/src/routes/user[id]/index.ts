@@ -236,6 +236,24 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
   }
 }
 
+interface IncomingMessage {
+  event: 'friends-updated';
+}
+
+const unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+  const message = JSON.parse(event.data as string) as IncomingMessage;
+
+  if (typeof message === 'object' && 'event' in message) {
+    switch (message.event) {
+      case 'friends-updated': {
+        window.router.refresh();
+        break;
+      }
+    }
+  }
+});
+window.router.onBeforeNavigate(unregisterOnMessageHook);
+
 function createFriendshipActionButton(
   friendship: FriendData | undefined,
   nickname: string
@@ -261,10 +279,6 @@ function createFriendshipActionButton(
           button.className =
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
           // Refresh page to update friendship status
-          setTimeout(() => {
-            // TODO: Replace with SPA state update
-            window.location.reload();
-          }, 1000);
         } catch (error) {
           const errorMessage =
             error instanceof Error
@@ -294,10 +308,6 @@ function createFriendshipActionButton(
           button.textContent = 'Removed';
           button.className =
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
-          setTimeout(() => {
-            // TODO: Replace with SPA state update
-            window.location.reload();
-          }, 1000);
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Failed to remove friend';
@@ -330,10 +340,7 @@ function createFriendshipActionButton(
           acceptBtn.textContent = 'Accepting...';
           try {
             await window.api.acceptFriendRequest(nickname);
-            setTimeout(() => {
-              // TODO: Replace with SPA state update
-              window.location.reload();
-            }, 1000);
+            window.router.refresh();
           } catch (error) {
             const errorMessage =
               error instanceof Error
@@ -359,10 +366,7 @@ function createFriendshipActionButton(
           rejectBtn.textContent = 'Rejecting...';
           try {
             await window.api.rejectFriendRequest(nickname);
-            setTimeout(() => {
-              // TODO: Replace with SPA state update
-              window.location.reload();
-            }, 1000);
+            window.router.refresh();
           } catch (error) {
             const errorMessage =
               error instanceof Error
