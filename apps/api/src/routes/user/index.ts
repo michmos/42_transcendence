@@ -14,7 +14,11 @@ import {
 } from '../tournaments/validationSchemas.js';
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
-import type { UserMatchRecord, UserDashboardResponse } from 'types';
+import type {
+  UserMatchRecord,
+  UserDashboardResponse,
+  TournamentParticipation,
+} from 'types';
 
 export default function (app: FastifyInstance): void {
   // ----------- Get all users
@@ -33,10 +37,6 @@ export default function (app: FastifyInstance): void {
   app.get('/me/uuid', async function (request, reply) {
     return reply.status(200).send({ uuid: getUuid(request) });
   });
-
-  // TODO: Hacked this in as the web is requesting /me for own user data
-
-  // Might need to refactor later
 
   app.get('/me', async function (request, reply) {
     try {
@@ -177,8 +177,27 @@ export default function (app: FastifyInstance): void {
           Error: 'Invalid file type. Needs to be .png, .jpeg or .jpg',
         });
       }
+
+      const userOwnData = await app.db.getUserMe(uuidSelf);
+      let oldImagePath: string | null = null;
+      if (userOwnData.avatar !== null) {
+        oldImagePath = path.join(`${env.CDN_PATH}`, userOwnData.avatar);
+      }
+
       // Setting/replacing image file path in user's record database
       const userData = await app.db.setUserMeAvatar(uuidSelf, filePath);
+
+      // Deleting old image
+      if (
+        oldImagePath &&
+        userOwnData.avatar &&
+        userOwnData.avatar !== 'avatars/base_avatar.png'
+      ) {
+        fs.unlink(oldImagePath, (error) => {
+          if (error) app.log.error(error);
+        });
+      }
+
       return reply.code(200).send(cleanSelfUserData(userData));
     } catch (error) {
       app.log.error(error);
@@ -191,11 +210,12 @@ export default function (app: FastifyInstance): void {
     '/me/tournaments',
     { schema: getTournaments },
     async function (request, reply) {
-      const tournaments = await app.db.getTournamentsByParticipant(
-        getUuid(request),
-        request.query.status
-      );
-      return reply.status(200).send(tournaments);
+      const participations: TournamentParticipation[] =
+        await app.db.getTournamentParticipationsByUserAndStatus(
+          getUuid(request),
+          request.query.status
+        );
+      return reply.status(200).send(participations);
     }
   );
 
@@ -209,7 +229,26 @@ export default function (app: FastifyInstance): void {
         const user = await app.db.getUserByNickname(nickname);
         if (!user) return reply.code(404).send({ Error: 'user not found' });
         const cleanedUser = cleanOtherUserData(user);
-        return reply.code(200).send(cleanedUser);
+
+        // Calculate stats from actual match history and tournaments (like profile page does)
+        const userMatches = await app.db.getUserMatchHistory(user.uuid);
+        const totalMatches = userMatches.length;
+        const gamesWon = userMatches.filter(
+          (match) => match.result === 'WON'
+        ).length;
+
+        // Get tournament participations count
+        const tournamentParticipations =
+          await app.db.getTournamentParticipationsByUserAndStatus(user.uuid);
+        const tournaments = tournamentParticipations.length;
+
+        return reply.code(200).send({
+          ...cleanedUser,
+          // Override with calculated values from actual data
+          gamesPlayed: totalMatches,
+          gamesWon: gamesWon,
+          tournamentsPlayed: tournaments,
+        });
       } catch (error) {
         app.log.error(error);
         return reply.code(500).send({ Error: 'Failed getting user' });

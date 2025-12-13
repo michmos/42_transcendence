@@ -133,10 +133,10 @@ class OAuth {
       }
 
       // Populate request.user with a placeholder user object for API key authenticated requests
-      // request.user = {
-      //   uuid: null, // Placeholder UUID for API key users
-      //   role: adminRole, // Placeholder role for API key users
-      // };
+      request.user = {
+        uuid: 'placeholder-uuid', // Placeholder UUID for API key users
+        role: adminRole, // Placeholder role for API key users
+      };
       return;
     } else {
       console.info(
@@ -258,6 +258,7 @@ export interface State {
   state: string;
   ipNumber: string;
   provider: OAuthProvider;
+  cli: boolean;
   createdAt: Date;
   expiresAt: Date;
 }

@@ -3,7 +3,7 @@ import { Socket } from './plugins/websocket/index.js';
 import API from './plugins/api/index.js';
 
 // Connect to WebSocket server
-const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket/`;
+const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`;
 window.socket = new Socket(socketUrl);
 
 // Initialize router
@@ -14,7 +14,7 @@ window.router = router;
 window.api = API;
 
 // Fetch current user profile
-window.user = await window.api.user.getUserProfile();
+window.user = await window.api.getUserProfile();
 
 // Render initial route based on authentication state
 if (window.user == null) {

@@ -7,35 +7,13 @@
  */
 
 // Import Prisma-generated types from database package
-import type {
-  Tournament as PrismaTournament,
-  TournamentRound as PrismaTournamentRound,
-  Match as PrismaMatch,
-  status,
-  User as PrismaUser,
-} from 'db/generated/client/index.js';
-
-// Extend types to include relations used in the frontend
-export type Match = PrismaMatch;
-
-export interface TournamentRound extends PrismaTournamentRound {
-  matches: Match[];
-}
-
-export interface Tournament extends PrismaTournament {
-  participants?: Array<{
-    uuid: string; // Participation record UUID (not user UUID)
-    alias: string; // Tournament-specific alias
-    user: {
-      uuid: string; // User UUID
-      nickname?: string;
-    };
-  }>;
-  rounds?: TournamentRound[];
-}
+import type { status, User as PrismaUser } from 'db/generated/client/index.js';
 
 export type { status };
 export type User = PrismaUser;
+
+// Import TournamentParticipantsResponse from types package
+export type { TournamentParticipantsResponse } from 'types';
 
 /**
  * Input type for creating a tournament
@@ -46,8 +24,6 @@ export interface CreateTournamentInput {
   minPlayers: number; // minimum: 2, maximum: 8
   maxPlayers: number; // minimum: 2, maximum: 16
   alias: string; // minLength: 1, maxLength: 50
-  lockTime?: number; // optional
-  gameTime?: number; // optional
 }
 
 /**

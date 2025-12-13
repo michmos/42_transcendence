@@ -4,6 +4,7 @@ export interface MatchCardProps {
   score: string;
   tournament: string;
   result: 'win' | 'loss';
+  date?: string;
   className?: string;
   onClick?: () => void;
 }
@@ -58,6 +59,22 @@ export class MatchCard {
     // Left: Avatar + Player Info
     const leftDiv = document.createElement('div');
     leftDiv.className = 'flex items-center gap-3 flex-1';
+
+    // Format date if provided
+    let formattedDate = '';
+    if (this.props.date) {
+      try {
+        const dateObj = new Date(this.props.date);
+        formattedDate = dateObj.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      } catch {
+        formattedDate = this.props.date;
+      }
+    }
+
     leftDiv.innerHTML = `
       <div class="h-10 w-10 border-2 border-border rounded-full flex items-center justify-center text-foreground bg-muted font-semibold">
         ${initials}
@@ -65,6 +82,7 @@ export class MatchCard {
       <div class="flex-1">
         <p class="font-semibold text-foreground">${this.props.playerName}</p>
         <p class="text-sm text-muted-foreground">${this.props.tournament}</p>
+        ${formattedDate ? `<p class="text-xs text-muted-foreground mt-0.5">${formattedDate}</p>` : ''}
       </div>
     `;
 

@@ -1,8 +1,7 @@
 import { Navbar, StatCard, GlassCard } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import UserAPI, { type ProfileFriend } from '../../plugins/api/user.js';
-import FriendsAPI from '../../plugins/api/friends.js';
+import { type ProfileFriend } from '../../plugins/api/user.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 export default function initRoute() {
@@ -44,7 +43,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch current user data for navbar
-  const currentUserInfo = await UserAPI.getMe();
+  const currentUserInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
@@ -72,7 +71,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
 
   try {
     // Fetch user data first - check if user exists before showing loading state
-    const userData = await UserAPI.getUserByNickname(nickname);
+    const userData = await window.api.getUserByNickname(nickname);
 
     // Check if user exists immediately - show error right away, no loading state
     if (!userData || !userData.nickname) {
@@ -90,7 +89,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     mainContent.appendChild(loadingDiv);
 
     // Check if viewing own profile
-    const currentUserProfile = await UserAPI.getUserProfile();
+    const currentUserProfile = await window.api.getUserProfile();
     const isSelf =
       currentUserProfile?.cleanedUserData['nickname']?.toLowerCase() ===
       nickname.toLowerCase();
@@ -116,7 +115,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     const pageHeader = document.createElement('div');
     pageHeader.className = 'mb-8 flex items-center gap-6';
 
-    const avatar = userData.avatar || null;
+    const avatar = getAvatarSrc(userData.avatar);
     const userNickname = userData['nickname'] || nickname;
 
     const avatarDisplay = document.createElement('div');
@@ -169,11 +168,12 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
       'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
     leftColumn.appendChild(statsGrid);
 
-    const totalMatches = userData.gamesPlayed || 0;
-    const gamesWon = userData.gamesWon || 0;
+    // Extract stats from userData (now calculated from actual match history by backend)
+    const totalMatches = userData.gamesPlayed ?? 0;
+    const gamesWon = userData.gamesWon ?? 0;
     const winRate =
       totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
-    const tournaments = userData.tournamentsPlayed || 0;
+    const tournaments = userData.tournamentsPlayed ?? 0;
 
     // Calculate friends count (ACCEPTED friends)
     // Use same logic as profile page: filter ACCEPTED friends
@@ -264,7 +264,7 @@ function createFriendshipActionButton(
         button.disabled = true;
         button.textContent = 'Sending...';
         try {
-          await FriendsAPI.sendFriendRequest(nickname);
+          await window.api.sendFriendRequest(nickname);
           button.textContent = 'Request Sent';
           button.className =
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
@@ -298,7 +298,7 @@ function createFriendshipActionButton(
         button.disabled = true;
         button.textContent = 'Removing...';
         try {
-          await FriendsAPI.removeFriend(nickname);
+          await window.api.removeFriend(nickname);
           button.textContent = 'Removed';
           button.className =
             'px-6 py-3 bg-muted text-foreground font-semibold rounded-lg cursor-not-allowed opacity-50';
@@ -337,7 +337,7 @@ function createFriendshipActionButton(
           acceptBtn.disabled = true;
           acceptBtn.textContent = 'Accepting...';
           try {
-            await FriendsAPI.acceptFriendRequest(nickname);
+            await window.api.acceptFriendRequest(nickname);
             setTimeout(() => {
               // TODO: Replace with SPA state update
               window.location.reload();
@@ -366,7 +366,7 @@ function createFriendshipActionButton(
           rejectBtn.disabled = true;
           rejectBtn.textContent = 'Rejecting...';
           try {
-            await FriendsAPI.rejectFriendRequest(nickname);
+            await window.api.rejectFriendRequest(nickname);
             setTimeout(() => {
               // TODO: Replace with SPA state update
               window.location.reload();

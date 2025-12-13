@@ -23,16 +23,6 @@ export interface UserMatchRecord {
   gameType: string;
 }
 
-// export interface MatchResult {
-//   updatedAt: Date;
-//   score1: number;
-//   score2: number;
-//   player1: { nickname: string } | null;
-//   player2: { nickname: string } | null;
-//   tournamentRoundId: string | null;
-//   winnerId: string | null;
-// }
-
 export interface UserDashboardResponse {
   cleanedUserData: Partial<User>;
   cleanedUserFriends: Array<Partial<Friendship>>;
@@ -48,6 +38,11 @@ export interface OnlineStatus {
 export interface OnlineUser {
   nickname: string;
   socketCount: number;
+}
+
+export interface TournamentParticipation {
+  tournamentId: string;
+  alias: string;
 }
 
 export type OnlineUsers = Map<string, OnlineUser>;

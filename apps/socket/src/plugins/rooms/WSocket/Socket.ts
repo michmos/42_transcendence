@@ -43,7 +43,6 @@ export default class WSocket {
     });
 
     this.socket.on('message', (input: Buffer) => {
-      this.consoleLog(`new message`);
       this.messageQueue.push(input);
       void this.processMessageQueue();
     });

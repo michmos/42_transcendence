@@ -1,14 +1,15 @@
 import { Navbar, Card, Badge } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import TournamentAPI from '../../plugins/api/tournaments.js';
-import MatchAPI from '../../plugins/api/match.js';
-import UserAPI from '../../plugins/api/user.js';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
 import { joinTournamentMatch } from '../game/buttonLogic.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
+import type { TournamentParticipation } from 'types';
+import { setIsLocalGame } from '../profile/index.js';
+
+import { setupWebSocketHook } from '../game/index.js';
 
 // UI Match interface (mapped from backend)
 interface Match {
@@ -212,7 +213,10 @@ function renderMatches(
           startButton.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            setIsLocalGame(false);
+            setupWebSocketHook();
             joinTournamentMatch(match.id);
+            navigateTo('/game');
           });
         }
       }
@@ -274,10 +278,35 @@ function renderErrorState(container: HTMLElement, message: string) {
   const retryBtn = errorState.querySelector('#retry-btn');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
+      // TODO no reloads!!!
       window.location.reload();
     });
   }
   container.appendChild(errorState);
+}
+
+/**
+ * Get user's tournament alias using two strategies:
+ *
+ * @param tournamentId - Tournament UUID to match against
+ * @returns Promise<string | null> - User's alias for the tournament, or null if not found
+ */
+async function getUserTournamentAlias(
+  tournamentId: string
+): Promise<string | null> {
+  const currentUserId = window.user?.cleanedUserData.uuid;
+  if (!currentUserId) return null;
+
+  try {
+    const myTournaments: TournamentParticipation[] =
+      await window.api.getMyTournaments();
+    return (
+      myTournaments.find((t) => t.tournamentId === tournamentId)?.alias || null
+    );
+  } catch (error) {
+    console.error('Error fetching tournament alias:', (error as Error).message);
+  }
+  return null;
 }
 
 export default async function initRoute() {
@@ -315,7 +344,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch user data for navbar
-  const userInfo = await UserAPI.getMe();
+  const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [
@@ -369,11 +398,11 @@ export default async function initRoute() {
   const refreshRoundData = async () => {
     try {
       // Re-fetch tournament
-      const tournament = await TournamentAPI.getTournament(tournamentId);
+      const tournament = await window.api.getTournament(tournamentId);
       if (!tournament) return;
 
       // Re-fetch round
-      const round = await TournamentAPI.getTournamentRound(
+      const round = await window.api.getTournamentRound(
         tournamentId,
         roundIndex
       );
@@ -381,7 +410,7 @@ export default async function initRoute() {
 
       // Fetch full match details for each match UUID
       const matchDetails = await Promise.all(
-        round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+        round.matches.map((match) => window.api.getMatch(match.uuid))
       );
 
       // Map matches using MatchResponse data
@@ -404,26 +433,8 @@ export default async function initRoute() {
           };
         });
 
-      // Get user's tournament alias from tournament.participants
-      const currentUserId = window.user?.cleanedUserData.uuid;
-      let userAlias: string | null = null;
-
-      if (currentUserId && tournament.participants) {
-        const userParticipant = tournament.participants.find(
-          (p) => p.user.uuid === currentUserId
-        );
-        userAlias = userParticipant?.alias || null;
-      }
-
-      // Get alias from localStorage (stored when joining/creating tournament)
-      if (!userAlias) {
-        const storedAlias = localStorage.getItem(
-          `tournament-${tournamentId}-alias`
-        );
-        if (storedAlias) {
-          userAlias = storedAlias;
-        }
-      }
+      // Get user's tournament alias
+      const userAlias = await getUserTournamentAlias(tournamentId);
 
       // Clear and re-render
       innerContainer.innerHTML = '';
@@ -442,17 +453,14 @@ export default async function initRoute() {
 
   try {
     // Fetch tournament data
-    const tournament = await TournamentAPI.getTournament(tournamentId);
+    const tournament = await window.api.getTournament(tournamentId);
     if (!tournament) {
       renderErrorState(innerContainer, 'Tournament not found');
       return;
     }
 
     // Fetch round data
-    const round = await TournamentAPI.getTournamentRound(
-      tournamentId,
-      roundIndex
-    );
+    const round = await window.api.getTournamentRound(tournamentId, roundIndex);
     if (!round) {
       renderErrorState(innerContainer, 'Round not found');
       return;
@@ -460,7 +468,7 @@ export default async function initRoute() {
 
     // Fetch full match details for each match UUID
     const matchDetails = await Promise.all(
-      round.matches.map((match) => MatchAPI.getMatch(match.uuid))
+      round.matches.map((match) => window.api.getMatch(match.uuid))
     );
 
     // Map matches using MatchResponse data
@@ -483,27 +491,7 @@ export default async function initRoute() {
       });
 
     // Get user's tournament alias
-    const currentUserId = window.user?.cleanedUserData.uuid;
-
-    let userAlias: string | null = null;
-
-    // Strategy 1: Get alias from tournament.participants by matching user UUID
-    if (currentUserId && tournament.participants) {
-      const userParticipant = tournament.participants.find(
-        (p) => p.user.uuid === currentUserId
-      );
-      userAlias = userParticipant?.alias || null;
-    }
-
-    // Strategy 2: Get alias from localStorage (stored when joining/creating tournament)
-    if (!userAlias) {
-      const storedAlias = localStorage.getItem(
-        `tournament-${tournamentId}-alias`
-      );
-      if (storedAlias) {
-        userAlias = storedAlias;
-      }
-    }
+    const userAlias = await getUserTournamentAlias(tournamentId);
 
     // Render content
     innerContainer.innerHTML = '';
