@@ -208,6 +208,25 @@ let friendsCardHeader: HTMLElement | null = null;
 let activeTabName: 'Friends' | 'Pending' | 'Blocked' = 'Friends';
 let currentUserNickname: string = '';
 
+interface IncomingMessage {
+  event: 'friends-updated';
+}
+
+let unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+  const message = JSON.parse(event.data as string) as IncomingMessage;
+
+  if (typeof message === 'object' && 'event' in message) {
+    console.log('friends message received');
+    switch (message.event) {
+      case 'friends-updated': {
+        refreshFriendsData();
+        break;
+      }
+    }
+  }
+});
+window.router.onBeforeNavigate(unregisterOnMessageHook);
+
 async function refreshFriendsData() {
   const profileData = await window.api.getUserProfile();
   if (profileData && friendsCardBody && friendsCardHeader) {
@@ -733,7 +752,7 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
   `;
 
   item.addEventListener('click', () => {
-    navigateTo(`/user/${friend.otherUser}`);
+    window.router.refresh();
   });
 
   return item;
