@@ -1283,7 +1283,6 @@ function listenForStatusUpdates() {
   if (!window.socket) return;
 
   // Listen for status updates
-  // TODO: Needs unregister method
   window.socket.registerWebSocketHook((event: MessageEvent) => {
     try {
       const parsed: unknown = JSON.parse(event.data as string);
