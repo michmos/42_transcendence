@@ -1,7 +1,6 @@
 import { SimpleRouter } from './plugins/router/index.js';
 import { Socket } from './plugins/websocket/index.js';
 import API from './plugins/api/index.js';
-import { registerGlobaMessages } from './plugins/websocket/global.js';
 async function start() {
   // Application started
   const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`;
@@ -23,7 +22,6 @@ async function start() {
   } else {
     // Initialize WebSocket connection
     window.socket = new Socket(socketUrl);
-    registerGlobaMessages();
 
     // Redirect to profile if on root or login
     if (

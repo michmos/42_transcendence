@@ -51,7 +51,16 @@ export async function getUserMatchHistory(
     where: {
       AND: [
         {
-          OR: [{ player1Id: uuid }, { player2Id: uuid }],
+          OR: [
+            {
+              player1Id: uuid,
+              NOT: { player2Id: null },
+            },
+            {
+              player2Id: uuid,
+              NOT: { player1Id: null },
+            },
+          ],
         },
         {
           status: status.finished,

@@ -37,27 +37,34 @@ export default class Authenticate {
   }
 
   async getProviders(hostname: string) {
-    const response = await fetch(`${hostname}api/auth/providers`, {
-      method: 'GET',
-    });
+    try {
+      const response = await fetch(`${hostname}api/auth/providers`, {
+        method: 'GET',
+      });
 
-    if (response.status !== 200) {
-      console.log(
-        `Failed to fetch providers from server. Status code: ${response.status}`
-      );
+      if (response.status !== 200) {
+        console.log(
+          `Failed to fetch providers from server. Status code: ${response.status}`
+        );
+        process.exit(0);
+      }
+      const data = (await response.json()) as
+        | Array<{
+            name: string;
+            buttonUri: string;
+          }>
+        | { providers: Array<{ name: string; buttonUri: string }> };
+
+      const providersArray = Array.isArray(data)
+        ? data
+        : (data.providers ?? []);
+
+      this.providers.splice(0, this.providers.length, ...providersArray);
+      return this.providers;
+    } catch {
+      console.log(`Failed to fetch providers from server:`, hostname);
       process.exit(0);
     }
-    const data = (await response.json()) as
-      | Array<{
-          name: string;
-          buttonUri: string;
-        }>
-      | { providers: Array<{ name: string; buttonUri: string }> };
-
-    const providersArray = Array.isArray(data) ? data : (data.providers ?? []);
-
-    this.providers.splice(0, this.providers.length, ...providersArray);
-    return this.providers;
   }
 
   async loginWithToken(token: string, hostname: string): Promise<User | null> {

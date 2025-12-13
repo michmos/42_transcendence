@@ -7,7 +7,17 @@ import { API } from '../../plugins/api/index.js';
 
 const waitingList: WSocket[] = [];
 let lastGameId = 0;
+// each socket can be in one game room
 const socketToGameroom = new Map<WSocket, string>();
+
+function userAlreadyInGame(uuid: string): boolean {
+  for (const [s] of socketToGameroom) {
+    if (s.uuid === uuid) {
+      return true;
+    }
+  }
+  return false;
+}
 
 function sendRole(socket: WSocket, role: 'local' | 'player1' | 'player2') {
   socket.send(
@@ -182,7 +192,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
 }
 
 export function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
-  if (socketToGameroom.has(socket)) {
+  if (userAlreadyInGame(socket.uuid)) {
     socket.consoleLog('tried to join a game while already in one');
     socket.sendError('You can only be in one game at a time');
     return;

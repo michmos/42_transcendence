@@ -18,6 +18,7 @@ import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 import toast from '../../utils/toast.js';
 import type { OnlineStatus } from 'types';
 import { setupWebSocketHook } from '../game/index.js';
+import { shouldShowNotification } from '../../utils/notification-dedup.js';
 
 export let isLocalGame = true;
 
@@ -34,6 +35,21 @@ declare global {
     navigateToRoute?: (href: string) => void;
   }
 }
+
+interface WebSocketMessage {
+  event: string;
+  data?: unknown;
+  message?: string;
+}
+
+window.socket.registerWebSocketHook((event: MessageEvent) => {
+  const data = JSON.parse(event.data as string) as WebSocketMessage;
+  if (data.event === 'notify') {
+    if (data.message && shouldShowNotification(data.message)) {
+      toast.show(data.message, { variant: 'info' });
+    }
+  }
+});
 
 // Match data interface for MatchCard component
 interface MatchData {
@@ -753,7 +769,7 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
   `;
 
   item.addEventListener('click', () => {
-    window.router.refresh();
+    window.router.navigate(`/user/${friend.otherUser}`);
   });
 
   return item;
@@ -985,7 +1001,6 @@ function createSearchResultItem(
       <p class="font-semibold text-foreground">${nickname}</p>
       <div class="flex items-center gap-2 mt-1">
         ${statusBadge}
-        ${user.gamesPlayed !== undefined ? `<span class="text-xs text-muted-foreground">${user.gamesPlayed} games</span>` : ''}
       </div>
     </div>
     <div>
