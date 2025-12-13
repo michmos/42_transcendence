@@ -215,7 +215,7 @@ export async function createTournamentRound(
     });
 
     // increment numberOfRounds in tournament
-    // TODO: select just round and return it here instead of querying again
+    // TODO:LOW PRIO: select just round and return it here instead of querying again
     await tx.tournament.update({
       where: { uuid: tournamentId },
       data: { numberOfRounds: { increment: 1 } },

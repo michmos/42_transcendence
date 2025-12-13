@@ -309,6 +309,7 @@ function showJoinTournamentDialog(
 
       try {
         await window.api.joinTournament(tournamentUuid, alias);
+        tournamentSocket.joinTournament(tournamentUuid);
 
         // Success - close dialog and refresh tournament data via SPA
         closeDialog();
@@ -1094,9 +1095,6 @@ export default async function initRoute() {
         }
       });
     }
-
-    // Join specific tournament room (will fail gracefully if backend not ready)
-    tournamentSocket.joinTournament(tournamentUuid);
   } catch (error) {
     innerContainer.innerHTML = '';
     const errorMessage =
