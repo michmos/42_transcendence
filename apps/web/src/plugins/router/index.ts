@@ -62,6 +62,10 @@ class SimpleRouter {
     void this.render();
   }
 
+  refresh() {
+    void this.render();
+  }
+
   private matchRoute(path: string): RouteMatch | null {
     // Check static routes
     const staticRoute = (routes as Record<string, RouteConfig>)[path];
