@@ -337,7 +337,7 @@ function showJoinTournamentDialog(
         await window.api.joinTournament(tournamentUuid, alias);
         tournamentSocket.joinTournament(tournamentUuid);
 
-        // Success - close dialog and reload page to refresh tournament data
+        // Success - close dialog and wait for socket updates
         closeDialog();
       } catch (error) {
         // Handle errors
