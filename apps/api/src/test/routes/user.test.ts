@@ -75,7 +75,7 @@ describe('GET /user/me/dashboard', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      CleanedSelfUserData: {
+      cleanedUser: {
         createdAt: expect.any(String),
         avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),
@@ -208,7 +208,7 @@ describe('GET /user/me/dashboard', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      CleanedSelfUserData: {
+      cleanedUser: {
         createdAt: expect.any(String),
         avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),
@@ -334,8 +334,16 @@ describe('GET /user/:nickname', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      nickname: expect.any(String),
-      avatar: 'https://cdn.example.com/someAvatar',
+      cleanedUser: {
+        nickname: expect.any(String),
+        avatar: 'https://cdn.example.com/someAvatar',
+        isOnline: false
+      },
+      matches: {
+        gamesPlayed: 0,
+        gamesWon: 0,
+        tournamentsPlayed: 0,
+      }
     });
   });
 
