@@ -1077,6 +1077,7 @@ export default async function initRoute() {
 
     // Handle "notify" events (not supported by tournamentSocket plugin)
     if (window.socket) {
+      // TODO: Needs unregister method in Socket class
       window.socket.registerWebSocketHook((event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data as string) as {

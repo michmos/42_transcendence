@@ -66,6 +66,7 @@ class TournamentSocket {
       }
     };
 
+    // TODO: Needs unregister method in Socket class
     window.socket.registerWebSocketHook(this.messageHandler);
     this.isInitialized = true;
   }

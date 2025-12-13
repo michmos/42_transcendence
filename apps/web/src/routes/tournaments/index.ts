@@ -5,7 +5,7 @@ import type { Tournament, status } from 'db/generated/client/index.js';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
-import { shouldShowNotification } from '../../utils/notification-dedup.js';
+
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // Extend Window interface for SPA navigation
@@ -71,33 +71,6 @@ function mapTournamentToUI(tournament: Tournament): TournamentUI {
     startDate: formatDate(tournament.createdAt),
   };
 }
-
-interface WebSocketMessage {
-  event: string;
-  data?: unknown;
-  message?: string;
-}
-
-// TODO: handle events
-// @pminialg this can be deleted i guess?
-window.socket.registerWebSocketHook((event: MessageEvent) => {
-  const data = JSON.parse(event.data as string) as WebSocketMessage;
-  if (data.event === 'tournament-updated') {
-    console.log('Tournament updated:', data);
-  } else if (data.event === 'tournament-joined') {
-    console.log('Tournament joined:', data);
-  } else if (data.event === 'tournament-left') {
-    console.log('Tournament left:', data);
-  } else if (data.event === 'tournament-created') {
-    console.log('Tournament created:', data);
-  } else if (data.event === 'tournament-started') {
-    console.log('Tournament started:', data);
-  } else if (data.event === 'notify') {
-    if (data.message && shouldShowNotification(data.message)) {
-      toast.show(data.message, { variant: 'info' });
-    }
-  }
-});
 
 function getStatusColor(status: string): string {
   switch (status) {
