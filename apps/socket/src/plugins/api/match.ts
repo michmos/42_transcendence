@@ -54,6 +54,8 @@ export async function patchFinishedTournamentMatch(
     },
     credentials: 'include',
     body: JSON.stringify({
+      player1Id: game.player1Uuid,
+      player2Id: game.player2Uuid,
       score1: game.currentGameState.leftScore,
       score2: game.currentGameState.rightScore,
       winnerId,

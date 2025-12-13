@@ -39,6 +39,8 @@ export const updateMatch = {
           Object.values(statusEnum).map((value) => Type.Literal(value))
         )
       ),
+      player1Id: Type.Optional(Type.String()),
+      player2Id: Type.Optional(Type.String()),
       winnerId: Type.Optional(Type.String()),
       score1: Type.Optional(Type.Number()),
       score2: Type.Optional(Type.Number()),
