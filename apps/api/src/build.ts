@@ -5,7 +5,6 @@ import Fastify, {
   type FastifyRequest,
   type FastifyReply,
 } from 'fastify';
-// import fastifyStatic from '@fastify/static';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 

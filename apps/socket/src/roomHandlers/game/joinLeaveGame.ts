@@ -6,7 +6,7 @@ import { type MatchParticipantsResponse } from 'types';
 import { API } from '../../plugins/api/index.js';
 
 const waitingList: WSocket[] = [];
-let lastGameId = 0; // TODO: LOW PRIO: replace with some uuid
+let lastGameId = 0;
 const socketToGameroom = new Map<WSocket, string>();
 
 function sendRole(socket: WSocket, role: 'local' | 'player1' | 'player2') {

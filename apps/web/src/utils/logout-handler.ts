@@ -1,16 +1,22 @@
 /**
- * Shared logout handler
- * Can be used by all routes to handle logout consistently
- */
-
-import { logout } from '../plugins/api/auth.js';
-
-/**
  * Handle user logout
  * Calls logout API which clears the cookie and returns to /
  */
 export async function handleLogout(): Promise<void> {
-  await logout();
+  try {
+    const response = await fetch('/api/auth/logout', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to logout: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error during logout:', error);
+    throw error;
+  }
+
   window.user = null;
   window.router.navigate('/login');
 }

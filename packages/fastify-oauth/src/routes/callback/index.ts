@@ -89,7 +89,7 @@ function setupCallbackRoute(ctx: OAuthContext) {
       secure: process.env.NODE_ENV === 'production',
       path: '/',
     });
-
+    // Redirect to success URL or home
     reply.redirect(ctx.successRedirectUrl || '/');
   });
 }
