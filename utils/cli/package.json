@@ -27,14 +27,14 @@
     "jsonwebtoken": "^9.0.2",
     "ws": "^8.18.3",
     "zod": "^4.1.5",
-    "db": "../../packages/database"
+    "db": "../../packages/database",
+    "pino-pretty": "^13.1.2"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.3.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
-    "pino-pretty": "^13.1.2"
+    "typescript": "^5.9.2"
   }
 }

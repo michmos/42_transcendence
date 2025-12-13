@@ -48,6 +48,7 @@ RUN pnpm run build
 FROM node:20-alpine AS production-api
 
 ARG CORS_URL
+ENV NODE_ENV=production
 ENV CORS_URL=$CORS_URL
 
 ARG DATABASE_URL
