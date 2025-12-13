@@ -81,18 +81,10 @@ async function buildLeaderboard(
   for (const round of rounds) {
     for (const match of round.matches) {
       // Extract player info from matches (MatchResponse structure - now with player1Name/player2Name)
-      let matchResponse: MatchResponse | null = null;
-      try {
-        matchResponse = await window.api.getMatch(match.uuid);
-      } catch (error) {
-        console.error(`Error fetching match ${match.uuid}:`, error);
-        // Skip this match and continue building leaderboard
-        continue;
-      }
-
+      let matchResponse: MatchResponse | null = await window.api.getMatch(
+        match.uuid
+      );
       if (!matchResponse) {
-        console.warn(`Match response is null for uuid: ${match.uuid}`);
-        // Skip this match and continue building leaderboard
         continue;
       }
 
@@ -759,24 +751,12 @@ export default async function initRoute() {
         }));
 
         // Fetch participant aliases
-        let participantsResponse: TournamentParticipantsResponse | null = null;
-        try {
-          participantsResponse =
-            await window.api.getTournamentParticipants(tournamentUuid);
-        } catch (error) {
-          console.error('Error fetching tournament participants:', error);
+        let participantsResponse: TournamentParticipantsResponse | null =
+          await window.api.getTournamentParticipants(tournamentUuid);
+        if (!participantsResponse) {
           toast.show('Failed to fetch tournament participants', {
             variant: 'error',
           });
-          // Continue with existing data if available
-          if (allParticipantAliases.length === 0) {
-            return;
-          }
-        }
-
-        if (!participantsResponse) {
-          console.warn('Participants response is null, using existing data');
-          // Continue with existing participant aliases if available
           if (allParticipantAliases.length === 0) {
             return;
           }
@@ -924,25 +904,8 @@ export default async function initRoute() {
     }));
 
     // Fetch participant aliases
-    let participantsResponse: TournamentParticipantsResponse | null = null;
-    try {
-      participantsResponse =
-        await window.api.getTournamentParticipants(tournamentUuid);
-    } catch (error) {
-      console.error('Error fetching tournament participants:', error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to fetch tournament participants';
-      renderErrorState(innerContainer, errorMessage, () => initRoute());
-      showApiError({
-        message: errorMessage,
-        status: 0,
-        shouldRedirect: false,
-      });
-      return;
-    }
-
+    let participantsResponse: TournamentParticipantsResponse | null =
+      await window.api.getTournamentParticipants(tournamentUuid);
     if (!participantsResponse) {
       const errorMessage = 'Failed to fetch tournament participants';
       renderErrorState(innerContainer, errorMessage, () => initRoute());

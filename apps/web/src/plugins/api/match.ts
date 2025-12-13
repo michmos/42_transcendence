@@ -14,12 +14,9 @@ const MatchAPI = {
         credentials: 'include',
       });
 
-      if (response.status === 404) {
-        return null;
-      }
-
       if (!response.ok) {
-        throw new Error(`Failed to fetch match: ${response.status}`);
+        console.error(`Failed to fetch match: ${response.status}`);
+        return null;
       }
 
       return (await response.json()) as MatchResponse;
