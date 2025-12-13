@@ -1,4 +1,4 @@
-import { type FastifyError, type FastifyInstance } from 'fastify';
+import { type FastifyInstance } from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 
 import { AuthorizationCode, type AccessToken } from 'simple-oauth2';
