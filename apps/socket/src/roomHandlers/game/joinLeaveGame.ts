@@ -7,7 +7,7 @@ import { API } from '../../plugins/api/index.js';
 
 const waitingList: WSocket[] = [];
 let lastGameId = 0;
-const uuidToGameroom = new Map<string, string>();
+const socketToGameroom = new Map<WSocket, string>();
 
 function sendRole(socket: WSocket, role: 'local' | 'player1' | 'player2') {
   socket.send(
@@ -59,8 +59,8 @@ async function handleJoinOnlineGame(socket: WSocket) {
   });
 
   // add to match map
-  uuidToGameroom.set(socket.uuid, roomName);
-  uuidToGameroom.set(otherSocket.uuid, roomName);
+  socketToGameroom.set(socket, roomName);
+  socketToGameroom.set(otherSocket, roomName);
 
   RoomManager.get(roomName)?.broadcast(
     JSON.stringify({
@@ -98,7 +98,7 @@ async function handleJoinLocalGame(socket: WSocket) {
   });
 
   // add to match map
-  uuidToGameroom.set(socket.uuid, newRoomName);
+  socketToGameroom.set(socket, newRoomName);
 
   // notify clients
   socket.send(
@@ -150,7 +150,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
   const room = RoomManager.get(roomName);
   socket.join(roomName);
   socket.consoleLog(`joined tournament match game room: ${roomName}`);
-  uuidToGameroom.set(socket.uuid, roomName);
+  socketToGameroom.set(socket, roomName);
   if (!room) {
     // opponent not joined yet
     sendRole(socket, 'player1');
@@ -182,7 +182,7 @@ async function handleSpecificGame(socket: WSocket, roomName: string) {
 }
 
 export function handleJoinRoom(socket: WSocket, message: SocketMessageType) {
-  if (uuidToGameroom.has(socket.uuid)) {
+  if (socketToGameroom.has(socket)) {
     socket.consoleLog('tried to join a game while already in one');
     socket.sendError('You can only be in one game at a time');
     return;
@@ -226,13 +226,13 @@ export function leaveGamePage(socket: WSocket) {
   }
 
   // remove from game if in there
-  const gameRoomName = uuidToGameroom.get(socket.uuid);
+  const gameRoomName = socketToGameroom.get(socket);
   if (gameRoomName) {
     const gameData = RoomManager.getDataOrThrow(gameRoomName) as GameRoomData;
     if (!gameData.currentGameState.gameOver) {
       autoForfeit(socket, gameData, gameRoomName);
     }
-    uuidToGameroom.delete(socket.uuid);
+    socketToGameroom.delete(socket);
     socket.leave(gameRoomName);
     socket.consoleLog('socket removed from game');
   }
