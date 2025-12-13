@@ -1001,7 +1001,6 @@ function createSearchResultItem(
       <p class="font-semibold text-foreground">${nickname}</p>
       <div class="flex items-center gap-2 mt-1">
         ${statusBadge}
-        ${user.gamesPlayed !== undefined ? `<span class="text-xs text-muted-foreground">${user.gamesPlayed} games</span>` : ''}
       </div>
     </div>
     <div>
