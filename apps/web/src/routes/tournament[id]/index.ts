@@ -89,8 +89,8 @@ async function buildLeaderboard(
       }
 
       // Get display names directly from MatchResponse
-      const player1DisplayName = matchResponse.player1Name || null;
-      const player2DisplayName = matchResponse.player2Name || null;
+      const player1DisplayName = matchResponse.player1Name;
+      const player2DisplayName = matchResponse.player2Name;
 
       // Add players to stats if not already present (using display name as key)
       if (player1DisplayName && !playerStats.has(player1DisplayName)) {
@@ -116,8 +116,8 @@ async function buildLeaderboard(
         player1DisplayName &&
         player2DisplayName
       ) {
-        const score1 = matchResponse.score1 || 0;
-        const score2 = matchResponse.score2 || 0;
+        const score1 = matchResponse.score1;
+        const score2 = matchResponse.score2;
 
         // Update player 1 stats
         const player1Stats = playerStats.get(player1DisplayName);
