@@ -79,6 +79,7 @@ interface WebSocketMessage {
 }
 
 // TODO: handle events
+// @pminialg this can be deleted i guess?
 window.socket.registerWebSocketHook((event: MessageEvent) => {
   const data = JSON.parse(event.data as string) as WebSocketMessage;
   if (data.event === 'tournament-updated') {

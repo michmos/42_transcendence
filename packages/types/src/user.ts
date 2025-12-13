@@ -12,6 +12,7 @@
 
 import { type User, type Friendship } from 'db/generated/client/index.js';
 
+// TODO:LOW PRIO: maybe align with MatchResponse
 export interface UserMatchRecord {
   date: string;
   score1: number;
