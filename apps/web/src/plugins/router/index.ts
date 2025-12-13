@@ -42,6 +42,7 @@ class SimpleRouter {
   private setupNavigation() {
     // Handle browser back/forward
     window.addEventListener('popstate', () => {
+      this.runBeforeNavigateHook();
       void this.render();
     });
 
@@ -59,6 +60,7 @@ class SimpleRouter {
 
   navigate(path: string) {
     window.history.pushState({}, '', path);
+    this.runBeforeNavigateHook();
     void this.render();
   }
 
@@ -88,7 +90,6 @@ class SimpleRouter {
   }
 
   async render() {
-    this.runBeforeNavigateHook();
     const path = window.location.pathname;
     const match = this.matchRoute(path);
 
