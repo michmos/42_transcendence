@@ -4,7 +4,6 @@ import API from './plugins/api/index.js';
 
 async function start() {
   // Application started
-  // Connect to WebSocket server
   const socketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/websocket`;
 
   // Initialize router
