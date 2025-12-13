@@ -1135,6 +1135,10 @@ function renderRecentMatches(
   // Convert API match data to MatchCard format
   // Show most recent matches first (reverse order)
   const matches: MatchData[] = userMatches
+    .filter((match) => {
+      // Exclude matches where either player is 'Guest'
+      return match.player1 !== 'Guest' && match.player2 !== 'Guest';
+    })
     .slice()
     .reverse()
     .map((match) => {
