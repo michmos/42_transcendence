@@ -74,6 +74,23 @@ async function buildLeaderboard(
     { wins: number; losses: number; scoreDiff: number; displayName: string }
   >();
 
+  // Helper function to throttle API calls (stay under 10 req/s limit)
+  const throttleDelay = 110; // 110ms = ~9 req/s, safely under 10 req/s limit
+  let lastCallTime = 0;
+  const throttledGetMatch = async (
+    matchUuid: string
+  ): Promise<MatchResponse | null> => {
+    const now = Date.now();
+    const timeSinceLastCall = now - lastCallTime;
+    if (timeSinceLastCall < throttleDelay) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, throttleDelay - timeSinceLastCall)
+      );
+    }
+    lastCallTime = Date.now();
+    return await window.api.getMatch(matchUuid);
+  };
+
   // Process all matches from all rounds to:
   // 1. Extract all participants (from player1Name and player2Name)
   // 2. Calculate stats for finished matches
@@ -81,7 +98,7 @@ async function buildLeaderboard(
   for (const round of rounds) {
     for (const match of round.matches) {
       // Extract player info from matches (MatchResponse structure - now with player1Name/player2Name)
-      const matchResponse: MatchResponse | null = await window.api.getMatch(
+      const matchResponse: MatchResponse | null = await throttledGetMatch(
         match.uuid
       );
       if (!matchResponse) {
@@ -732,8 +749,16 @@ export default async function initRoute() {
         currentTournament = updatedTournament;
         // Re-fetch rounds if needed
         const updatedRounds: TournamentRoundResponse[] = [];
+        // Throttle round fetching to avoid rate limits
+        const throttleDelay = 110; // 110ms between calls
         for (let i = 0; i < updatedTournament.numberOfRounds; i++) {
           try {
+            // Add delay between round fetches
+            if (i > 0) {
+              await new Promise((resolve) =>
+                setTimeout(resolve, throttleDelay)
+              );
+            }
             const round = await window.api.getTournamentRound(
               tournamentUuid,
               i
@@ -877,8 +902,14 @@ export default async function initRoute() {
 
     // Fetch all rounds
     const rounds: TournamentRoundResponse[] = [];
+    // Throttle round fetching to avoid rate limits
+    const throttleDelay = 110; // 110ms between calls
     for (let i = 0; i < tournament.numberOfRounds; i++) {
       try {
+        // Add delay between round fetches
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, throttleDelay));
+        }
         const round = await window.api.getTournamentRound(tournamentUuid, i);
         if (round) {
           rounds.push(round);

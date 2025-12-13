@@ -837,12 +837,9 @@ function showNewTournamentDialog(
         // Success - close dialog
         closeDialog();
 
-        // Refresh tournaments list to show updated participant status
-        const windowWithTournaments = window as WindowWithTournaments;
-        const loadTournamentsFn = windowWithTournaments.loadTournaments;
-        if (typeof loadTournamentsFn === 'function') {
-          await loadTournamentsFn();
-        }
+        // Don't refresh here - we're navigating away and other users will get WebSocket updates
+        // The WebSocket handler will handle refreshing for other users automatically
+        // Removing this prevents rate limiting issues
 
         // Navigate to new tournament details page
         void navigateTo(`/tournament/${tournament.uuid}`);
@@ -992,7 +989,10 @@ export default async function initRoute() {
       // Also fetch full tournament details for user's tournaments to ensure they appear in the list
       // even if their status changed (e.g., from 'outstanding' to 'ongoing')
       // Process tournaments sequentially to avoid overwhelming the API
-      for (const participation of userTournaments) {
+      // Throttle tournament fetching to avoid rate limits
+      const throttleDelay = 110; // 110ms between calls
+      for (let i = 0; i < userTournaments.length; i++) {
+        const participation = userTournaments[i];
         if (
           !participation ||
           typeof participation !== 'object' ||
@@ -1008,6 +1008,11 @@ export default async function initRoute() {
         if (!tournamentId) continue;
 
         myTournaments.add(tournamentId);
+
+        // Add delay between tournament fetches
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, throttleDelay));
+        }
 
         // Fetch full tournament details to ensure it appears in the list
         try {
