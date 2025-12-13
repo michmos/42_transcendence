@@ -75,7 +75,7 @@ describe('GET /user/me/dashboard', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      cleanedUserData: {
+      CleanedSelfUserData: {
         createdAt: expect.any(String),
         avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),
@@ -208,7 +208,7 @@ describe('GET /user/me/dashboard', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      cleanedUserData: {
+      CleanedSelfUserData: {
         createdAt: expect.any(String),
         avatar: 'https://cdn.example.com/someAvatar',
         nickname: expect.any(String),

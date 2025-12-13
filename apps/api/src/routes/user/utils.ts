@@ -1,7 +1,7 @@
 import type { User } from 'db/generated/client/client.js';
-import type { CleanedOtherUser, CleanedUserData } from 'types';
+import type { CleanedOtherUserData, CleanedSelfUserData } from 'types';
 
-export function cleanOtherUserData(user: User): CleanedOtherUser {
+export function cleanOtherUserData(user: User): CleanedOtherUserData {
   const { nickname, avatar, isOnline } = user;
   return {
     nickname,
@@ -10,7 +10,7 @@ export function cleanOtherUserData(user: User): CleanedOtherUser {
   };
 }
 
-export function cleanSelfUserData(user: User): CleanedUserData {
+export function cleanSelfUserData(user: User): CleanedSelfUserData {
   const { createdAt, nickname, avatar, role, isOnline } = user;
   return {
     createdAt,

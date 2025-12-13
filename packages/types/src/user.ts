@@ -1,4 +1,4 @@
-export interface ProfileMatch {
+export interface UserMatch {
   date: string;
   score1: number;
   score2: number;
@@ -8,7 +8,7 @@ export interface ProfileMatch {
   gameType: string;
 }
 
-export interface ProfileFriend {
+export interface FriendData {
   otherUser: string;
   avatar: string | null;
   state: 'REQUESTED' | 'ACCEPTED' | 'REJECTED';
@@ -16,7 +16,7 @@ export interface ProfileFriend {
   isOnline: boolean;
 }
 
-export interface CleanedUserData {
+export interface CleanedSelfUserData {
   createdAt: Date;
   nickname: string;
   avatar: string;
@@ -24,20 +24,20 @@ export interface CleanedUserData {
   isOnline: boolean;
 }
 
-export interface UserProfileData {
-  cleanedUserData: CleanedUserData;
-  cleanedUserFriends: ProfileFriend[];
-  userMatches: ProfileMatch[];
+export interface SelfUserProfileData {
+  cleanedUser: CleanedSelfUserData;
+  cleanedUserFriends: FriendData[];
+  userMatches: UserMatch[];
 }
 
-export interface CleanedOtherUser {
+export interface CleanedOtherUserData {
   nickname: string;
   avatar: string;
   isOnline: boolean;
 }
 
 export interface OtherUserProfileData {
-  cleanedUser: CleanedOtherUser;
+  cleanedUser: CleanedOtherUserData;
   matches: {
     gamesPlayed: number;
     gamesWon: number;

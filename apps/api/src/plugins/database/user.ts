@@ -1,7 +1,7 @@
 import { type User, status } from 'db/generated/client/index.js';
 import Database from 'db';
 import { generateNickName } from './utils.js';
-import type { ProfileMatch, MatchRecord } from 'types';
+import type { UserMatch, MatchRecord } from 'types';
 
 export async function getUsers(): Promise<User[]> {
   return Database.user.findMany({
@@ -44,9 +44,7 @@ export async function setUserMeAvatar(
   });
 }
 
-export async function getUserMatchHistory(
-  uuid: string
-): Promise<ProfileMatch[]> {
+export async function getUserMatchHistory(uuid: string): Promise<UserMatch[]> {
   const matches: MatchRecord[] = await Database.match.findMany({
     where: {
       AND: [
@@ -70,7 +68,7 @@ export async function getUserMatchHistory(
     orderBy: { updatedAt: 'asc' },
   });
   return matches.map(
-    (match): ProfileMatch => ({
+    (match): UserMatch => ({
       date: match.updatedAt.toISOString().slice(0, 10),
       score1: match.score1,
       score2: match.score2,

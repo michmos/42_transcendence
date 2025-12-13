@@ -15,10 +15,10 @@ import {
 import { cleanFriendshipList } from '../friends/utils.js';
 import type { fullFriendshipRecord } from '../friends/types.js';
 import type {
-  ProfileMatch,
-  UserProfileData,
+  UserMatch,
+  SelfUserProfileData,
   TournamentParticipation,
-  CleanedOtherUser,
+  CleanedOtherUserData,
 } from 'types';
 
 export default function (app: FastifyInstance): void {
@@ -43,8 +43,8 @@ export default function (app: FastifyInstance): void {
     try {
       const uuidSelf: string = request.user.uuid;
       const userData = await app.db.getUserMe(uuidSelf);
-      const cleanedUserData = cleanSelfUserData(userData);
-      return reply.code(200).send(cleanedUserData);
+      const cleanedUser = cleanSelfUserData(userData);
+      return reply.code(200).send(cleanedUser);
     } catch (error) {
       app.log.error(error);
       return reply.code(500).send({ Error: 'Failed getting own user data' });
@@ -55,14 +55,14 @@ export default function (app: FastifyInstance): void {
     try {
       const uuidSelf: string = request.user.uuid;
       const userData = await app.db.getUserMe(uuidSelf);
-      const cleanedUserData = cleanSelfUserData(userData);
+      const cleanedUser = cleanSelfUserData(userData);
       const userFriends: fullFriendshipRecord[] =
         await app.db.getFriendsMe(uuidSelf);
       const cleanedUserFriends = cleanFriendshipList(uuidSelf, userFriends);
-      const userMatches: ProfileMatch[] =
+      const userMatches: UserMatch[] =
         await app.db.getUserMatchHistory(uuidSelf);
-      const userProfileData: UserProfileData = {
-        cleanedUserData,
+      const userProfileData: SelfUserProfileData = {
+        cleanedUser,
         cleanedUserFriends,
         userMatches,
       };
@@ -229,7 +229,7 @@ export default function (app: FastifyInstance): void {
         const { nickname } = request.params;
         const user = await app.db.getUserByNickname(nickname);
         if (!user) return reply.code(404).send({ Error: 'user not found' });
-        const cleanedUser: CleanedOtherUser = cleanOtherUserData(user);
+        const cleanedUser: CleanedOtherUserData = cleanOtherUserData(user);
 
         // Calculate stats from actual match history and tournaments (like profile page does)
         const userMatches = await app.db.getUserMatchHistory(user.uuid);
@@ -250,7 +250,7 @@ export default function (app: FastifyInstance): void {
         };
 
         return reply.code(200).send({
-          ...cleanedUser,
+          cleanedUser,
           matches,
         });
       } catch (error) {

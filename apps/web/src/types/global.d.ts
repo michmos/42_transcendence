@@ -2,7 +2,7 @@
 
 import type { SimpleRouter } from '../plugins/router/index.js';
 import type { Socket } from '../plugins/websocket/index.js';
-import type { UserProfileData } from '../plugins/api/user.js';
+import type { SelfUserProfileData } from '../plugins/api/user.js';
 import API from '../plugins/api/index.js';
 
 declare global {
@@ -15,7 +15,7 @@ declare global {
     router: SimpleRouter;
     socket: Socket;
     api: typeof API;
-    user: UserProfileData | null;
+    user: SelfUserProfileData | null;
   }
 }
 

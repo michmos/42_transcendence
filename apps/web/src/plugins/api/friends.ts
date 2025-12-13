@@ -1,11 +1,11 @@
 import { handleApiError } from '../../utils/api-helpers.js';
-import type { ProfileFriend } from './user.js';
+import type { FriendData } from './user.js';
 
 /**
  * Response type for friend request actions
  */
 export interface FriendRequestResponse {
-  cleanedFriendshipRecord: ProfileFriend;
+  cleanedFriendshipRecord: FriendData;
   message: string;
 }
 

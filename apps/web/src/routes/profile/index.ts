@@ -7,17 +7,14 @@ import {
 } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import {
-  type ProfileMatch,
-  type ProfileFriend,
-} from '../../plugins/api/user.js';
+import { type UserMatch, type FriendData } from '../../plugins/api/user.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { joinLocalMatch, joinOnlineMatch } from '../game/buttonLogic.js';
 import toast from '../../utils/toast.js';
 import type {
   OnlineStatus,
   OtherUserProfileData,
-  UserProfileData,
+  SelfUserProfileData,
 } from 'types';
 import { setupWebSocketHook } from '../game/index.js';
 
@@ -65,7 +62,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch profile data from API
-  const profileData = await window.api.getUserProfile();
+  const profileData = await window.api.getSelfUserProfile();
 
   if (!profileData) {
     // User is authenticated but profile fetch failed - show error
@@ -87,17 +84,17 @@ export default async function initRoute() {
   console.log('[profile] Profile data loaded successfully, rendering page');
 
   // Calculate stats from API data
-  const { cleanedUserData, cleanedUserFriends, userMatches } = profileData;
+  const { cleanedUser, cleanedUserFriends, userMatches } = profileData;
 
   // Store current user nickname for filtering status updates
-  currentUserNickname = cleanedUserData.nickname || '';
+  currentUserNickname = cleanedUser.nickname || '';
 
   // Update Navbar with user data
   new Navbar(headerContainer, {
     title: 'The Pong Game',
     links: [{ label: 'Tournaments', href: '/tournaments', active: false }],
-    userNickname: cleanedUserData?.nickname || 'No Nickname Set',
-    userAvatar: getAvatarSrc(cleanedUserData.avatar),
+    userNickname: cleanedUser?.nickname || 'No Nickname Set',
+    userAvatar: getAvatarSrc(cleanedUser.avatar),
     onSettingsClick: () => {
       void navigateTo('/settings');
     },
@@ -182,11 +179,7 @@ export default async function initRoute() {
   });
 
   // Recent Matches
-  renderRecentMatches(
-    leftColumn,
-    userMatches,
-    cleanedUserData['nickname'] || ''
-  );
+  renderRecentMatches(leftColumn, userMatches, cleanedUser['nickname'] || '');
 
   // ===== RIGHT COLUMN (Quick Actions & Events) =====
   const rightColumn = document.createElement('div');
@@ -204,14 +197,14 @@ export default async function initRoute() {
 }
 
 // Friends data state for refresh
-let currentFriendsData: ProfileFriend[] = [];
+let currentFriendsData: FriendData[] = [];
 let friendsCardBody: HTMLElement | null = null;
 let friendsCardHeader: HTMLElement | null = null;
 let activeTabName: 'Friends' | 'Pending' | 'Blocked' = 'Friends';
 let currentUserNickname: string = '';
 
 async function refreshFriendsData() {
-  const profileData = await window.api.getUserProfile();
+  const profileData = await window.api.getSelfUserProfile();
   if (profileData && friendsCardBody && friendsCardHeader) {
     currentFriendsData = profileData.cleanedUserFriends;
     // Clear existing content before re-rendering
@@ -228,7 +221,7 @@ async function refreshFriendsData() {
 
 function renderFriendsSection(
   container: HTMLElement,
-  cleanedUserFriends: ProfileFriend[]
+  cleanedUserFriends: FriendData[]
 ): void {
   currentFriendsData = cleanedUserFriends;
 
@@ -296,7 +289,7 @@ function renderFriendsSection(
 
 function renderFriendsSectionContent(
   body: HTMLElement,
-  cleanedUserFriends: ProfileFriend[],
+  cleanedUserFriends: FriendData[],
   header?: HTMLElement | null,
   initialTab: 'Friends' | 'Pending' | 'Blocked' = 'Friends'
 ): void {
@@ -373,7 +366,7 @@ function renderFriendsSectionContent(
   body.appendChild(contentArea);
 }
 
-function updateTabBadges(cleanedUserFriends: ProfileFriend[]) {
+function updateTabBadges(cleanedUserFriends: FriendData[]) {
   const friendsCount = cleanedUserFriends.filter(
     (f) => f.state === 'ACCEPTED'
   ).length;
@@ -457,7 +450,7 @@ let searchResultsContainer: HTMLElement | null = null;
 
 function renderFriendsTab(
   container: HTMLElement,
-  cleanedUserFriends: ProfileFriend[],
+  cleanedUserFriends: FriendData[],
   header?: HTMLElement | null
 ): void {
   // Get search elements from header if available
@@ -556,10 +549,10 @@ function renderFriendsTab(
 
     try {
       // Search for user by exact nickname
-      const user: OtherUserProfileData | null =
+      const otherUser: OtherUserProfileData | null =
         await window.api.getUserByNickname(query);
 
-      if (!user) {
+      if (!otherUser) {
         resultsContainer.innerHTML = `
           <div class="text-center text-muted-foreground py-8">
             <p>User not found</p>
@@ -575,9 +568,9 @@ function renderFriendsTab(
       );
 
       // Get current user's nickname from profile data
-      const profileData: UserProfileData | null =
-        await window.api.getUserProfile();
-      if (!profileData) {
+      const selfUser: SelfUserProfileData | null =
+        await window.api.getSelfUserProfile();
+      if (!selfUser) {
         resultsContainer.innerHTML = `
           <div class="text-center text-muted-foreground py-8">
             <p>User not found</p>
@@ -586,11 +579,12 @@ function renderFriendsTab(
         `;
         return;
       }
-      const currentNickname = profileData.cleanedUserData.nickname;
-      const isSelf = user.cleanedUser.nickname === currentNickname;
+
+      const isSelf =
+        otherUser.cleanedUser.nickname === selfUser.cleanedUser.nickname;
 
       // Render search result
-      const resultItem = createSearchResultItem(user, friendship, isSelf);
+      const resultItem = createSearchResultItem(otherUser, friendship, isSelf);
       resultsContainer.innerHTML = '';
       resultsContainer.appendChild(resultItem);
     } catch (error) {
@@ -657,7 +651,7 @@ function renderFriendsTab(
 
 function renderPendingRequestsTab(
   container: HTMLElement,
-  cleanedUserFriends: ProfileFriend[]
+  cleanedUserFriends: FriendData[]
 ): void {
   const pendingRequests = cleanedUserFriends.filter(
     (f) => f.state === 'REQUESTED' && f.isRequester === false
@@ -683,7 +677,7 @@ function renderPendingRequestsTab(
 
 function renderBlockedUsersTab(
   container: HTMLElement,
-  cleanedUserFriends: ProfileFriend[]
+  cleanedUserFriends: FriendData[]
 ): void {
   const blockedUsers = cleanedUserFriends.filter(
     (f) => f.state === 'REJECTED' && f.isRequester === false
@@ -707,7 +701,7 @@ function renderBlockedUsersTab(
   container.appendChild(listContainer);
 }
 
-function createFriendItem(friend: ProfileFriend): HTMLElement {
+function createFriendItem(friend: FriendData): HTMLElement {
   const item = document.createElement('div');
   item.className =
     'flex items-center gap-3 p-3 rounded-lg bg-gradient-card backdrop-blur-glass border border-border hover:bg-muted/30 transition-all cursor-pointer';
@@ -751,7 +745,7 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
   return item;
 }
 
-function createPendingRequestItem(request: ProfileFriend): HTMLElement {
+function createPendingRequestItem(request: FriendData): HTMLElement {
   const item = document.createElement('div');
   item.className =
     'flex items-center gap-3 p-3 rounded-lg bg-gradient-card backdrop-blur-glass border border-border';
@@ -802,7 +796,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
         const result = await window.api.acceptFriendRequest(nickname);
         if (result) {
           // Get updated profile data
-          const updatedProfileData = await window.api.getUserProfile();
+          const updatedProfileData = await window.api.getSelfUserProfile();
           if (updatedProfileData && friendsCardBody && friendsCardHeader) {
             currentFriendsData = updatedProfileData.cleanedUserFriends;
             // Update tab badges
@@ -854,7 +848,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
         const result = await window.api.rejectFriendRequest(nickname);
         if (result) {
           // Get updated profile data
-          const updatedProfileData = await window.api.getUserProfile();
+          const updatedProfileData = await window.api.getSelfUserProfile();
           if (updatedProfileData && friendsCardBody && friendsCardHeader) {
             currentFriendsData = updatedProfileData.cleanedUserFriends;
             // Update tab badges
@@ -895,7 +889,7 @@ function createPendingRequestItem(request: ProfileFriend): HTMLElement {
 
 function createSearchResultItem(
   user: OtherUserProfileData,
-  friendship: ProfileFriend | undefined,
+  friendship: FriendData | undefined,
   isSelf: boolean
 ): HTMLElement {
   const item = document.createElement('div');
@@ -1001,7 +995,7 @@ function createSearchResultItem(
           const result = await window.api.sendFriendRequest(nickname);
           if (result) {
             // Get updated profile data
-            const updatedProfileData = await window.api.getUserProfile();
+            const updatedProfileData = await window.api.getSelfUserProfile();
             if (updatedProfileData) {
               currentFriendsData = updatedProfileData.cleanedUserFriends;
               const updatedFriendship =
@@ -1070,7 +1064,7 @@ function createSearchResultItem(
   return item;
 }
 
-function createBlockedUserItem(user: ProfileFriend): HTMLElement {
+function createBlockedUserItem(user: FriendData): HTMLElement {
   const item = document.createElement('div');
   item.className =
     'flex items-center gap-3 p-3 rounded-lg bg-gradient-card backdrop-blur-glass border border-border';
@@ -1135,7 +1129,7 @@ function createBlockedUserItem(user: ProfileFriend): HTMLElement {
 
 function renderRecentMatches(
   container: HTMLElement,
-  userMatches: ProfileMatch[],
+  userMatches: UserMatch[],
   currentUserNickname: string
 ): void {
   const card = new GlassCard(container, {

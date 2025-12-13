@@ -293,9 +293,6 @@ function renderErrorState(container: HTMLElement, message: string) {
 async function getUserTournamentAlias(
   tournamentId: string
 ): Promise<string | null> {
-  const currentUserId = window.user?.cleanedUserData.uuid;
-  if (!currentUserId) return null;
-
   try {
     const myTournaments: TournamentParticipation[] =
       await window.api.getMyTournaments();

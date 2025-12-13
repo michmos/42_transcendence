@@ -20,7 +20,7 @@ export default async function initRoute() {
   mainWrapper.appendChild(headerContainer);
 
   // Fetch full user profile data
-  const profileData = await window.api.getUserProfile();
+  const profileData = await window.api.getSelfUserProfile();
   if (!profileData) {
     const errorMsg = document.createElement('div');
     errorMsg.className = 'text-center text-white py-8';
@@ -29,8 +29,8 @@ export default async function initRoute() {
     return;
   }
 
-  const userData = profileData.cleanedUserData;
-  const currentAvatar = getAvatarSrc(userData.avatar);
+  const cleanedUserData = profileData.cleanedUser;
+  const currentAvatar = getAvatarSrc(cleanedUserData.avatar);
 
   // const userInfo = await window.api.getMe();
   new Navbar(headerContainer, {
@@ -39,7 +39,7 @@ export default async function initRoute() {
       { label: 'Tournaments', href: '/tournaments', active: false },
       { label: 'Profile', href: '/profile', active: false },
     ],
-    userNickname: userData['nickname'] || 'User',
+    userNickname: cleanedUserData['nickname'] || 'User',
     userAvatar: currentAvatar,
 
     onSettingsClick: () => {
@@ -50,9 +50,9 @@ export default async function initRoute() {
     },
   });
 
-  const currentNickname = userData['nickname'] || '';
+  const currentNickname = cleanedUserData['nickname'] || '';
 
-  // Email is not included in cleanedUserData for security reasons
+  // Email is not included in CleanedSelfUserData for security reasons
 
   // ===== MAIN CONTENT =====
   const mainContent = document.createElement('div');

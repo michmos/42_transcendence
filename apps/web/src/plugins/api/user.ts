@@ -1,9 +1,9 @@
 import type { User } from 'db/generated/client/index.js';
 import { handleApiError } from '../../utils/api-helpers.js';
-import type { OtherUserProfileData, CleanedUserData } from 'types';
+import type { OtherUserProfileData, CleanedSelfUserData } from 'types';
 
 // Profile API response types
-export interface ProfileMatch {
+export interface UserMatch {
   date: string;
   score1: number;
   score2: number;
@@ -13,7 +13,7 @@ export interface ProfileMatch {
   gameType: string;
 }
 
-export interface ProfileFriend {
+export interface FriendData {
   otherUser: string;
   avatar: string | null;
   state: 'REQUESTED' | 'ACCEPTED' | 'REJECTED';
@@ -21,15 +21,15 @@ export interface ProfileFriend {
   isOnline: boolean;
 }
 
-export interface UserProfileData {
-  cleanedUserData: CleanedUserData;
-  cleanedUserFriends: ProfileFriend[];
-  userMatches: ProfileMatch[];
+export interface SelfUserProfileData {
+  cleanedUser: CleanedSelfUserData;
+  cleanedUserFriends: FriendData[];
+  userMatches: UserMatch[];
 }
 
 // Provide functions to GET, POST, DELETE users from /api/user
 const UserAPI = {
-  async getMe(): Promise<CleanedUserData | null> {
+  async getMe(): Promise<CleanedSelfUserData | null> {
     try {
       const response = await fetch('/api/user/me', {
         method: 'GET',
@@ -47,7 +47,7 @@ const UserAPI = {
         throw new Error('Failed to fetch user data');
       }
 
-      const res = (await response.json()) as CleanedUserData;
+      const res = (await response.json()) as CleanedSelfUserData;
 
       // Check if response has required fields
       if (!res.nickname) {
@@ -163,9 +163,9 @@ const UserAPI = {
 
   /**
    * Get current user's profile data including user info, friends, and match history
-   * @returns Promise<UserProfileData | null> - Profile data or null if error/unauthorized
+   * @returns Promise<SelfUserProfileData | null> - Profile data or null if error/unauthorized
    */
-  async getUserProfile(): Promise<UserProfileData | null> {
+  async getSelfUserProfile(): Promise<SelfUserProfileData | null> {
     // Wait a bit for cookies to be available after OAuth redirect
     await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -194,16 +194,16 @@ const UserAPI = {
           // If parsing fails, use default message
         }
         console.error(
-          `[getUserProfile] Error ${response.status}:`,
+          `[getSelfUserProfile] Error ${response.status}:`,
           errorMessage
         );
         return null;
       }
 
-      const data = (await response.json()) as UserProfileData;
+      const data = (await response.json()) as SelfUserProfileData;
       return data;
     } catch (error) {
-      console.error('[getUserProfile] Network error:', error);
+      console.error('[getSelfUserProfile] Network error:', error);
       return null;
     }
   },
@@ -211,9 +211,11 @@ const UserAPI = {
   /**
    * Update user nickname
    * @param newNickname - New nickname (3-30 characters, alphanumeric, underscores, hyphens)
-   * @returns Promise<CleanedUserData | null>
+   * @returns Promise<CleanedSelfUserData | null>
    */
-  async updateNickname(newNickname: string): Promise<CleanedUserData | null> {
+  async updateNickname(
+    newNickname: string
+  ): Promise<CleanedSelfUserData | null> {
     try {
       const response = await fetch('/api/user/me/nickname', {
         method: 'PATCH',
@@ -231,7 +233,7 @@ const UserAPI = {
         );
       }
 
-      return (await response.json()) as CleanedUserData;
+      return (await response.json()) as CleanedSelfUserData;
     } catch (error) {
       console.error('Error updating nickname:', error);
       throw error;

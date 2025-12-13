@@ -307,24 +307,26 @@ function showJoinTournamentDialog(
 
   joinBtn.addEventListener('click', () => {
     void (async () => {
-      let alias = aliasInput.value.trim();
+      let alias: string = aliasInput.value.trim();
 
       // If alias is blank, fetch user's nickname
       if (!alias) {
         try {
           const currentUser = await window.api.getMe();
-          alias =
-            currentUser?.nickname ||
-            `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
+          if (currentUser) alias = currentUser.nickname;
+          else {
+            const number = Math.floor(Math.random() * 1000);
+            alias = `player-${number}`;
+          }
         } catch (error) {
           console.error('Error fetching user info:', error);
-          alias = `Player-${window.user?.cleanedUserData.uuid?.slice(0, 8) || 'Unknown'}`;
+          alias = `Player-${window.user?.cleanedUser.nickname || 'Unknown'}`;
         }
       }
 
       // Validation
-      if (alias.length > 50) {
-        alert('Alias must be 50 characters or less');
+      if (alias.length > 30) {
+        alert('Alias must be 30 characters or less');
         aliasInput.focus();
         return;
       }
@@ -394,7 +396,7 @@ function renderTournamentHeader(
   const hasMinPlayers = tournament.playerCount >= tournament.minPlayers;
 
   const buttonContainer = document.createElement('div');
-  const currentUserId = window.user?.cleanedUserData.uuid;
+  const currentUserId = window.user?.cleanedUser.nickname;
 
   // Logic matched with tournaments/index.ts
   if (isParticipant) {
@@ -837,7 +839,7 @@ export default async function initRoute() {
         );
 
         // Check if user is participant for button display
-        const currentUserId = window.user?.cleanedUserData.uuid;
+        const currentUserId = window.user?.cleanedUser.nickname;
         let isParticipantRefresh = false;
         if (currentUserId) {
           try {
@@ -980,7 +982,7 @@ export default async function initRoute() {
     );
 
     // Check if user is participant for button display
-    const currentUserId = window.user?.cleanedUserData.uuid;
+    const currentUserId = window.user?.cleanedUser.nickname;
     let isParticipant = false;
     if (currentUserId) {
       try {

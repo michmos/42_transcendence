@@ -1,7 +1,7 @@
 import { Navbar, StatCard, GlassCard } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
-import { type ProfileFriend } from '../../plugins/api/user.js';
+import { type FriendData } from '../../plugins/api/user.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 import { type OtherUserProfileData } from 'types';
 
@@ -91,9 +91,9 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     mainContent.appendChild(loadingDiv);
 
     // Check if viewing own profile
-    const currentUserProfile = await window.api.getUserProfile();
+    const currentUserProfile = await window.api.getSelfUserProfile();
     const isSelf =
-      currentUserProfile?.cleanedUserData['nickname']?.toLowerCase() ===
+      currentUserProfile?.cleanedUser['nickname']?.toLowerCase() ===
       nickname.toLowerCase();
 
     if (isSelf) {
@@ -103,7 +103,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     }
 
     // Get friendship status
-    let friendship: ProfileFriend | undefined;
+    let friendship: FriendData | undefined;
     if (currentUserProfile) {
       friendship = currentUserProfile.cleanedUserFriends.find(
         (f) => f.otherUser.toLowerCase() === nickname.toLowerCase()
@@ -259,7 +259,7 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
 }
 
 function createFriendshipActionButton(
-  friendship: ProfileFriend | undefined,
+  friendship: FriendData | undefined,
   nickname: string
 ): HTMLElement {
   const buttonContainer = document.createElement('div');
@@ -422,7 +422,7 @@ function createFriendshipActionButton(
 
 function renderFriendshipStatus(
   container: HTMLElement,
-  friendship: ProfileFriend | undefined,
+  friendship: FriendData | undefined,
   _nickname: string
 ): void {
   let statusText = '';
