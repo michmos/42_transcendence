@@ -981,9 +981,7 @@ export default async function initRoute() {
       );
 
       // Fetch user's tournaments (for myTournaments set)
-      const userTournaments = await window.api.getMyTournaments(
-        statusFilter || 'finished'
-      );
+      const userTournaments = await window.api.getMyTournaments(statusFilter);
 
       const showTournaments = [...outstandingTournaments, ...userTournaments];
       // Populate Sets and Map
