@@ -215,7 +215,7 @@ interface IncomingMessage {
   event: 'friends-updated';
 }
 
-const unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
+window.socket.registerWebSocketHook((event) => {
   const message = JSON.parse(event.data as string) as IncomingMessage;
 
   if (typeof message === 'object' && 'event' in message) {
@@ -227,7 +227,6 @@ const unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
     }
   }
 });
-window.router.onBeforeNavigate(unregisterOnMessageHook);
 
 async function refreshFriendsData() {
   const profileData = await window.api.getUserProfile();
