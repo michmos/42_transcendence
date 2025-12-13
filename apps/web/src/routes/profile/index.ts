@@ -126,11 +126,16 @@ export default async function initRoute() {
   leftColumn.appendChild(statsGrid);
 
   // Calculate stats from actual data
+  const validMatches = userMatches.filter(
+    (match) => match.player1 !== 'Guest' && match.player2 !== 'Guest'
+  );
   // Total Matches: count from userMatches array
-  const totalMatches = userMatches.length;
+  const totalMatches = validMatches.length;
 
   // Win Rate: calculate from userMatches by counting WON vs total matches
-  const gamesWon = userMatches.filter((match) => match.result === 'WON').length;
+  const gamesWon = validMatches.filter(
+    (match) => match.result === 'WON'
+  ).length;
   const winRate =
     totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
 
