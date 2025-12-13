@@ -293,7 +293,7 @@ const TournamentsAPI = {
 
   async getTournamentParticipants(
     tournamentUuid: string
-  ): Promise<TournamentParticipantsResponse> {
+  ): Promise<TournamentParticipantsResponse | null> {
     try {
       const response = await fetch(
         `/api/tournaments/${tournamentUuid}/participants`,
@@ -303,20 +303,15 @@ const TournamentsAPI = {
         }
       );
 
-      // TODO: @pminialg -> maybe you want to handle differently
-      if (response.status === 404) {
-        throw new Error(`Tournament not found: ${response.status}`);
-      }
-
       if (!response.ok) {
-        throw new Error(`Failed to fetch tournament: ${response.status}`);
+        console.error(`Failed to fetch tournament: ${response.status}`);
+        return null;
       }
 
       return (await response.json()) as TournamentParticipantsResponse;
     } catch (error) {
-      // TODO: @pminialg -> maybe you want to handle differently
       console.error('Error fetching tournament:', error);
-      throw error;
+      return null;
     }
   },
 
