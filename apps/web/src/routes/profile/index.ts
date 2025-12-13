@@ -100,8 +100,6 @@ export default async function initRoute() {
       void navigateTo('/settings');
     },
     onLogoutClick: () => {
-      // Leave the 'online' room before logout so backend broadcasts offline status
-      cleanupOnlineStatusSocket();
       void handleLogout();
     },
   });
@@ -1292,18 +1290,6 @@ function listenForStatusUpdates() {
       // Ignore non-JSON or non-matching messages
     }
   });
-}
-
-function cleanupOnlineStatusSocket(): void {
-  // Leave rooms and close socket so backend broadcasts offline status
-  if (window.socket?.isConnected()) {
-    window.socket.leaveRoom('tournament:main');
-    // Close socket to trigger backend's onClose handler which broadcasts offline status
-    const ws = window.socket.getSocket();
-    ws.close();
-  }
-  currentUserNickname = '';
-  // Note: Rooms will be rejoined automatically when socket reconnects (via app.ts)
 }
 
 function handleOnlineStatusUpdate(status: OnlineStatus) {
