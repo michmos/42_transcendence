@@ -1,4 +1,4 @@
-// TODO: @mmoser Please move this out of the src folder as it should be in seperate test folder to create production builds without copying the test files
+// TODO: LOW-PRIO: @mmoser Please move this out of the src folder as it should be in seperate test folder to create production builds without copying the test files
 import { beforeAll, beforeEach, afterAll } from 'vitest';
 import { build } from '../build.js';
 import { type FastifyInstance } from 'fastify';
