@@ -335,11 +335,10 @@ function showJoinTournamentDialog(
 
       try {
         await window.api.joinTournament(tournamentUuid, alias);
+        tournamentSocket.joinTournament(tournamentUuid);
 
-        // Success - close dialog and reload page to refresh tournament data
+        // Success - close dialog and wait for socket updates
         closeDialog();
-        // TODO: Replace with SPA state update
-        window.location.reload();
       } catch (error) {
         // Handle errors
         const errorMessage =
@@ -1143,9 +1142,6 @@ export default async function initRoute() {
         }
       });
     }
-
-    // Join specific tournament room (will fail gracefully if backend not ready)
-    tournamentSocket.joinTournament(tournamentUuid);
   } catch (error) {
     innerContainer.innerHTML = '';
     const errorMessage =
