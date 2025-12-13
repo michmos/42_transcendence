@@ -81,13 +81,6 @@ class Socket {
     };
   }
 
-  public disconnectAndReconnect(url: string) {
-    if (this.socket) {
-      this.socket.close();
-    }
-    this.connect(url);
-  }
-
   public send(message: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(message);
