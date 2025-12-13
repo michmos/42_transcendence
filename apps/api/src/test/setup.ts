@@ -1,4 +1,4 @@
-// TODO: Please move this out of the src folder as it should be in seperate test folder to create production builds without copying the test files
+// TODO: LOW-PRIO: @mmoser Please move this out of the src folder as it should be in seperate test folder to create production builds without copying the test files
 import { beforeAll, beforeEach, afterAll } from 'vitest';
 import { build } from '../build.js';
 import { type FastifyInstance } from 'fastify';
@@ -7,7 +7,7 @@ import { testUser, adminUser, normalUser, setUserTo } from './utils.js';
 // This file describes the setup / teardown for EACH file
 // with other words - everything here will be performed for
 // each file (e.g. beforeAll is preformed once per file)
-// TODO: app instance should be built only once for all tests (still works now, but unnecessariy)
+// TODO: LOW-PRIO app instance should be built only once for all tests (still works now, but unnecessariy)
 
 export let app: FastifyInstance;
 

@@ -4,7 +4,6 @@ import ProviderUtility from '../providers/index.js';
 import { getOauthUser } from '../../utils/user/index.js';
 import type { FastifyReply } from 'fastify';
 
-// TODO: @jensbouma make sure the cookie gets deleted on error and throw the default errors instead of returning reply directly
 class SessionManager {
   private ctx!: OAuthContext;
 
@@ -85,6 +84,7 @@ class SessionManager {
         state: Math.random().toString(36).substring(2, 15),
         ipNumber: request.ip,
         provider: provider,
+        cli: false,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Expires in 10 minutes
       };

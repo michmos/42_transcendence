@@ -43,7 +43,6 @@ export default class WSocket {
     });
 
     this.socket.on('message', (input: Buffer) => {
-      this.consoleLog(`new message`);
       this.messageQueue.push(input);
       void this.processMessageQueue();
     });
@@ -128,22 +127,24 @@ export default class WSocket {
   // communication
   public send(message: string) {
     if (!this.connected) {
-      throw new Error('Cannot send message: socket is not connected');
+      this.consoleError('Cannot send message: socket is not connected');
+      return;
     }
     this.socket.send(message);
   }
 
-  // TODO: maybe delete throw
   public sendError(message: string) {
     if (!this.connected) {
-      throw new Error('Cannot send error: socket is not connected');
+      this.consoleError('Cannot send error: socket is not connected');
+      return;
     }
     this.send(JSON.stringify({ event: 'error', message }));
   }
 
   public sendSuccess() {
     if (!this.connected) {
-      throw new Error('Cannot send success: socket is not connected');
+      this.consoleError('Cannot send success: socket is not connected');
+      return;
     }
     this.send(JSON.stringify({ event: 'success' }));
   }

@@ -6,7 +6,7 @@ import { type MatchParticipantsResponse } from 'types';
 import { API } from '../../plugins/api/index.js';
 
 const waitingList: WSocket[] = [];
-let lastGameId = 0; // TODO: replace with uuid from fetch Match (API Call)
+let lastGameId = 0;
 const socketToGameroom = new Map<WSocket, string>();
 
 function sendRole(socket: WSocket, role: 'local' | 'player1' | 'player2') {
@@ -114,7 +114,7 @@ async function handleJoinLocalGame(socket: WSocket) {
   console.log(`localGame ended: ${newRoomName} with ${socket.uuid}`);
 }
 
-// TODO: add cache expiration
+// TODO: LOW PRIO: add cache expiration
 const matchParticipantsCache = new Map<string, MatchParticipantsResponse>();
 
 async function getMatchParticipants(matchUuid: string) {

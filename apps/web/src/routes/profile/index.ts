@@ -125,11 +125,16 @@ export default async function initRoute() {
   leftColumn.appendChild(statsGrid);
 
   // Calculate stats from actual data
+  const validMatches = userMatches.filter(
+    (match) => match.player1 !== 'Guest' && match.player2 !== 'Guest'
+  );
   // Total Matches: count from userMatches array
-  const totalMatches = userMatches.length;
+  const totalMatches = validMatches.length;
 
   // Win Rate: calculate from userMatches by counting WON vs total matches
-  const gamesWon = userMatches.filter((match) => match.result === 'WON').length;
+  const gamesWon = validMatches.filter(
+    (match) => match.result === 'WON'
+  ).length;
   const winRate =
     totalMatches > 0 ? ((gamesWon / totalMatches) * 100).toFixed(1) : '0.0';
 
@@ -761,7 +766,7 @@ function createPendingRequestItem(request: FriendData): HTMLElement {
     <div class="relative">
       ${
         request.avatar
-          ? `<img src="${request.avatar}" alt="${request.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover" />`
+          ? `<img src="${getAvatarSrc(request.avatar)}" alt="${request.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover" />`
           : `<div class="h-10 w-10 border-2 border-border rounded-full flex items-center justify-center text-foreground bg-muted font-semibold">
               ${initials}
             </div>`
@@ -1080,7 +1085,7 @@ function createBlockedUserItem(user: FriendData): HTMLElement {
     <div class="relative">
       ${
         user.avatar
-          ? `<img src="${user.avatar}" alt="${user.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover opacity-50" />`
+          ? `<img src="${getAvatarSrc(user.avatar)}" alt="${user.otherUser}" class="h-10 w-10 border-2 border-border rounded-full object-cover opacity-50" />`
           : `<div class="h-10 w-10 border-2 border-border rounded-full flex items-center justify-center text-foreground bg-muted font-semibold opacity-50">
               ${initials}
             </div>`
@@ -1141,6 +1146,10 @@ function renderRecentMatches(
   // Convert API match data to MatchCard format
   // Show most recent matches first (reverse order)
   const matches: MatchData[] = userMatches
+    .filter((match) => {
+      // Exclude matches where either player is 'Guest'
+      return match.player1 !== 'Guest' && match.player2 !== 'Guest';
+    })
     .slice()
     .reverse()
     .map((match) => {

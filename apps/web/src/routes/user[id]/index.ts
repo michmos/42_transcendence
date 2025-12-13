@@ -117,28 +117,6 @@ async function renderUserProfile(container: HTMLElement, nickname: string) {
     const pageHeader = document.createElement('div');
     pageHeader.className = 'mb-8 flex items-center gap-6';
 
-    // const avatar = userData.avatar || null;
-    // const userNickname = userData['nickname'] || nickname;
-
-    // const avatarDisplay = document.createElement('div');
-    // avatarDisplay.className =
-    //   'w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center border-4 border-white/20 overflow-hidden flex-shrink-0';
-
-    // if (avatar) {
-    //   const avatarImg = document.createElement('img');
-    //   avatarImg.src = avatar;
-    //   avatarImg.alt = userNickname;
-    //   avatarImg.className = 'w-full h-full object-cover';
-    //   avatarDisplay.appendChild(avatarImg);
-    // } else {
-    //   avatarDisplay.innerHTML = `
-    //     <svg class="w-12 h-12 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    //       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-    //       <circle cx="12" cy="7" r="4"/>
-    //     </svg>
-    //   `;
-    // }
-
     const userNickname = userData.cleanedUser.nickname;
 
     const avatarDisplay = document.createElement('div');

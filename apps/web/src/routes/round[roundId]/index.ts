@@ -210,9 +210,9 @@ function renderMatches(
           `#start-game-btn-${match.id}`
         );
         if (startButton) {
-          startButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          startButton.addEventListener('click', () => {
+            // e.preventDefault();
+            // e.stopPropagation();
             setIsLocalGame(false);
             setupWebSocketHook();
             joinTournamentMatch(match.id);
@@ -278,6 +278,7 @@ function renderErrorState(container: HTMLElement, message: string) {
   const retryBtn = errorState.querySelector('#retry-btn');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
+      // TODO no reloads!!!
       window.location.reload();
     });
   }
@@ -502,7 +503,6 @@ export default async function initRoute() {
 
     // ===== SOCKET INTEGRATION =====
     tournamentSocket.initialize();
-    tournamentSocket.joinTournament(tournamentId);
 
     const handleMatchUpdated = (data: unknown) => {
       const eventData = data as {

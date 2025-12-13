@@ -2,7 +2,11 @@ import { Navbar, Card, Badge, Button } from '../../components/index.js';
 import { navigateTo } from '../../utils/navigation.js';
 import { handleLogout } from '../../utils/logout-handler.js';
 import type { Tournament, status } from 'db/generated/client/index.js';
-import type { TournamentRoundResponse } from 'types';
+import type {
+  TournamentRoundResponse,
+  TournamentParticipantsResponse,
+  MatchResponse,
+} from 'types';
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
@@ -57,15 +61,12 @@ interface LeaderboardEntry {
 
 /**
  * Build leaderboard from tournament rounds and matches
- * Extracts participants from matches and builds stats
- * Uses aliases when available, falls back to nicknames
  */
-function buildLeaderboard(
+async function buildLeaderboard(
   tournament: Tournament,
   rounds: TournamentRoundResponse[],
-  _participantAliases?: Map<string, string>, // No longer needed - matches come with aliases
   allParticipantAliases?: string[]
-): LeaderboardEntry[] {
+): Promise<LeaderboardEntry[]> {
   // Calculate stats per player
   // Using aliases as keys (UUIDs no longer exposed)
   const playerStats = new Map<
@@ -73,51 +74,23 @@ function buildLeaderboard(
     { wins: number; losses: number; scoreDiff: number; displayName: string }
   >();
 
-  // TODO: if needed -> fetch from api
-  // const participants = await window.api.getTournamentParticipants(tournament.uuid);
-
-  // Also try to get participants from tournament.participants if available (for tournaments without matches yet)
-  // const participants = tournament.participants || [];
-  // participants.forEach((participant) => {
-  //   const participantTyped = participant as {
-  //     uuid?: string;
-  //     alias?: string;
-  //     user?: { uuid?: string; nickname?: string };
-  //   };
-  //   const user = participantTyped.user;
-  //   const participantId = user?.uuid;
-  //   // Prefer alias from participants array, fallback to nickname
-  //   const displayName = participantTyped.alias || user?.nickname || 'Unknown';
-  //
-  //   if (participantId && !playerStats.has(participantId)) {
-  //     // Initialize stats for participants from tournament.participants
-  //     playerStats.set(participantId, {
-  //       wins: 0,
-  //       losses: 0,
-  //       scoreDiff: 0,
-  //       displayName,
-  //     });
-  //   }
-  // });
-
   // Process all matches from all rounds to:
   // 1. Extract all participants (from player1Name and player2Name)
   // 2. Calculate stats for finished matches
   // Note: Using player names directly from MatchResponse (no UUIDs exposed)
-  rounds.forEach((round) => {
-    round.matches.forEach((match) => {
+  for (const round of rounds) {
+    for (const match of round.matches) {
       // Extract player info from matches (MatchResponse structure - now with player1Name/player2Name)
-      const matchResponse = match as {
-        player1Name?: string | null;
-        player2Name?: string | null;
-        score1?: number;
-        score2?: number;
-        status?: string;
-      };
+      const matchResponse: MatchResponse | null = await window.api.getMatch(
+        match.uuid
+      );
+      if (!matchResponse) {
+        continue;
+      }
 
       // Get display names directly from MatchResponse
-      const player1DisplayName = matchResponse.player1Name || null;
-      const player2DisplayName = matchResponse.player2Name || null;
+      const player1DisplayName = matchResponse.player1Name;
+      const player2DisplayName = matchResponse.player2Name;
 
       // Add players to stats if not already present (using display name as key)
       if (player1DisplayName && !playerStats.has(player1DisplayName)) {
@@ -143,8 +116,8 @@ function buildLeaderboard(
         player1DisplayName &&
         player2DisplayName
       ) {
-        const score1 = matchResponse.score1 || 0;
-        const score2 = matchResponse.score2 || 0;
+        const score1 = matchResponse.score1;
+        const score2 = matchResponse.score2;
 
         // Update player 1 stats
         const player1Stats = playerStats.get(player1DisplayName);
@@ -168,8 +141,8 @@ function buildLeaderboard(
           }
         }
       }
-    });
-  });
+    }
+  }
 
   // Convert to leaderboard entries
   const leaderboard: LeaderboardEntry[] = Array.from(playerStats.entries())
@@ -239,7 +212,8 @@ function buildLeaderboard(
 
 function showJoinTournamentDialog(
   tournamentUuid: string,
-  tournamentName: string
+  tournamentName: string,
+  onJoinSuccess?: () => void | Promise<void>
 ) {
   // Create modal backdrop
   const backdrop = document.createElement('div');
@@ -337,11 +311,13 @@ function showJoinTournamentDialog(
 
       try {
         await window.api.joinTournament(tournamentUuid, alias);
+        tournamentSocket.joinTournament(tournamentUuid);
 
-        // Success - close dialog and reload page to refresh tournament data
+        // Success - close dialog and refresh tournament data via SPA
         closeDialog();
-        // TODO: Replace with SPA state update
-        window.location.reload();
+        if (onJoinSuccess) {
+          void onJoinSuccess();
+        }
       } catch (error) {
         // Handle errors
         const errorMessage =
@@ -373,7 +349,8 @@ function getRoundColor(status: string): string {
 function renderTournamentHeader(
   container: HTMLElement,
   tournament: Tournament,
-  isParticipant: boolean
+  isParticipant: boolean,
+  onJoinSuccess?: () => void | Promise<void>
 ) {
   const tournamentHeader = document.createElement('div');
   tournamentHeader.className =
@@ -426,7 +403,11 @@ function renderTournamentHeader(
       text: 'Join Tournament',
       variant: 'secondary',
       onClick: () => {
-        showJoinTournamentDialog(tournament.uuid, tournament.tournamentName);
+        showJoinTournamentDialog(
+          tournament.uuid,
+          tournament.tournamentName,
+          onJoinSuccess
+        );
       },
       className: '!bg-accent !text-white hover:!bg-accent/90',
     });
@@ -626,7 +607,11 @@ function renderLoadingState(container: HTMLElement) {
   container.appendChild(loadingState);
 }
 
-function renderErrorState(container: HTMLElement, message: string) {
+function renderErrorState(
+  container: HTMLElement,
+  message: string,
+  onRetry?: () => void | Promise<void>
+) {
   const errorState = document.createElement('div');
   errorState.className = 'py-16 text-center';
   errorState.innerHTML = `
@@ -644,7 +629,12 @@ function renderErrorState(container: HTMLElement, message: string) {
   const retryBtn = errorState.querySelector('#retry-btn');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
-      window.location.reload();
+      if (onRetry) {
+        void onRetry();
+      } else {
+        // Fallback: re-initialize the route
+        void initRoute();
+      }
     });
   }
   container.appendChild(errorState);
@@ -731,70 +721,7 @@ export default async function initRoute() {
   let currentTournament: Tournament | null = null;
   let currentLeaderboard: LeaderboardEntry[] = [];
   let currentUIRounds: Round[] = [];
-  let participantAliases = new Map<string, string>(); // Map of user UUID -> alias
   let allParticipantAliases: string[] = []; // All aliases from participants endpoint
-
-  /**
-   * Fetch participant aliases for the tournament
-   * Fetches from the participants endpoint and creates a map of aliases
-   * Note: The endpoint returns only aliases (strings), not UUIDs, so we store them
-   * in a way that allows us to use them for players found in matches
-   */
-  const fetchParticipantAliases = async (
-    // tournament: Tournament,
-    _rounds: TournamentRoundResponse[]
-  ): Promise<{ aliasMap: Map<string, string>; allAliases: string[] }> => {
-    const aliasMap = new Map<string, string>();
-
-    // TODO: if required -> fetch window.api.getTournamentParticipants
-    // First, try to get aliases from tournament.participants if available (admin view)
-    // const participants = tournament.participants || [];
-    // participants.forEach((participant) => {
-    //   const participantTyped = participant as {
-    //     alias?: string;
-    //     user?: { uuid?: string };
-    //   };
-    //   const user = participantTyped.user;
-    //   const participantId = user?.uuid;
-    //   const alias = participantTyped.alias;
-    //   if (participantId && alias) {
-    //     aliasMap.set(participantId, alias);
-    //   }
-    // });
-
-    // If we already have aliases from tournament.participants, return early
-    if (aliasMap.size > 0) {
-      return { aliasMap, allAliases: Array.from(aliasMap.values()) };
-    }
-
-    // Otherwise, fetch from the participants endpoint
-    let allAliases: string[] = [];
-    try {
-      const participantsResponse = await window.api
-        .getTournamentParticipants(tournamentUuid)
-        .catch(() => null);
-      // Type guard to ensure we have the correct response structure
-      if (
-        participantsResponse &&
-        typeof participantsResponse === 'object' &&
-        'participants' in participantsResponse &&
-        Array.isArray(
-          (participantsResponse as { participants: unknown }).participants
-        )
-      ) {
-        allAliases = (participantsResponse as { participants: string[] })
-          .participants;
-      }
-
-      // Note: We can't extract UUIDs from matches anymore since they're not exposed
-      // The aliases are used directly in the leaderboard for players who haven't played yet
-    } catch (error) {
-      console.error('Error fetching tournament participants:', error);
-      // Fallback: return empty map, will use nicknames from matches
-    }
-
-    return { aliasMap, allAliases };
-  };
 
   // Function to refresh tournament data
   const refreshTournamentData = async () => {
@@ -827,14 +754,22 @@ export default async function initRoute() {
         }));
 
         // Fetch participant aliases
-        const aliasData = await fetchParticipantAliases(updatedRounds);
-        participantAliases = aliasData.aliasMap;
-        allParticipantAliases = aliasData.allAliases;
+        const participantsResponse: TournamentParticipantsResponse | null =
+          await window.api.getTournamentParticipants(tournamentUuid);
+        if (!participantsResponse) {
+          toast.show('Failed to fetch tournament participants', {
+            variant: 'error',
+          });
+          if (allParticipantAliases.length === 0) {
+            return;
+          }
+        } else {
+          allParticipantAliases = participantsResponse.participants;
+        }
 
-        currentLeaderboard = buildLeaderboard(
+        currentLeaderboard = await buildLeaderboard(
           updatedTournament,
           updatedRounds,
-          participantAliases,
           allParticipantAliases
         );
 
@@ -865,7 +800,8 @@ export default async function initRoute() {
         renderTournamentHeader(
           headerDiv,
           updatedTournament,
-          isParticipantRefresh
+          isParticipantRefresh,
+          refreshTournamentData
         );
         innerContainer.appendChild(headerDiv);
 
@@ -926,7 +862,9 @@ export default async function initRoute() {
     const tournament: Tournament | null =
       await window.api.getTournament(tournamentUuid);
     if (!tournament) {
-      renderErrorState(innerContainer, 'Tournament not found');
+      renderErrorState(innerContainer, 'Tournament not found', () =>
+        initRoute()
+      );
       return;
     }
 
@@ -969,15 +907,25 @@ export default async function initRoute() {
     }));
 
     // Fetch participant aliases
-    const aliasData = await fetchParticipantAliases(rounds);
-    participantAliases = aliasData.aliasMap;
-    allParticipantAliases = aliasData.allAliases;
+    const participantsResponse: TournamentParticipantsResponse | null =
+      await window.api.getTournamentParticipants(tournamentUuid);
+    if (!participantsResponse) {
+      const errorMessage = 'Failed to fetch tournament participants';
+      renderErrorState(innerContainer, errorMessage, () => initRoute());
+      showApiError({
+        message: errorMessage,
+        status: 0,
+        shouldRedirect: false,
+      });
+      return;
+    }
+
+    allParticipantAliases = participantsResponse.participants;
 
     // Build leaderboard with alias map
-    currentLeaderboard = buildLeaderboard(
+    currentLeaderboard = await buildLeaderboard(
       tournament,
       rounds,
-      participantAliases,
       allParticipantAliases
     );
 
@@ -1007,7 +955,12 @@ export default async function initRoute() {
 
     // Render header with tournament data
     const headerDiv = document.createElement('div');
-    renderTournamentHeader(headerDiv, tournament, isParticipant);
+    renderTournamentHeader(
+      headerDiv,
+      tournament,
+      isParticipant,
+      refreshTournamentData
+    );
     innerContainer.appendChild(headerDiv);
 
     // Add status badge to header
@@ -1144,9 +1097,6 @@ export default async function initRoute() {
         }
       });
     }
-
-    // Join specific tournament room (will fail gracefully if backend not ready)
-    tournamentSocket.joinTournament(tournamentUuid);
   } catch (error) {
     innerContainer.innerHTML = '';
     const errorMessage =
@@ -1156,9 +1106,10 @@ export default async function initRoute() {
       renderErrorState(
         innerContainer,
         'You must be a participant to view this tournament'
+        // No retry for Forbidden errors - user doesn't have permission
       );
     } else {
-      renderErrorState(innerContainer, errorMessage);
+      renderErrorState(innerContainer, errorMessage, () => initRoute());
     }
 
     showApiError({
