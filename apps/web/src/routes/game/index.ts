@@ -594,7 +594,8 @@ function setupGameInput() {
     clearInterval(inputInterval);
   }
 
-  // TODO: stop interval on game over
+  // TODO: stop interval on game over: @mlubbers check whether keepresses
+  // are still being sent to server after game over (if so, stop this interval on game over)
   inputInterval = setInterval(() => {
     if (!isRouteActive) {
       // Stop if route is no longer active

@@ -114,7 +114,7 @@ async function handleJoinLocalGame(socket: WSocket) {
   console.log(`localGame ended: ${newRoomName} with ${socket.uuid}`);
 }
 
-// TODO: add cache expiration
+// TODO: LOW PRIO: add cache expiration
 const matchParticipantsCache = new Map<string, MatchParticipantsResponse>();
 
 async function getMatchParticipants(matchUuid: string) {
