@@ -28,12 +28,6 @@ export function resetCanvas() {
   serverState = { ...initServerState };
 }
 
-export let clientId = localStorage.getItem('transcendenceClientId');
-if (!clientId) {
-  clientId = Math.random().toString(36).slice(2, 10);
-  localStorage.setItem('transcendenceClientId', clientId);
-}
-
 // === Game state ===
 export const ballSize = 5;
 export const padding = 10;
@@ -156,9 +150,7 @@ export function getCtx() {
   const { ctx: c } = initCanvas();
   return c;
 }
-export function getClientId() {
-  return clientId;
-}
+
 export function getServerState() {
   return serverState;
 }

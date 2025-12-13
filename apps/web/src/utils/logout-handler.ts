@@ -18,5 +18,7 @@ export async function handleLogout(): Promise<void> {
   }
 
   window.user = null;
+
+  window.socket.disconnect();
   window.router.navigate('/login');
 }
