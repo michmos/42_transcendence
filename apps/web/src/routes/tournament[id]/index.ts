@@ -10,7 +10,6 @@ import type {
 import { showApiError } from '../../utils/api-helpers.js';
 import tournamentSocket from '../../plugins/websocket/tournament.js';
 import toast from '../../utils/toast.js';
-import { shouldShowNotification } from '../../utils/notification-dedup.js';
 import { getAvatarSrc } from '../../utils/avatar-helpers.js';
 
 // Extend Window interface for SPA navigation
@@ -1074,28 +1073,6 @@ export default async function initRoute() {
     tournamentSocket.on('tournament-started', handleTournamentStarted);
     tournamentSocket.on('match-updated', handleMatchUpdated);
     tournamentSocket.on('round-completed', handleRoundCompleted);
-
-    // Handle "notify" events (not supported by tournamentSocket plugin)
-    if (window.socket) {
-      // TODO: Needs unregister method in Socket class
-      window.socket.registerWebSocketHook((event: MessageEvent) => {
-        try {
-          const data = JSON.parse(event.data as string) as {
-            event?: string;
-            message?: string;
-          };
-          if (
-            data.event === 'notify' &&
-            data.message &&
-            shouldShowNotification(data.message)
-          ) {
-            toast.show(data.message, { variant: 'info' });
-          }
-        } catch {
-          // Ignore non-JSON or non-matching messages
-        }
-      });
-    }
   } catch (error) {
     innerContainer.innerHTML = '';
     const errorMessage =
