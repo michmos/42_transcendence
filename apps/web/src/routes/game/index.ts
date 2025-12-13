@@ -156,6 +156,9 @@ let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 function setupEventListeners() {
   // handle key presses
   keydownHandler = (e) => {
+    if (serverState.gameOver) {
+      return;
+    }
     keys[e.key.toLowerCase()] = true;
     if (e.key === 'p') {
       sendMessage({ action: 'pause' });
@@ -594,11 +597,17 @@ function setupGameInput() {
     clearInterval(inputInterval);
   }
 
-  // TODO: stop interval on game over: @mlubbers check whether keepresses
-  // are still being sent to server after game over (if so, stop this interval on game over)
   inputInterval = setInterval(() => {
     if (!isRouteActive) {
       // Stop if route is no longer active
+      return;
+    }
+
+    if (serverState.gameOver) {
+      if (inputInterval) {
+        clearInterval(inputInterval);
+        inputInterval = null;
+      }
       return;
     }
 
