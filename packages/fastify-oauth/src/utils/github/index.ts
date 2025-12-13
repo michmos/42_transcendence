@@ -1,3 +1,4 @@
+import { env } from '../../env.js';
 interface GithubUser {
   login: string;
   id: number;
@@ -93,8 +94,8 @@ import type { OAuthProviderOptions } from '../../index.js';
 const GitHub: OAuthProviderOptions = {
   name: 'GitHub',
   client: {
-    id: process.env.GITHUB_CLIENT_ID || '',
-    secret: process.env.GITHUB_CLIENT_SECRET || '',
+    id: env.GITHUB_CLIENT_ID,
+    secret: env.GITHUB_CLIENT_SECRET,
   },
   auth: {
     tokenHost: 'https://github.com',

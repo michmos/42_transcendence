@@ -185,11 +185,6 @@ const TournamentsAPI = {
         throw new Error(`Failed to join tournament: ${response.status}`);
       }
 
-      // Join socket room if available
-      if (window.socket) {
-        window.socket.joinRoom(`tournament:${tournamentUuid}`);
-      }
-
       // Response is 204, but backend returns tournament in body
       return (await response.json()) as Tournament;
     } catch (error) {
@@ -236,11 +231,6 @@ const TournamentsAPI = {
 
       if (!response.ok) {
         throw new Error(`Failed to leave tournament: ${response.status}`);
-      }
-
-      // Leave socket room if available
-      if (window.socket) {
-        window.socket.leaveRoom(`tournament:${tournamentUuid}`);
       }
     } catch (error) {
       console.error('Error leaving tournament:', error);
@@ -303,7 +293,7 @@ const TournamentsAPI = {
 
   async getTournamentParticipants(
     tournamentUuid: string
-  ): Promise<TournamentParticipantsResponse> {
+  ): Promise<TournamentParticipantsResponse | null> {
     try {
       const response = await fetch(
         `/api/tournaments/${tournamentUuid}/participants`,
@@ -313,20 +303,15 @@ const TournamentsAPI = {
         }
       );
 
-      // TODO: @pminialg -> maybe you want to handle differently
-      if (response.status === 404) {
-        throw new Error(`Tournament not found: ${response.status}`);
-      }
-
       if (!response.ok) {
-        throw new Error(`Failed to fetch tournament: ${response.status}`);
+        console.error(`Failed to fetch tournament: ${response.status}`);
+        return null;
       }
 
       return (await response.json()) as TournamentParticipantsResponse;
     } catch (error) {
-      // TODO: @pminialg -> maybe you want to handle differently
       console.error('Error fetching tournament:', error);
-      throw error;
+      return null;
     }
   },
 

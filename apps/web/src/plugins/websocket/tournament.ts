@@ -94,52 +94,12 @@ class TournamentSocket {
   }
 
   /**
-   * Join the tournament list room (tournament:main)
-   * This allows receiving updates about all tournaments
-   */
-  public joinTournamentList() {
-    if (!window.socket) {
-      console.warn('window.socket not available, cannot join tournament list');
-      return;
-    }
-
-    // Wait for connection if not ready yet
-    if (!window.socket.isConnected()) {
-      // Try again after a short delay
-      setTimeout(() => {
-        if (window.socket?.isConnected()) {
-          try {
-            window.socket.joinRoom('tournament:main');
-          } catch (error) {
-            console.warn('Failed to join tournament list room:', error);
-          }
-        } else {
-          console.warn('Socket not connected, cannot join tournament list');
-        }
-      }, 500);
-      return;
-    }
-
-    try {
-      window.socket.joinRoom('tournament:main');
-    } catch (error) {
-      console.warn('Failed to join tournament list room:', error);
-    }
-  }
-
-  /**
    * Join a specific tournament room
    * Uses window.socket (same as tournamentOps.ts and tournament.ts API)
    */
   public joinTournament(uuid: string) {
-    if (!window.socket || !window.socket.isConnected()) {
-      console.warn('Socket not connected, cannot join tournament');
-      return;
-    }
-    try {
+    if (window.socket) {
       window.socket.joinRoom(`tournament:${uuid}`);
-    } catch (error) {
-      console.warn(`Failed to join tournament ${uuid} room:`, error);
     }
   }
 
@@ -148,11 +108,8 @@ class TournamentSocket {
    * Uses window.socket (same as tournamentOps.ts and tournament.ts API)
    */
   public leaveTournament(uuid: string) {
-    if (!window.socket || !window.socket.isConnected()) return;
-    try {
+    if (window.socket) {
       window.socket.leaveRoom(`tournament:${uuid}`);
-    } catch (error) {
-      console.warn(`Failed to leave tournament ${uuid} room:`, error);
     }
   }
 

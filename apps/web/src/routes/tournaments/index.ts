@@ -601,6 +601,7 @@ function showJoinTournamentDialog(
 
       try {
         await window.api.joinTournament(tournamentUuid, alias);
+        tournamentSocket.joinTournament(tournamentUuid);
 
         // Add to myTournaments Set (user is now a participant)
         myTournaments.add(tournamentUuid);
@@ -817,6 +818,7 @@ function showNewTournamentDialog(
         // Auto-join the tournament as the creator (required: creator must be added automatically)
         try {
           await window.api.joinTournament(tournament.uuid, alias);
+          tournamentSocket.joinTournament(tournament.uuid);
           // Add to myTournaments Set (creator is automatically a participant)
           myTournaments.add(tournament.uuid);
           tournamentsMap.set(tournament.uuid, tournament);
@@ -1191,9 +1193,6 @@ export default async function initRoute() {
   tournamentSocket.on('tournament-joined', handleTournamentJoined);
   tournamentSocket.on('tournament-left', handleTournamentLeft);
   tournamentSocket.on('tournament-updated', handleTournamentUpdated);
-
-  // Join tournament list room (will fail gracefully if backend not ready)
-  tournamentSocket.joinTournamentList();
 
   // Initial load
   await loadTournaments();
