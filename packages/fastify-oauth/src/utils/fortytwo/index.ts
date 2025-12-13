@@ -233,8 +233,8 @@ import type { OAuthProviderOptions } from '../../index.js';
 const FortyTwo: OAuthProviderOptions = {
   name: '42',
   client: {
-    id: env.FORTYTWO_CLIENT_ID || '',
-    secret: env.FORTYTWO_CLIENT_SECRET || '',
+    id: env.FORTYTWO_CLIENT_ID,
+    secret: env.FORTYTWO_CLIENT_SECRET,
   },
   auth: {
     tokenHost: 'https://api.intra.42.fr',

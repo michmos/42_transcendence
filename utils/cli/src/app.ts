@@ -62,8 +62,6 @@ async function gameHandler() {
     }
     const game = new Game(socket);
     await game.startGameSession();
-    // Give stdin a moment to settle
-    await new Promise((resolve) => setTimeout(resolve, 100));
     menu.resume();
     menu.showMenu();
   }
