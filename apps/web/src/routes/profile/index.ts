@@ -769,7 +769,7 @@ function createFriendItem(friend: ProfileFriend): HTMLElement {
   `;
 
   item.addEventListener('click', () => {
-    window.router.refresh();
+    window.router.navigate(`/profile/${friend.otherUser}`);
   });
 
   return item;
