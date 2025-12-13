@@ -14,6 +14,10 @@ export function getUser(socket: WSocket) {
   return newUser;
 }
 
+export function getUserByUuid(uuid: string) {
+  return uuidToUser.get(uuid);
+}
+
 export default class User {
   private sockets: Set<WSocket>;
   public uuid: string;

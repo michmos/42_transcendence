@@ -406,7 +406,7 @@ function renderTournamentHeader(
           onJoinSuccess
         );
       },
-      className: '!bg-accent !text-white hover:!bg-accent/90',
+      className: '!bg-accent hover:!bg-accent/90',
     });
   }
 

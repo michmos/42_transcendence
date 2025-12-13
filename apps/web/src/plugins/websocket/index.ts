@@ -5,9 +5,11 @@ class Socket {
   private hooks: Array<(_event: MessageEvent) => void> = [];
   private connectionTries: number = 0;
   private reconnection: boolean = false;
+  private paused: boolean = false;
 
   constructor(url?: string) {
     console.log('📦 Initializing WebSocket connection...');
+    this.paused = false;
     if (url) {
       this.connect(url);
     }
@@ -19,6 +21,13 @@ class Socket {
     return () => {
       this.hooks = this.hooks.filter((h) => h !== hook);
     };
+  }
+
+  public disconnect() {
+    this.paused = true;
+    if (this.socket) {
+      this.socket.close();
+    }
   }
 
   private executeWebSocketCallbacks(event: MessageEvent) {
@@ -72,12 +81,11 @@ class Socket {
 
     this.socket.onclose = () => {
       console.log('WebSocket connection closed');
-      if (!this.reconnection) this.reconnect(url);
+      if (!this.reconnection && !this.paused) this.reconnect(url);
     };
 
-    this.socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      if (!this.reconnection) this.reconnect(url);
+    this.socket.onerror = () => {
+      if (!this.reconnection && !this.paused) this.reconnect(url);
     };
   }
 
