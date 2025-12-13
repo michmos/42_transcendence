@@ -221,7 +221,6 @@ const unregisterOnMessageHook = window.socket.registerWebSocketHook((event) => {
   const message = JSON.parse(event.data as string) as IncomingMessage;
 
   if (typeof message === 'object' && 'event' in message) {
-    console.log('friends message received');
     switch (message.event) {
       case 'friends-updated': {
         void refreshFriendsData();
