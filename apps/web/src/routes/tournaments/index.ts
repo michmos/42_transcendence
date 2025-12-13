@@ -956,6 +956,7 @@ export default async function initRoute() {
       // Fetch user's tournaments (for myTournaments set)
       const userTournaments = await window.api.getMyTournaments(statusFilter);
 
+      const showTournaments = [...outstandingTournaments, ...userTournaments];
       // Populate Sets and Map
       myTournaments.clear();
       openTournaments.clear();
@@ -965,7 +966,7 @@ export default async function initRoute() {
       // Also fetch full tournament details for user's tournaments to ensure they appear in the list
       // even if their status changed (e.g., from 'outstanding' to 'ongoing')
       // Process tournaments sequentially to avoid overwhelming the API
-      for (const participation of userTournaments) {
+      for (const participation of showTournaments) {
         if (
           !participation ||
           typeof participation !== 'object' ||
